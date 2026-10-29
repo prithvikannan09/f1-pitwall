@@ -211,6 +211,8 @@ def build_laps(laps_raw, drivers, stints, pits, control, start):
         "Sector2Time": pd.to_timedelta(pd.to_numeric(df["duration_sector_2"], errors="coerce"), unit="s").values,
         "Sector3Time": pd.to_timedelta(pd.to_numeric(df["duration_sector_3"], errors="coerce"), unit="s").values,
         "SpeedST": pd.to_numeric(df.get("st_speed"), errors="coerce").values,
+        "SpeedI1": pd.to_numeric(df["i1_speed"], errors="coerce").values if "i1_speed" in df else np.nan,
+        "SpeedI2": pd.to_numeric(df["i2_speed"], errors="coerce").values if "i2_speed" in df else np.nan,
         "LapStartTime": (df["lap_start"] - start).values,
         "Time": (end - start).values,
         "Deleted": False,

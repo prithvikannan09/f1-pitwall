@@ -86,3 +86,19 @@ def test_laps_frame_flags(replay):
     assert not df.loc[df["PitInTime"].notna(), "IsAccurate"].any()
     table, _ = compound_table(df, 56)
     assert set(["SOFT", "MEDIUM", "HARD"]) <= set(table)
+
+
+def test_car_profile_and_practice(replay):
+    from f1analytics.live.replay import SessionReplay
+    from f1analytics.pitwall.car import mode_hints, practice_summary, speed_profile
+
+    sp = speed_profile(replay.snapshot(40), "HAM", "LEC")
+    assert sp and sp["cars"] == 22 and "wing" in sp["level"]
+    assert isinstance(mode_hints(replay.snapshot(40), "HAM"), list)
+    fp = SessionReplay(load_fixture(BUNDLED.parent / "mex2025_fp2"))
+    snap = fp.snapshot_at(fp.duration_s)
+    summary = practice_summary(snap, "Ferrari", "HAM")
+    assert [c["car"]["code"] for c in summary["cars"]][0] == "HAM"
+    assert summary["cars"][0]["runs"] and len(summary["wear"])
+    lec = next(d for d in snap["drivers"] if d["code"] == "LEC")
+    assert lec["position"] == 2 and abs(lec["best_lap"] - 77.545) < 1e-6

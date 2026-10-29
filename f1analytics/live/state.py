@@ -61,6 +61,14 @@ def parse_gap(value):
         return None, 0
 
 
+def _speeds(line):
+    sp = line.get("Speeds") or {}
+    out = {}
+    for key in ("ST", "I1", "I2", "FL"):
+        out[key.lower()] = _f((sp.get(key) or {}).get("Value"))
+    return out
+
+
 def _f(value):
     try:
         return float(value)
@@ -153,6 +161,7 @@ class LiveState:
             "pit_in": "pit_in" in flags or bool(line.get("InPit")),
             "pit_out": "pit_out" in flags,
             "track_status": status,
+            **_speeds(line),
         })
 
     def _fix_last(self, num, line):
@@ -220,6 +229,7 @@ def build_snapshot(state, laps, source="live"):
     if isinstance(messages, dict):
         messages = [messages[k] for k in sorted(messages, key=int)]
     start = info.get("StartDate") or ""
+    clock = state.get("ExtrapolatedClock") or {}
     return {
         "source": source,
         "updated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -234,6 +244,7 @@ def build_snapshot(state, laps, source="live"):
             "total_laps": int(count.get("TotalLaps") or 0),
             "track_status": str(track.get("Status", "1")),
             "track_message": track.get("Message"),
+            "remaining": clock.get("Remaining"),
         },
         "weather": {k: _f(v) for k, v in wx.items() if not k.startswith("_")},
         "drivers": drivers,

@@ -26,3 +26,14 @@ def test_pit_wall_page_live_and_replay(tmp_path, monkeypatch):
     at.slider(key="pw_lap").set_value(14).run()
     assert not at.exception and not at.error
     assert any("BOX THIS LAP" in m.value for m in at.markdown)
+
+
+def test_pit_wall_practice_replay():
+    page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
+    at = AppTest.from_file(page, default_timeout=120)
+    at.run()
+    at.sidebar.radio[0].set_value("Replay").run()
+    at.sidebar.radio[1].set_value("2025 Mexico · Practice 2 (bundled)").run()
+    assert not at.exception and not at.error
+    text = " ".join(m.value for m in at.markdown)
+    assert "HAM" in text and "Long runs" in text and "Wing level" in text
