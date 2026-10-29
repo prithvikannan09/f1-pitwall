@@ -57,6 +57,19 @@ Checked against real races. 2025 Mexico: box calls for Leclerc (window laps 26�
 
 **Limits:** pit loss starts as a track estimate and switches to the measured value after 4+ green-flag stops. Tyre wear is a straight-line model blended with defaults until enough laps are in. Car positions on track, DRS and pit-stop durations are paid F1TV data and not used. The live feed is unofficial and for personal use; if this becomes a paid product it needs a data licence.
 
+### On your phone (hosted, Mac can be off)
+
+The repo has a hosted entry point, `pitwall_app.py`, that runs the live recorder inside the app, so nothing needs to run on your laptop.
+
+1. On your phone open **share.streamlit.io** → *Continue with GitHub* → sign in as `prithvikannan09` and allow access to private repos.
+2. *Create app* → *Deploy from GitHub*: repository `prithvikannan09/f1-pitwall`, branch `main`, main file `pitwall_app.py`, pick an app URL (e.g. `hamilton-pitwall`). Under *Advanced settings* choose Python 3.12. Deploy (first build takes about 5 minutes).
+3. In the app press *Share* (top right) and switch on **This app is public**, so anyone with the link can open it.
+4. You want: "Ferrari Pit Wall" with "Live feed connected". Between sessions it shows the last session; during a session it switches by itself (practice view in FP1–FP3 and qualifying, race calls in the race).
+
+Open the link **10–15 minutes before each session** so the app is awake and starts recording laps from the beginning (free hosted apps sleep after hours without visitors). Add `?driver=LEC` or `?team=McLaren` to the link to change the default focus.
+
+**Wing and mode estimates:** real wing angles and engine/energy modes are private to the teams. The pit wall estimates the wing level from top speed against the field, and flags laps where straight-line speed jumps (tow or extra battery deployment) or drops (harvesting or lifting). Treat these as hints, not facts.
+
 ## Where the data comes from
 
 Since 2025 the official F1 timing archive that FastF1 reads asks for an F1 account login (it answers "401 unauthorised" without one). So the app has four data modes:
@@ -109,7 +122,7 @@ CRON_TZ=Asia/Kolkata
 pytest
 ```
 
-76 tests, all offline, including a headless run of every dashboard tab.
+78 tests, all offline, including a headless run of every dashboard tab.
 
 ## Credits
 
