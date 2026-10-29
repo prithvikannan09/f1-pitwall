@@ -27,6 +27,36 @@ python3.12 -m venv .venv && source .venv/bin/activate
 
 The first time you open a real session it takes up to a minute or two (the free data service limits how fast we can ask). After that it is saved in `fastf1_cache/` and opens in about a second.
 
+## Live pit wall (Ferrari by default)
+
+A second page, **Pit Wall**, follows a live race from F1's own free live-timing feed (the one the official app uses; no login needed for timing, gaps, tyres, race control and weather). For each car of the chosen team it shows:
+
+- **Box / stay-out call** with the pit window, the tyre to fit, Plan A and Plan B, and where the car would rejoin (and who it would be stuck behind) if it boxed now.
+- **Undercut threats:** live chance (from 3,000 simulated stops) of undercutting the car ahead, and of the car behind undercutting us. Teammates are not treated as threats.
+- **Safety Car plan:** "box now under SC / VSC?" with the cheaper stop worked out, plus a double-stack warning when both cars would queue.
+- **Tyre wear:** this stint's wear rate against the field on the same compound.
+
+### Race night (all times IST)
+
+The Mexico City GP starts **01:30 IST Monday 2 Nov** (qualifying 02:30 IST Sunday 1 Nov).
+
+1. **Before 01:15**, in Terminal 1: `cd ~/code/f1-analytics && source .venv/bin/activate && python -m f1analytics live record`
+   You want: `feed status: {'connected': True}` and a `snapshot:` line naming the Mexico City Grand Prix.
+2. In Terminal 2: `cd ~/code/f1-analytics && source .venv/bin/activate && streamlit run app.py`, then click **Pit Wall** in the left menu. Leave Mode on **Live**.
+3. Keep Terminal 1 running for the whole race. If the Mac sleeps or Wi-Fi drops, the recorder reconnects by itself; lap history before the drop is kept.
+
+Start the recorder **before** lights out: tyre-wear fits need the lap history from the start of the race.
+
+### Test it any time
+
+- `python -m f1analytics live check`: confirms the live feed answers.
+- `python -m f1analytics live demo --seconds 3`: replays last Sunday's US GP into the Live pit wall, one lap every 3 s.
+- Or switch the page to **Replay** and scrub through any 2023+ race lap by lap.
+
+Checked against real races. 2025 Mexico: box calls for Leclerc (window laps 26–32, stopped lap 31, then no more stops) and Hamilton (laps 21–29 → stopped 23; laps 41–47 → stopped 47). 2026 US GP: Leclerc box call at lap 12–14, stopped lap 15.
+
+**Limits:** pit loss starts as a track estimate and switches to the measured value after 4+ green-flag stops. Tyre wear is a straight-line model blended with defaults until enough laps are in. Car positions on track, DRS and pit-stop durations are paid F1TV data and not used. The live feed is unofficial and for personal use; if this becomes a paid product it needs a data licence.
+
 ## Where the data comes from
 
 Since 2025 the official F1 timing archive that FastF1 reads asks for an F1 account login (it answers "401 unauthorised" without one). So the app has four data modes:
@@ -79,7 +109,7 @@ CRON_TZ=Asia/Kolkata
 pytest
 ```
 
-60 tests, all offline, including a headless run of every dashboard tab.
+76 tests, all offline, including a headless run of every dashboard tab.
 
 ## Credits
 

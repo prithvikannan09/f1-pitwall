@@ -97,7 +97,11 @@ class OpenF1Source:
             hit = sched[sched["RoundNumber"] == int(gp)]
         else:
             needle = str(gp).lower()
-            hit = sched[sched[["EventName", "Location", "Country"]].apply(lambda c: c.str.lower().str.contains(needle, regex=False)).any(axis=1)]
+            hit = sched.iloc[0:0]
+            for col in ("EventName", "Location", "Country"):
+                hit = sched[sched[col].astype(str).str.lower().str.contains(needle, regex=False)]
+                if len(hit):
+                    break
         if hit.empty:
             raise LookupError(f"No event matching {gp!r} in {year}")
         event = hit.iloc[0]

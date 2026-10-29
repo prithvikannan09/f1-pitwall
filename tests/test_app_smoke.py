@@ -14,3 +14,15 @@ def test_app_renders_every_tab(tmp_path, monkeypatch):
     assert len(at.tabs) == 8
     labels = {m.label for m in at.metric}
     assert {"Top speed", "Undercut works", "Track temp"} <= labels
+
+
+def test_pit_wall_page_live_and_replay(tmp_path, monkeypatch):
+    monkeypatch.setenv("F1_LIVE_DIR", str(tmp_path))
+    page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
+    at = AppTest.from_file(page, default_timeout=120)
+    at.run()
+    assert not at.exception
+    at.sidebar.radio[0].set_value("Replay").run()
+    at.slider(key="pw_lap").set_value(14).run()
+    assert not at.exception and not at.error
+    assert any("BOX THIS LAP" in m.value for m in at.markdown)

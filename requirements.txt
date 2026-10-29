@@ -6,3 +6,4 @@ numpy>=1.26
 scipy>=1.11
 duckdb>=1.1
 pytest>=8
+websockets>=13

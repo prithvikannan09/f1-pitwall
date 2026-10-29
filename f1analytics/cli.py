@@ -103,6 +103,10 @@ def build_parser():
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "live":
+        from f1analytics.live.cli import main as live_main
+
+        return live_main(argv[1:])
     if "refresh" in argv:
         i = argv.index("refresh")
         from f1analytics.refresh import main as refresh_main

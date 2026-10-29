@@ -6,3 +6,5 @@ data/*.duckdb.wal
 fastf1_cache/
 logs/
 .venv/
+data/live/
+data/*.png
