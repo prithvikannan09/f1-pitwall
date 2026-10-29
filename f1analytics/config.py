@@ -1,0 +1,55 @@
+import os
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+DB_PATH = Path(os.environ.get("F1_DB_PATH", ROOT / "data" / "f1.duckdb"))
+CACHE_DIR = Path(os.environ.get("F1_CACHE_DIR", ROOT / "fastf1_cache"))
+LOG_DIR = Path(os.environ.get("F1_LOG_DIR", ROOT / "logs"))
+SQL_DIR = Path(__file__).resolve().parent / "sql"
+
+DEFAULT_YEAR = 2024
+DEFAULT_GP = "Mexico"
+SESSION_CODES = ["FP1", "FP2", "FP3", "SQ", "S", "Q", "R"]
+RACE_CODES = {"R", "S"}
+NEUTRALISED_STATUS_CODES = {"4", "5", "6", "7"}
+SAFETY_CAR_CODE = "4"
+VSC_CODE = "6"
+
+COMPOUND_COLORS = {
+    "SOFT": "#FF3333",
+    "MEDIUM": "#FFF200",
+    "HARD": "#EBEBEB",
+    "INTERMEDIATE": "#43B02A",
+    "WET": "#0067AD",
+    "UNKNOWN": "#888888",
+}
+
+START_FUEL_KG = 105.0
+FUEL_SEC_PER_KG = 0.033
+FUEL_RANGE_KG = (95.0, 105.0, 110.0)
+FUEL_SENSITIVITY_RANGE = (0.030, 0.033, 0.037)
+
+DEG_MIN_LAPS = 5
+DEG_MAD_CUTOFF = 3.0
+MIN_STINT_LAPS = 8
+PIT_WINDOW_TOLERANCE_S = 1.0
+
+DEFAULT_PIT_LOSS_S = 22.0
+PIT_STOP_SIGMA_S = 0.4
+SLOW_STOP_PROB = 0.05
+SLOW_STOP_EXTRA_MEAN_S = 3.0
+LAP_NOISE_SIGMA_S = 0.25
+SC_RACE_PROB = 0.50
+VSC_RACE_PROB = 0.30
+SC_PIT_FACTOR = 0.45
+VSC_PIT_FACTOR = 0.65
+TRACK_EVOLUTION_MEAN = 0.03
+TRACK_EVOLUTION_SIGMA = 0.015
+WARMUP_PENALTY_S = 0.8
+PASS_PROB_PER_LAP = 0.3
+TRAFFIC_LOSS_PER_LAP_S = 0.6
+TRAFFIC_CLEAR_AIR_S = 1.0
+DEFAULT_FIELD_GAPS = (1.5, 4.0, 7.5, 12.0, 18.0, 21.5, 24.0, 30.0)
+SIM_RUNS = 10_000
+SIM_SEED = 42
+REFRESH_MIN_AGE_HOURS = 3
