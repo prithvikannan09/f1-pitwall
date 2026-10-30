@@ -400,7 +400,8 @@ def circuit_outline(circuit_key, year):
             if r.ok:
                 d = r.json()
                 if d.get("x") and d.get("y"):
-                    return {"x": d["x"], "y": d["y"], "rotation": float(d.get("rotation") or 0)}
+                    corners = [(c["number"], c["trackPosition"]["x"], c["trackPosition"]["y"]) for c in d.get("corners") or [] if c.get("trackPosition")]
+                    return {"x": d["x"], "y": d["y"], "rotation": float(d.get("rotation") or 0), "corners": corners}
         except Exception:
             continue
     return None
@@ -414,18 +415,46 @@ def _rotate(xs, ys, deg):
     return [x * c - y * s_ for x, y in zip(xs, ys)], [x * s_ + y * c for x, y in zip(xs, ys)]
 
 
+def _outline_for(snap):
+    from f1analytics.pitwall.tracks import circuit_key_for
+
+    s = snap.get("session") or {}
+    key = snap.get("circuit_key") or circuit_key_for(s.get("circuit"), s.get("meeting"))
+    try:
+        return circuit_outline(key, int(s.get("year") or 0) or None) if key else None
+    except Exception:
+        return None
+
+
+def _draw_outline(fig, outline):
+    ox, oy = _rotate(outline["x"], outline["y"], outline["rotation"])
+    fig.add_trace(go.Scatter(x=ox + ox[:1], y=oy + oy[:1], mode="lines", line=dict(color="#3A3A48", width=9), hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=ox + ox[:1], y=oy + oy[:1], mode="lines", line=dict(color="#22222C", width=5), hoverinfo="skip"))
+    fig.add_trace(go.Scatter(x=[ox[0]], y=[oy[0]], mode="markers", marker=dict(symbol="line-ns", size=16, line=dict(width=3, color="#F3F3F5")), hoverinfo="skip"))
+    if outline.get("corners"):
+        nums, cx, cy = zip(*outline["corners"])
+        rx, ry = _rotate(list(cx), list(cy), outline["rotation"])
+        fig.add_trace(go.Scatter(x=rx, y=ry, mode="text", text=[str(n) for n in nums], textfont=dict(size=9, color="#6B6B7A"), hoverinfo="skip"))
+    return ox, oy
+
+
+def _track_figure(fig, height=300):
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1)
+    fig.update_layout(showlegend=False, height=height, margin=dict(l=4, r=4, t=4, b=4))
+    return _font(fig)
+
+
 def real_track_map(snap, team, focus):
     pos = snap.get("positions") or {}
     if not pos:
         return False
     by_num = {d["number"]: d for d in snap.get("drivers", [])}
-    year = (snap.get("session") or {}).get("year")
-    outline = circuit_outline(snap.get("circuit_key"), year)
+    outline = _outline_for(snap)
     rot = outline["rotation"] if outline else 0.0
     fig = go.Figure()
     if outline:
-        ox, oy = _rotate(outline["x"], outline["y"], rot)
-        fig.add_trace(go.Scatter(x=ox + ox[:1], y=oy + oy[:1], mode="lines", line=dict(color="rgba(150,150,150,0.55)", width=6), hoverinfo="skip"))
+        _draw_outline(fig, outline)
     xs, ys, cols, sizes, labels, hovers = [], [], [], [], [], []
     for num, p in pos.items():
         d = by_num.get(num)
@@ -440,11 +469,9 @@ def real_track_map(snap, team, focus):
         hovers.append(f"P{d.get('position')} {d['code']}")
     fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers+text", text=labels, textposition="top center",
                              marker=dict(size=sizes, color=cols, line=dict(width=1, color="#222")), hovertext=hovers, hoverinfo="text"))
-    fig.update_xaxes(visible=False)
-    fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1)
-    fig.update_layout(showlegend=False, height=300, margin=dict(l=4, r=4, t=4, b=4))
+    _track_figure(fig)
     st.subheader("Track map (live GPS)")
-    st.plotly_chart(_font(fig), key=f"gps_{snap.get('positions_utc')}", config={"displayModeBar": False, "staticPlot": False})
+    st.plotly_chart(fig, key=f"gps_{snap.get('positions_utc')}", config={"displayModeBar": False, "staticPlot": False})
     st.caption("Real car positions from F1TV. Circuit outline: MultiViewer.")
     return True
 
@@ -457,6 +484,27 @@ def track_map(snap, team, focus):
         return
     ref = [d["last_lap"] for d in cars if d.get("last_lap")]
     lap = float(pd.Series(ref).median()) if ref else 90.0
+    outline = _outline_for(snap)
+    if outline:
+        fig = go.Figure()
+        ox, oy = _draw_outline(fig, outline)
+        n = len(ox)
+        xs, ys, cols, sizes, labels, hovers = [], [], [], [], [], []
+        for d in sorted(cars, key=lambda d: d["position"], reverse=True):
+            frac = (d["gap_to_leader"] % lap) / lap
+            i = int(round((1 - frac) % 1 * n)) % n
+            mine = team.lower() in str(d.get("team") or "").lower()
+            xs.append(ox[i]); ys.append(oy[i])
+            cols.append(d.get("colour") or "#888")
+            sizes.append(17 if d["code"] == focus else (13 if mine else 9))
+            labels.append(d["code"] if (mine or d["position"] <= 3) else "")
+            hovers.append(f"P{d['position']} {d['code']} " + ("leader" if d["position"] == 1 else f"+{d['gap_to_leader']:.1f}s"))
+        fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers+text", text=labels, textposition="top center", textfont=dict(size=11, color="#F3F3F5"),
+                                 marker=dict(size=sizes, color=cols, line=dict(width=1.5, color="#15151E")), hovertext=hovers, hoverinfo="text"))
+        st.subheader("Track (from gaps)")
+        st.plotly_chart(_track_figure(fig, 320), key=f"trackmap_{snap['session'].get('lap')}_{len(xs)}", config={"displayModeBar": False})
+        st.caption("The leader is drawn at the start line and everyone else behind by their time gap. An estimate: exact GPS positions need F1TV sign-in.")
+        return
     rows = []
     for d in cars:
         frac = (d["gap_to_leader"] % lap) / lap

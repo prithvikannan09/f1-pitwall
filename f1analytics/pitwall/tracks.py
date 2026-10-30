@@ -49,3 +49,24 @@ def pit_loss_for(circuit):
         if key and (name in key or key in name):
             return value, True
     return DEFAULT_PIT_LOSS_S, False
+
+
+CIRCUIT_KEYS = {
+    "silverstone": 2, "hungaroring": 4, "budapest": 4, "imola": 6, "spa": 7, "austin": 9, "united states": 9,
+    "melbourne": 10, "albert park": 10, "interlagos": 14, "sao paulo": 14, "são paulo": 14, "catalunya": 15, "barcelona": 15,
+    "spielberg": 19, "red bull ring": 19, "monaco": 22, "monte carlo": 22, "montreal": 23, "montréal": 23, "canada": 23,
+    "monza": 39, "suzuka": 46, "japan": 46, "shanghai": 49, "china": 49, "zandvoort": 55, "singapore": 61, "marina bay": 61,
+    "sakhir": 63, "bahrain": 63, "mexico": 65, "yas marina": 70, "abu dhabi": 70, "baku": 144, "azerbaijan": 144,
+    "jeddah": 149, "saudi": 149, "lusail": 150, "qatar": 150, "miami": 151, "las vegas": 152, "madring": 153, "madrid": 153,
+}
+
+
+def circuit_key_for(*names):
+    for name in names:
+        key = str(name or "").strip().lower()
+        if not key:
+            continue
+        for alias, value in CIRCUIT_KEYS.items():
+            if alias in key:
+                return value
+    return None
