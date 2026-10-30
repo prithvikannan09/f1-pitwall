@@ -13,6 +13,7 @@ from f1analytics.live.replay import RaceReplay, SessionReplay, load_fixture, loa
 from f1analytics.pitwall.car import mode_hints, practice_summary, speed_profile
 from f1analytics.pitwall.engine import analyse
 from f1analytics.ui import charts
+from f1analytics.ui import glossary as gl
 
 warnings.filterwarnings("ignore")
 
@@ -54,6 +55,7 @@ CSS = """
 .pw-live{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 12px;margin:6px 0 10px}
 .pw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,0.25);overflow:hidden;margin-top:4px}
 .pw-bar>span{display:block;height:100%}
+.pw-plain{border-left:4px solid #3B82F6;background:rgba(59,130,246,0.12);border-radius:6px;padding:8px 12px;margin:4px 0 10px;font-size:0.95rem}
 .pw-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:0.8rem}
 [data-testid="stToolbar"]{display:none}
 @media (max-width: 640px){
@@ -105,6 +107,7 @@ def sidebar():
     loss = st.sidebar.number_input("Pit-stop time loss override (s)", min_value=0.0, max_value=40.0, value=0.0, step=0.5,
                                    help="0 = automatic: measured from this race's stops once 3+ have happened, otherwise a track default (est.).")
     refresh = st.sidebar.slider("Refresh every (s)", 2, 15, 3)
+    gl.sidebar_toggle()
     return mode, team, (loss or None), refresh
 
 
@@ -157,8 +160,10 @@ def header(snap, result, feed_note):
         f"<span class='pw-sub'>{feed_note}</span>",
         unsafe_allow_html=True,
     )
+    gl.plain(gl.status_text(status) if result or status != "1" else "")
     if result:
         st.caption(f"Pit-stop loss used: **{result['pit_loss']:.1f} s** ({result['pit_loss_source']}).")
+        gl.plain(f"A pit stop here costs about {result['pit_loss']:.0f} seconds compared with staying out. Every call below weighs new, faster tyres against that cost.")
 
 
 def sc_banner(result):
@@ -202,6 +207,7 @@ def driver_card(r, focus=False):
             f"<div class='pw-why'>{r['why']}</div></div>",
             unsafe_allow_html=True,
         )
+        gl.plain(gl.explain_call(r))
         behind = r.get("behind")
         ahead = r.get("ahead")
         cells = [
@@ -269,6 +275,7 @@ def tower(snap, team):
         return
     st.dataframe(df.style.apply(lambda r: ["background-color: rgba(225,6,0,0.25)" if mine[r.name] else "" for _ in r], axis=1),
                  hide_index=True, height=min(36 * (len(df) + 1), 820))
+    gl.plain("Gap = seconds behind the leader. Int = seconds behind the car just ahead. Tyre M12 = Medium tyres, 12 laps old (S soft, H hard, I inter, W wet). Pits = stops made. Red rows = your team.")
 
 
 IST = "Asia/Kolkata"
@@ -408,24 +415,30 @@ def pick_focus(snap, team):
 
 
 def live_car(snap, focus):
+    year = int((snap.get("session") or {}).get("year") or 2026)
     num = next((d["number"] for d in snap.get("drivers", []) if d["code"] == focus), None)
     car = (snap.get("car") or {}).get(num) if num else None
     if not car:
         return
-    drs = "OPEN" if car["drs_open"] else ("ready" if car["drs"] == 8 else "closed")
+    if year >= 2026:
+        aero_k, drs = "Wings", ("STRAIGHT" if car["drs_open"] else "CORNER")
+    else:
+        aero_k, drs = "DRS", ("OPEN" if car["drs_open"] else ("ready" if car["drs"] == 8 else "closed"))
     drs_bg = "var(--live, #1E9E5A)" if car["drs_open"] else "rgba(128,128,128,0.35)"
     st.markdown(
         f"**{focus} right now (F1TV car data)**"
         f"<div class='pw-live'>"
         f"<div><div class='pw-k'>Speed</div><div class='pw-v'>{car['speed']} km/h</div></div>"
         f"<div><div class='pw-k'>Gear</div><div class='pw-v'>{car['gear']}</div></div>"
-        f"<div><div class='pw-k'>DRS</div><div class='pw-v'><span class='pw-tag' style='background:{drs_bg}'>{drs}</span></div></div>"
+        f"<div><div class='pw-k'>{aero_k}</div><div class='pw-v'><span class='pw-tag' style='background:{drs_bg}'>{drs}</span></div></div>"
         f"<div><div class='pw-k'>Throttle {car['throttle']}%</div><div class='pw-bar'><span style='width:{max(0, min(100, car['throttle']))}%;background:#1E9E5A'></span></div></div>"
         f"<div><div class='pw-k'>Brake</div><div class='pw-bar'><span style='width:{100 if car['brake'] else 0}%;background:#E10600'></span></div></div>"
         f"<div><div class='pw-k'>RPM</div><div class='pw-v'>{car['rpm']:,}</div></div>"
         f"</div>",
         unsafe_allow_html=True,
     )
+    if year >= 2026:
+        st.caption("Wings reading (Straight vs Corner mode) comes from the old DRS channel in F1's feed. Not yet confirmed on 2026 cars; first real check is FP1.")
 
 
 def car_panel(snap, focus, teammate):
@@ -445,6 +458,7 @@ def car_panel(snap, focus, teammate):
         st.markdown("**Mode hints, recent laps (est.)**")
         for h in hints[-5:]:
             st.markdown(f"<span class='pw-sub'>Lap {h['lap']}</span> {h['speed_trap']:.0f} km/h ({h['vs_normal']:+.0f}) · {h['note']}", unsafe_allow_html=True)
+    gl.words("car", "Car words explained")
 
 
 def render(snap, team, loss, feed_note):
@@ -464,6 +478,7 @@ def render(snap, team, loss, feed_note):
         for i, r in enumerate(ordered):
             if i == 0:
                 driver_card(r, focus=True)
+                gl.words("call", "Strategy words explained")
                 teammate = ordered[1]["car"]["code"] if len(ordered) > 1 else None
                 car_panel(snap, r["car"]["code"], teammate)
                 st.divider()
@@ -477,6 +492,8 @@ def render(snap, team, loss, feed_note):
         tower(snap, team)
         st.subheader("Race control")
         race_control(snap)
+        gl.words("timing", "Timing words explained")
+    gl.glossary("race")
     with st.expander("How the calls are made"):
         st.markdown(
             f"- **Tyre model:** lap time = α + β·tyre age per compound, fitted live on clean laps (no pit, Safety Car or lap 1) after fuel correction "
@@ -494,6 +511,7 @@ def render_practice(snap, team, feed_note):
     header(snap, None, feed_note)
     focus = pick_focus(snap, team)
     summary = practice_summary(snap, team, focus or "")
+    gl.plain("This is practice, not a race. Teams test car setups and tyres, so the order here does not count. Watch the long runs: they are the best clue to Sunday's race pace.")
     left, right = st.columns([3, 2])
     with left:
         for c in summary["cars"]:
@@ -540,6 +558,8 @@ def render_practice(snap, team, feed_note):
         radio_panel(snap, team, focus, "practice")
         st.subheader("Race control")
         race_control(snap)
+        gl.words("practice", "Practice words explained")
+    gl.glossary("practice")
 
 
 def owner_view():

@@ -72,10 +72,10 @@ def mode_hints(snapshot, focus_code, last_n=12):
         if r.track_status != "1":
             note = "Neutralised lap (Safety Car / VSC / yellow): slow speeds expected."
         elif jump >= TOW_JUMP_KMH:
-            note = "Big top-speed gain: likely a tow from a car ahead and/or extra battery deployment (overtake/attack)."
+            note = "Big top-speed gain: likely a tow from a car ahead and/or extra battery power (Boost or Overtake mode)."
         elif jump <= -HARVEST_DROP_KMH:
             slow = r.lap_time is not None and not np.isnan(r.lap_time) and r.lap_time > pace * 1.02
-            note = "Top speed well down" + (" and a slow lap: likely saving energy, lifting or managing tyres." if slow else ": likely harvesting the battery on the straight.")
+            note = "Top speed well down" + (" and a slow lap: likely saving energy, lifting or managing tyres." if slow else ": likely recharging the battery on the straight.")
         if note:
             hints.append({"lap": int(r.lap), "speed_trap": float(r.st), "vs_normal": float(jump), "note": note})
     return hints

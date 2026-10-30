@@ -114,7 +114,7 @@ def test_pit_wall_shows_gps_map_and_car_data(tmp_path, monkeypatch):
     heads = [h.value for h in at.subheader]
     assert "Track map (live GPS)" in heads
     text = " ".join(m.value for m in at.markdown)
-    assert "312 km/h" in text and "OPEN" in text
+    assert "312 km/h" in text and "STRAIGHT" in text and "DRS" not in text.split("Car words")[0].split("312 km/h")[1][:400]
 
 
 def test_public_link_hides_f1tv_data(tmp_path, monkeypatch):
