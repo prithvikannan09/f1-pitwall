@@ -163,6 +163,63 @@ def test_own_copy_guide_for_visitors(monkeypatch):
     page = str(_P(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
     at = AppTest.from_file(page, default_timeout=120)
     at.run()
-    labels = [e.label for e in at.expander]
-    assert any("Get your own F1TV pit wall" in l for l in labels)
-    assert not any(t.key and "pass" in t.key and t.label.lower().startswith("f1") for t in at.text_input)
+    assert any("Prefer your own copy" in e.label for e in at.expander)
+    assert at.text_input(key="f1tv_email").label == "F1TV email" and at.text_input(key="f1tv_pw").label == "F1TV password"
+
+
+def test_visitor_f1tv_sign_in_uses_their_own_feed(tmp_path, monkeypatch):
+    import time as _t
+    from pathlib import Path as _P
+
+    import f1analytics.live.recorder as rec
+    import f1analytics.live.userfeed as uf
+    import f1analytics.ui.pitwall_page as pw
+
+    ls = LiveState()
+    ls.load_snapshot(json.loads(FIX.read_text()))
+    write_json_atomic(tmp_path / "current.json", dict(ls.snapshot(), feed={"connected": True}))
+    monkeypatch.setattr(rec, "LIVE_DIR", tmp_path)
+    monkeypatch.delenv("PITWALL_KEY", raising=False)
+    monkeypatch.setenv("F1_USERNAME", "owner")
+    monkeypatch.setenv("F1_PASSWORD", "owner-pw")
+    seen = {}
+
+    def fake_sign_in(email, password, login_fn=None):
+        seen["email"] = email
+        if password != "Pa55-visitor-XYZ":
+            raise RuntimeError("bad")
+        return "tok-visitor", _t.time() + 3600
+
+    tokens = []
+
+    def fake_stream(topics=(), stop=lambda: False, token_fn=None, **kw):
+        tokens.append(token_fn())
+        yield ("__status__", {"connected": True, "f1tv": True}, None)
+        yield ("__snapshot__", {"Position.z": _z(POS), "CarData.z": _z(CAR)}, None)
+        while not stop():
+            _t.sleep(0.05)
+
+    monkeypatch.setattr(uf, "sign_in", fake_sign_in)
+    reg = uf.Registry(stream_fn=fake_stream)
+    monkeypatch.setattr(pw, "user_feeds", lambda: reg)
+    page = str(_P(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
+    at = AppTest.from_file(page, default_timeout=120)
+    at.run()
+    assert "Track map (live GPS)" not in [h.value for h in at.subheader]
+    at.text_input(key="f1tv_email").input("fan@example.com")
+    at.text_input(key="f1tv_pw").input("wrong")
+    at.button(key="FormSubmitter:f1tv_signin-Sign in with F1TV").click().run()
+    assert at.error and "f1tv_token" not in at.session_state
+    at.text_input(key="f1tv_email").input("fan@example.com")
+    at.text_input(key="f1tv_pw").input("Pa55-visitor-XYZ")
+    at.button(key="FormSubmitter:f1tv_signin-Sign in with F1TV").click().run()
+    assert at.session_state["f1tv_token"] == "tok-visitor"
+    _t.sleep(0.3)
+    at.run()
+    assert tokens == ["tok-visitor"]
+    assert "Track map (live GPS)" in [h.value for h in at.subheader]
+    text = " ".join([m.value for m in at.markdown] + [c.value for c in at.caption])
+    assert "Pa55-visitor-XYZ" not in text and "owner-pw" not in text
+    assert at.text_input(key="f1tv_pw").value in ("", None) if "f1tv_pw" in at.session_state else True
+    at.button(key="pw_signout").click().run()
+    assert "f1tv_token" not in at.session_state and not reg.feeds

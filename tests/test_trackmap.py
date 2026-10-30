@@ -91,3 +91,38 @@ def test_any_session_picker(monkeypatch):
     assert at.selectbox(key="pw_sess_2026_20").value == 11396
     assert loaded == [11396]
     assert any("BOX" in m.value or "STAY OUT" in m.value for m in at.markdown)
+
+
+def test_smooth_lap_animation(monkeypatch):
+    import numpy as np
+
+    import f1analytics.ui.pitwall_page as pw
+    from f1analytics.ui.race_anim import project_traces
+
+    th = np.linspace(0, 2 * np.pi, 400, endpoint=False)
+    outline = {"x": list(1000 * np.cos(th)), "y": list(600 * np.sin(th)), "rotation": 0.0, "corners": []}
+    calls = {}
+
+    def fake_trace(sk, t0, t1):
+        calls["win"] = (sk, t0, t1)
+        t = np.arange(0, 100, 0.27)
+        out = {}
+        for i, n in enumerate(["44", "16", "1", "63"]):
+            a = 2 * np.pi * (t / 95 - i * 0.02)
+            out[n] = (t.tolist(), (1000 * np.cos(a)).tolist(), (600 * np.sin(a)).tolist())
+        return out
+
+    monkeypatch.setattr(pw, "circuit_outline", lambda k, y: outline)
+    monkeypatch.setattr(pw, "lap_trace", fake_trace)
+    at = AppTest.from_file(PAGE, default_timeout=120)
+    at.run()
+    at.radio(key="pw_mode").set_value("Past races").run()
+    at.slider(key="pw_lap").set_value(20).run()
+    assert not at.exception and not at.error
+    assert "Track map (GPS)" in [h.value for h in at.subheader]
+    assert any("snapped to the track" in c.value for c in at.caption)
+    sk, t0, t1 = calls["win"]
+    assert sk == 11396 and t0 < t1 and t0.startswith("2026-10-25")
+    _, _, total, along = project_traces(outline["x"], outline["y"], fake_trace(0, 0, 0))
+    for t, s in along.values():
+        assert all(b >= a for a, b in zip(s, s[1:]))

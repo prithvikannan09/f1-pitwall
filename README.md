@@ -54,6 +54,10 @@ For your driver and their teammate it shows:
 
 ### F1TV (real car positions and car data)
 
+**Any visitor can use their own F1TV:** tap **🔒 Sign in with F1TV** at the top of the page and enter their F1TV Access/Pro email and password. The password goes once to F1's login (the same way the open-source FastF1 library signs in) and is thrown away: it isn't saved, logged or shown. Only a sign-in token stays in that browser tab, and it opens that person's own live connection for car positions and car data. Sign out (or closing the tab) ends it. Up to 6 people can use live F1TV data at once on the free Streamlit server. F1 doesn't officially support outside apps signing people in, so this could stop working if F1 changes its login.
+
+**Owner setup (optional):**
+
 Needs an F1TV Access or Pro subscription. Your email and password are typed by you, only into your own terminal or Streamlit's private Secrets, never into chat or code.
 
 - **On your Mac:** `python -m f1analytics live login` (it asks for your email and password, then keeps a sign-in token for a few days). Check with `python -m f1analytics live check`.
@@ -82,6 +86,7 @@ Start the recorder **before** lights out: tyre-wear fits need the lap history fr
 
 - `python -m f1analytics live check`: confirms the live feed answers.
 - `python -m f1analytics live demo --seconds 3`: replays last Sunday's US GP into the Live pit wall, one lap every 3 s.
+- **Smooth race animation:** in Past races the track map plays each lap from real GPS, snapped to the circuit line, at 1×–10×; with ▶ Play the next lap starts when the current one finishes. Your driver has the big dot.
 - Or tap **Past races** at the top of the page, pick a season, race weekend and session (any finished session 2023–2026, practice to race), then scrub lap by lap or press Play. Replays show real GPS car positions from OpenF1.
 
 Checked against real races. 2025 Mexico: box calls for Leclerc (window laps 26–32, stopped lap 31, then no more stops) and Hamilton (laps 21–29 → stopped 23; laps 41–47 → stopped 47). 2026 US GP: Leclerc box call at lap 12–14, stopped lap 15.

@@ -192,6 +192,60 @@ def replay_positions(session_key, iso):
         return {}
 
 
+@st.cache_data(ttl=6 * 3600, show_spinner=False, max_entries=64)
+def lap_trace(session_key, t0_iso, t1_iso):
+    import os
+
+    if os.environ.get("F1_REPLAY_GPS", "1") == "0" or not session_key:
+        return {}
+    try:
+        from f1analytics.sources.openf1_source import OpenF1Source
+
+        t0, t1 = pd.Timestamp(t0_iso), pd.Timestamp(t1_iso)
+        df = OpenF1Source(timeout=20, retries=2)._get("location", session_key=int(session_key), **{"date>": t0.isoformat(), "date<": t1.isoformat()})
+        if df.empty:
+            return {}
+        df = df[(df["x"] != 0) | (df["y"] != 0)]
+        df["t"] = (pd.to_datetime(df["date"], utc=True, format="ISO8601").dt.tz_convert(None) - t0).dt.total_seconds()
+        return {str(int(n)): (g["t"].tolist(), g["x"].astype(float).tolist(), g["y"].astype(float).tolist()) for n, g in df.sort_values("t").groupby("driver_number")}
+    except Exception:
+        return {}
+
+
+def animated_track(snap, team, focus):
+    from f1analytics.ui import race_anim
+
+    win = snap.get("anim_window")
+    if not win:
+        return False
+    outline = _outline_for(snap)
+    traces = lap_trace(snap.get("session_key"), win[0], win[1]) if outline else {}
+    if not traces:
+        return False
+    rot = outline["rotation"]
+    ox, oy = _rotate(outline["x"], outline["y"], rot)
+    rotated = {n: (t, *_rotate(x, y, rot)) for n, (t, x, y) in traces.items()}
+    rx, ry, total, along = race_anim.project_traces(ox, oy, rotated)
+    by_num = {d["number"]: d for d in snap.get("drivers", [])}
+    cars = []
+    for num, (t, sdist) in along.items():
+        d = by_num.get(num)
+        if not d or d.get("retired"):
+            continue
+        mine = team.lower() in str(d.get("team") or "").lower()
+        is_focus = d["code"] == focus
+        cars.append({"code": d["code"], "colour": d.get("colour") or "#888", "t": t, "s": sdist, "focus": is_focus,
+                     "size": 9 if is_focus else (6.5 if mine else 4.5), "label": is_focus or mine or (d.get("position") or 99) <= 3})
+    if not cars:
+        return False
+    s = snap.get("session") or {}
+    title = f"Lap {s.get('lap')}" if s.get("lap") else "Last minute"
+    st.subheader("Track map (GPS)")
+    race_anim.render({"x": rx, "y": ry}, total, cars, float(win[2]), title, speed=st.session_state.get("pw_speed", 2), height=340)
+    st.caption("Real GPS from OpenF1, snapped to the track and played back smoothly. Your driver has the big dot. Use 1×–10× to change speed.")
+    return True
+
+
 def add_replay_gps(snap):
     if snap and not snap.get("positions") and snap.get("session_key"):
         pos = replay_positions(snap.get("session_key"), snap.get("now_utc"))
@@ -261,7 +315,9 @@ def replay_controls():
     st.session_state.setdefault("pw_play", False)
     st.session_state.setdefault("pw_lap", 1)
     st.session_state.setdefault("pw_min", int(rep.duration_s // 60) + 1 if practice else 1)
-    c1, c2, _ = st.columns([1, 1, 3])
+    c1, c2, c3 = st.columns([1, 1, 3])
+    c3.radio("Playback speed", [1, 2, 5, 10], index=1, horizontal=True, key="pw_speed", format_func=lambda v: f"{v}×",
+             help="How fast laps play. With ▶ Play, the next lap starts when the current one has finished.")
     if c1.button("▶ Play" if not st.session_state.pw_play else "⏸ Pause", width="stretch"):
         st.session_state.pw_play = not st.session_state.pw_play
     if c2.button("⏮ Start", width="stretch"):
@@ -533,6 +589,8 @@ def real_track_map(snap, team, focus):
 
 
 def track_map(snap, team, focus):
+    if animated_track(snap, team, focus):
+        return
     if real_track_map(snap, team, focus):
         return
     cars = [d for d in snap.get("drivers", []) if not d.get("retired") and d.get("position") and d.get("gap_to_leader") is not None]
@@ -559,7 +617,7 @@ def track_map(snap, team, focus):
                                  marker=dict(size=sizes, color=cols, line=dict(width=1.5, color="#15151E")), hovertext=hovers, hoverinfo="text"))
         st.subheader("Track (from gaps)")
         st.plotly_chart(_track_figure(fig, 320), key=f"trackmap_{snap['session'].get('lap')}_{len(xs)}", config={"displayModeBar": False})
-        st.caption("The leader is drawn at the start line and everyone else behind by their time gap. An estimate: exact GPS positions need F1TV (see 'Get your own F1TV pit wall' at the bottom).")
+        st.caption("The leader is drawn at the start line and everyone else behind by their time gap. An estimate: exact GPS positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
         return
     rows = []
     for d in cars:
@@ -577,7 +635,7 @@ def track_map(snap, team, focus):
                       showlegend=False, height=320, margin=dict(l=10, r=10, t=10, b=10))
     st.subheader("Track (from gaps)")
     st.plotly_chart(_font(fig), key=f"track_{snap['session'].get('lap')}_{len(df)}", config={"displayModeBar": False})
-    st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (see 'Get your own F1TV pit wall' at the bottom).")
+    st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
 
 
 def race_control(snap):
@@ -846,18 +904,18 @@ REPO = "prithvikannan09/f1-pitwall"
 def own_copy_guide():
     import os
 
-    if owner_view() and (st.session_state.get("pw_owner") or not _owner_key()):
+    if f1tv_token() or st.session_state.get("pw_owner") or (owner_view() and not _owner_key()):
         return
     repo = os.environ.get("PITWALL_REPO", REPO)
-    with st.expander("📡 Get your own F1TV pit wall (live GPS + car data)"):
+    with st.expander("📡 Prefer your own copy of the pit wall?"):
         st.markdown(
-            "Have an F1TV Access or Pro subscription? Run your own free copy of this pit wall with your own login. "
-            "Your password goes only into your own app's private settings: you never type it into this site.\n\n"
+            "The quickest way to live GPS is **🔒 Sign in with F1TV** at the top. If you'd rather not type your F1 password into this site, "
+            "run your own free copy instead: your login then lives only in your own app's private settings.\n\n"
             "1. **Copy the code:** press *Fork* on GitHub (you need a free GitHub account).\n"
             "2. **Create your app:** on Streamlit, sign in with GitHub → *Create app* → *Deploy a public app from GitHub*. "
             f"Repository `<your-github-name>/{repo.split('/')[-1]}`, branch `main`, main file `pitwall_app.py`, Advanced settings → Python **3.12** → *Deploy*.\n"
             "3. **Add your F1TV login:** in your app, ⋮ → *Settings* → *Secrets*, add `F1_USERNAME`, `F1_PASSWORD` and a `PITWALL_KEY` you make up, then *Save*.\n"
-            "4. **Sign in on your app:** open it, tap *🔒 Sign in for F1TV data* at the top and type your `PITWALL_KEY`. Live GPS and car data switch on for you only."
+            "4. **Sign in on your app:** open it, tap *🔒 Sign in with F1TV* at the top and use the owner passphrase (your `PITWALL_KEY`)."
         )
         c1, c2 = st.columns(2)
         c1.link_button("1 · Fork on GitHub", f"https://github.com/{repo}/fork", width="stretch")
@@ -865,36 +923,109 @@ def own_copy_guide():
         st.caption("Free on both sites. Each person uses their own F1TV subscription, so nobody shares an account.")
 
 
+@st.cache_resource
+def user_feeds():
+    from f1analytics.live.userfeed import Registry
+
+    return Registry()
+
+
+def _sid():
+    import uuid
+
+    if "pw_sid" not in st.session_state:
+        st.session_state["pw_sid"] = uuid.uuid4().hex
+    return st.session_state["pw_sid"]
+
+
+def f1tv_token():
+    import time
+
+    tok, exp = st.session_state.get("f1tv_token"), st.session_state.get("f1tv_exp") or 0
+    if tok and time.time() < exp:
+        return tok
+    if tok:
+        sign_out()
+    return None
+
+
+def sign_out():
+    user_feeds().drop(_sid())
+    for k in ("f1tv_token", "f1tv_exp"):
+        st.session_state.pop(k, None)
+    st.session_state["pw_owner"] = False
+
+
+def with_user_feed(snap):
+    tok = f1tv_token()
+    if not tok or not snap:
+        return snap
+    feed = user_feeds().get(_sid(), tok)
+    if feed is None:
+        st.caption("Too many people are using F1TV live data on this app right now. Try again in a few minutes.")
+        return snap
+    d = feed.data()
+    snap = dict(snap, feed=dict(snap.get("feed") or {}, f1tv=d["f1tv"]))
+    if d["positions"]:
+        snap.update(positions=d["positions"], positions_utc=d["positions_utc"], car=d["car"])
+    return snap
+
+
+SIGNIN_NOTE = ("Use your own F1TV Access or Pro login to see live car positions (GPS) and car data. "
+               "Your password is sent once to F1's own login to sign you in, then thrown away: it is never saved, logged or shown. "
+               "Only a sign-in token stays in this browser tab, and only you see your F1TV data. Signing out or closing the tab ends it. "
+               "This uses F1's login the same way the open-source FastF1 library does; it isn't an official F1 app.")
+
+
 def owner_signin():
     import hmac
 
-    key = _owner_key()
-    if not key:
-        return
-    if st.session_state.get("pw_owner"):
-        with st.popover("🔓 Signed in · F1TV on", width="stretch"):
-            st.caption("F1TV car positions and car data are on in this browser.")
+    from f1analytics.live.userfeed import sign_in
+
+    if f1tv_token() or st.session_state.get("pw_owner"):
+        with st.popover("🔓 F1TV on", width="stretch"):
+            st.caption("Live car positions and car data are on in this browser tab.")
             if st.button("Sign out", key="pw_signout"):
-                st.session_state["pw_owner"] = False
+                sign_out()
                 st.rerun()
         return
-    with st.popover("🔒 Sign in for F1TV data", width="stretch"):
+    with st.popover("🔒 Sign in with F1TV", width="stretch"):
         tries = st.session_state.get("pw_tries", 0)
         if tries >= MAX_TRIES:
-            st.error("Too many wrong tries. Reload the page to try again.")
+            st.error("Too many tries. Reload the page to try again.")
             return
-        with st.form("pw_signin", clear_on_submit=True, border=False):
-            given = st.text_input("Owner passphrase", type="password", key="pw_pass", help="The PITWALL_KEY you saved in the app's Secrets.")
-            ok = st.form_submit_button("Sign in", type="primary")
+        st.caption(SIGNIN_NOTE)
+        with st.form("f1tv_signin", clear_on_submit=True, border=False):
+            email = st.text_input("F1TV email", key="f1tv_email", autocomplete="username")
+            password = st.text_input("F1TV password", type="password", key="f1tv_pw", autocomplete="current-password")
+            ok = st.form_submit_button("Sign in with F1TV", type="primary")
         if ok:
-            if given and hmac.compare_digest(given.encode(), key.encode()):
-                st.session_state["pw_owner"] = True
+            try:
+                token, exp = sign_in(email, password)
+            except Exception:
+                token = None
+            password = None
+            if token:
+                st.session_state["f1tv_token"], st.session_state["f1tv_exp"] = token, exp
                 st.session_state["pw_tries"] = 0
                 st.rerun()
             else:
                 st.session_state["pw_tries"] = tries + 1
-                st.error("That passphrase doesn't match. Check the PITWALL_KEY in your app's Secrets.")
-        st.caption("Everyone else sees the free timing data. Your F1TV login stays in the app's Secrets and is never shown on the page.")
+                st.error("F1 didn't accept that sign-in. Check the email and password, and that the account has an active F1TV Access or Pro plan.")
+        key = _owner_key()
+        if key:
+            st.divider()
+            with st.form("pw_signin", clear_on_submit=True, border=False):
+                given = st.text_input("App owner passphrase", type="password", key="pw_pass", help="Only for the person who runs this app.")
+                ok_owner = st.form_submit_button("Sign in")
+            if ok_owner:
+                if given and hmac.compare_digest(given.encode(), key.encode()):
+                    st.session_state["pw_owner"] = True
+                    st.session_state["pw_tries"] = 0
+                    st.rerun()
+                else:
+                    st.session_state["pw_tries"] = tries + 1
+                    st.error("That passphrase doesn't match.")
 
 
 def strip_f1tv(snap):
@@ -960,7 +1091,7 @@ def run(mode, loss, refresh, rep):
                 st.session_state["pw_mode"] = "Past races"
                 st.rerun(scope="app")
             return
-        snap = strip_f1tv(snap)
+        snap = with_user_feed(strip_f1tv(snap))
         feed = snap.get("feed") or {}
         status = (snap.get("session") or {}).get("status")
         note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'} · {f1tv_badge(snap)} · updated {age:.0f}s ago · session {status or '?'}"
@@ -968,7 +1099,16 @@ def run(mode, loss, refresh, rep):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
         render(snap, loss, note)
 
-    @st.fragment(run_every=refresh if st.session_state.get("pw_play") else None)
+    lap_s = 95.0
+    try:
+        lt = rep.leader_time if rep is not None and hasattr(rep, "leader_time") else {}
+        if len(lt) > 2:
+            lap_s = float(pd.Series(sorted(lt.values())).diff().median())
+    except Exception:
+        pass
+    play_every = max(refresh, lap_s / max(st.session_state.get("pw_speed", 2), 1))
+
+    @st.fragment(run_every=play_every if st.session_state.get("pw_play") else None)
     def replay_view():
         if rep is None:
             return
@@ -978,11 +1118,19 @@ def run(mode, loss, refresh, rep):
                 st.session_state.pw_min = min(total, st.session_state.pw_min + 2)
             minute = st.slider("Minute of session", 1, total, key="pw_min")
             snap = rep.snapshot_at(minute * 60)
+            if snap:
+                t1 = rep.start + pd.Timedelta(seconds=minute * 60)
+                snap["anim_window"] = ((t1 - pd.Timedelta(seconds=90)).isoformat(), t1.isoformat(), 90.0)
         else:
             if st.session_state.pw_play and st.session_state.pw_lap < rep.total_laps:
                 st.session_state.pw_lap += 1
             lap = st.slider("Lap", 1, rep.total_laps, key="pw_lap")
             snap = rep.snapshot(lap)
+            lt = rep.leader_time
+            if snap and lap in lt:
+                end = float(lt[lap])
+                begin = float(lt.get(lap - 1, end - 110.0))
+                snap["anim_window"] = ((rep.start + pd.Timedelta(seconds=begin)).isoformat(), (rep.start + pd.Timedelta(seconds=end)).isoformat(), end - begin)
         snap = add_replay_gps(snap)
         render(snap, loss, f"Replay · {'playing' if st.session_state.pw_play else 'paused'}")
 
