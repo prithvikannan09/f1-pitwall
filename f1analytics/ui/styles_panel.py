@@ -160,6 +160,7 @@ def styles_section(snap, focus):
     with c2:
         driver_style_card(snap, profiles[rival], _colour(snap, rival), track)
     grid_comparison(snap, data, focus, rival)
+    gl.words("styles", "Driver-style words explained")
     with st.expander("How the styles are worked out"):
         st.markdown(
             f"- From {len({r['session_key'] for r in data.get('rows', [])})} races this season (OpenF1 data), built {str(data.get('built', ''))[:10]}.\n"
