@@ -719,3 +719,28 @@ def refresh_profiles(year=2026):
     data["races"] = [r for r in data["races"] if any(x["session_key"] == r["session_key"] for x in data["rows"])]
     (DATA_DIR / f"racecraft_{year}.json").write_text(json.dumps(data, default=_json, indent=1))
     return data
+
+
+def podium_table(rows):
+    df = pd.DataFrame(rows)
+    if df.empty:
+        return pd.DataFrame()
+    df["finish"] = _num(df["finish"])
+    df["grid"] = _num(df["grid"])
+    df["pace_pct"] = _num(df["pace_pct"])
+    df["expected"] = df.groupby("session_key")["pace_pct"].rank(method="min")
+    done = df.dropna(subset=["finish"])
+    out = done.groupby("code").agg(
+        races=("session_key", "nunique"),
+        wins=("finish", lambda s: int((s == 1).sum())),
+        podiums=("finish", lambda s: int((s <= 3).sum())),
+        avg_finish=("finish", "mean"),
+    )
+    gained = (done["grid"] - done["finish"]).groupby(done["code"]).mean()
+    above = (done["expected"] - done["finish"]).groupby(done["code"]).mean()
+    out["gained"] = gained
+    out["above_car"] = above
+    pairs = done.groupby(["session_key", "team"]).filter(lambda g: len(g) == 2)
+    pairs = pairs.assign(beat=pairs.groupby(["session_key", "team"])["finish"].transform(lambda s: (s == s.min()).astype(float)))
+    out["beat_mate"] = pairs.groupby("code")["beat"].mean() * 100
+    return out.reset_index().sort_values(["podiums", "above_car"], ascending=[False, False])

@@ -125,3 +125,13 @@ def test_styles_on_page():
     assert not at.exception and not at.error
     heads = [h.value for h in at.subheader]
     assert "Best tyre to start on" in heads and "Driving styles and head to head" in heads
+
+
+def test_podium_table_teammates():
+    rows = []
+    for sk in range(4):
+        for code, team, fin in (("HAM", "Ferrari", 3 if sk < 3 else 6), ("LEC", "Ferrari", 5 if sk < 3 else 2), ("VER", "RB", 1), ("HAD", "RB", 8)):
+            rows.append({"session_key": sk, "code": code, "team": team, "finish": fin, "grid": 4, "pace_pct": {"VER": 0, "HAM": .3, "LEC": .2, "HAD": .6}[code]})
+    t = rc.podium_table(rows).set_index("code")
+    assert t.loc["VER", "wins"] == 4 and t.loc["HAM", "podiums"] == 3
+    assert t.loc["HAM", "beat_mate"] == 75 and t.loc["LEC", "beat_mate"] == 25

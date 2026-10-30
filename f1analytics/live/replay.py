@@ -35,6 +35,60 @@ def load_openf1_race(year, gp, source=None, session="R"):
     return raw
 
 
+def season_sessions(year, source=None):
+    from f1analytics.sources.openf1_source import OpenF1Source, _ts
+
+    src = source or OpenF1Source()
+    sessions = src._get("sessions", year=int(year))
+    if sessions.empty:
+        return []
+    if "is_cancelled" in sessions:
+        sessions = sessions[~sessions["is_cancelled"].astype(str).str.lower().isin(["true", "1"])]
+    sessions = sessions.assign(end=_ts(sessions["date_end"]), begin=_ts(sessions["date_start"]))
+    now = pd.Timestamp.utcnow().tz_localize(None)
+    sessions = sessions[sessions["end"] < now].sort_values("begin")
+    meetings = src._get("meetings", year=int(year))
+    names = dict(zip(meetings["meeting_key"], meetings["meeting_name"])) if not meetings.empty else {}
+    out = []
+    for i, (mk, g) in enumerate(sessions.groupby("meeting_key", sort=False), start=1):
+        for _, r in g.iterrows():
+            out.append({"round": i, "meeting": names.get(mk) or f"{r.get('country_name', '')} Grand Prix", "location": r.get("circuit_short_name") or r.get("location"),
+                        "session": r["session_name"], "type": r.get("session_type"), "session_key": int(r["session_key"]), "date": str(r["begin"])[:10]})
+    return out
+
+
+def load_openf1_session(session_key, source=None):
+    from f1analytics.sources.openf1_source import OpenF1Source
+
+    src = source or OpenF1Source()
+    sk = int(session_key)
+    sess = src._get("sessions", session_key=sk)
+    if sess.empty:
+        raise LookupError(f"No OpenF1 session {sk}")
+    sess = sess.iloc[0]
+    raw = {ep: src._get(ep, session_key=sk) for ep in ("drivers", "laps", "stints", "pit", "race_control", "weather")}
+    if raw["laps"].empty:
+        raise LookupError("No lap data for that session yet")
+    try:
+        raw["team_radio"] = src._get("team_radio", session_key=sk)
+    except Exception:
+        raw["team_radio"] = pd.DataFrame()
+    meetings = src._get("meetings", meeting_key=int(sess["meeting_key"]))
+    name = meetings["meeting_name"].iloc[0] if not meetings.empty else f"{sess.get('country_name', '')} Grand Prix"
+    raw["session"] = dict(sess)
+    raw["event"] = {"EventName": name, "Location": sess.get("circuit_short_name") or sess.get("location"), "year": int(str(sess["date_start"])[:4])}
+    return raw
+
+
+def _replay_keys(raw, now_abs):
+    sess = raw.get("session") or {}
+    out = {"now_utc": pd.Timestamp(now_abs).isoformat()}
+    for key in ("session_key", "circuit_key"):
+        v = _num(sess.get(key))
+        out[key] = int(v) if v is not None else None
+    return out
+
+
 def load_fixture(folder):
     folder = Path(folder)
     raw = {ep: pd.DataFrame(json.loads((folder / f"{ep}.json").read_text())) for ep in ("drivers", "laps", "stints", "pit", "race_control", "weather")}
@@ -159,6 +213,7 @@ class RaceReplay:
         status = self.status_at(now_abs)
         return {
             "source": "replay",
+            **_replay_keys(self.raw, now_abs),
             "updated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "session": {
                 "meeting": self.raw["event"]["EventName"],
@@ -254,6 +309,7 @@ class SessionReplay(RaceReplay):
         left = max(0, int(self.duration_s - seconds))
         return {
             "source": "replay",
+            **_replay_keys(self.raw, now_abs),
             "updated_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
             "session": {
                 "meeting": self.raw["event"]["EventName"], "circuit": self.raw["event"]["Location"],

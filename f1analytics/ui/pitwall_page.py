@@ -151,8 +151,48 @@ def get_replay(kind, key, year=None, gp=None, code="R"):
         what, folder = BUNDLED[key]
         raw = load_fixture(folder)
         return RaceReplay(raw) if what == "race" else SessionReplay(raw)
-    raw = load_openf1_race(int(year), gp, session=code)
-    return RaceReplay(raw) if code in ("R", "S") else SessionReplay(raw)
+    from f1analytics.live.replay import load_openf1_session
+
+    raw = load_openf1_session(int(key))
+    return RaceReplay(raw) if str(raw["session"].get("session_type")) == "Race" else SessionReplay(raw)
+
+
+SEASONS = [2026, 2025, 2024, 2023]
+
+
+@st.cache_data(ttl=3600, show_spinner="Loading the season's sessions…")
+def season_list(year):
+    from f1analytics.live.replay import season_sessions
+
+    return season_sessions(year)
+
+
+@st.cache_data(ttl=3600, show_spinner=False)
+def replay_positions(session_key, iso):
+    import os
+
+    if os.environ.get("F1_REPLAY_GPS", "1") == "0" or not session_key or not iso:
+        return {}
+    try:
+        from f1analytics.sources.openf1_source import OpenF1Source
+
+        t = pd.Timestamp(iso).tz_localize(None) if pd.Timestamp(iso).tzinfo is None else pd.Timestamp(iso).tz_convert(None)
+        df = OpenF1Source(timeout=8, retries=2)._get("location", session_key=int(session_key),
+                                                     **{"date>": (t - pd.Timedelta(seconds=0.8)).isoformat(), "date<": (t + pd.Timedelta(seconds=0.8)).isoformat()})
+        if df.empty:
+            return {}
+        last = df.sort_values("date").groupby("driver_number").last()
+        return {str(int(n)): {"x": float(r["x"]), "y": float(r["y"])} for n, r in last.iterrows() if (r["x"], r["y"]) != (0, 0)}
+    except Exception:
+        return {}
+
+
+def add_replay_gps(snap):
+    if snap and not snap.get("positions") and snap.get("session_key"):
+        pos = replay_positions(snap.get("session_key"), snap.get("now_utc"))
+        if pos:
+            snap = dict(snap, positions=pos, positions_source="replay")
+    return snap
 
 
 def _record_forever():
@@ -185,15 +225,27 @@ def sidebar():
 def replay_controls():
     st.sidebar.divider()
     st.sidebar.subheader("Replay")
-    choice = st.sidebar.radio("Session", list(BUNDLED) + ["Pick any session (OpenF1, 2023+)"], index=0)
+    choice = st.sidebar.radio("Session", ["Any session (pick below)"] + list(BUNDLED), index=1,
+                              help="Bundled replays work offline. 'Any session' loads every finished 2023–2026 session from OpenF1.")
     try:
         if choice in BUNDLED:
             rep = get_replay("bundled", choice)
         else:
-            year = st.sidebar.number_input("Season", 2023, 2026, 2025)
-            gp = st.sidebar.text_input("Grand Prix (name or city)", "Mexico")
-            code = st.sidebar.selectbox("Session", ["R", "Q", "FP1", "FP2", "FP3", "S", "SQ"], format_func=lambda c: {"R": "Race", "Q": "Qualifying", "S": "Sprint", "SQ": "Sprint Qualifying"}.get(c, c))
-            rep = get_replay("openf1", choice, year, gp, code)
+            year = st.sidebar.selectbox("Season", SEASONS, key="pw_year")
+            sessions = season_list(year)
+            if not sessions:
+                st.sidebar.warning("No finished sessions found for that season.")
+                return None
+            rounds = list(dict.fromkeys(x["round"] for x in sessions))
+            label = {x["round"]: f"R{x['round']} · {x['meeting']}" for x in sessions}
+            rnd = st.sidebar.selectbox("Race weekend", rounds, index=len(rounds) - 1, format_func=label.get, key=f"pw_round_{year}")
+            opts = [x for x in sessions if x["round"] == rnd]
+            names = {x["session_key"]: x["session"] for x in opts}
+            keys = list(names)
+            race = next((i for i, k in enumerate(keys) if names[k] == "Race"), len(keys) - 1)
+            sk = st.sidebar.selectbox("Session", keys, index=race, format_func=names.get, key=f"pw_sess_{year}_{rnd}")
+            rep = get_replay("openf1", sk)
+            choice = f"openf1:{sk}"
     except Exception as exc:
         st.error(f"Could not load that session: {exc}")
         return None
@@ -446,6 +498,7 @@ def _track_figure(fig, height=300):
 
 
 def real_track_map(snap, team, focus):
+    replay = snap.get("positions_source") == "replay"
     pos = snap.get("positions") or {}
     if not pos:
         return False
@@ -470,9 +523,9 @@ def real_track_map(snap, team, focus):
     fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers+text", text=labels, textposition="top center",
                              marker=dict(size=sizes, color=cols, line=dict(width=1, color="#222")), hovertext=hovers, hoverinfo="text"))
     _track_figure(fig)
-    st.subheader("Track map (live GPS)")
+    st.subheader("Track map (GPS)" if replay else "Track map (live GPS)")
     st.plotly_chart(fig, key=f"gps_{snap.get('positions_utc')}", config={"displayModeBar": False, "staticPlot": False})
-    st.caption("Real car positions from F1TV. Circuit outline: MultiViewer.")
+    st.caption("Real car positions from OpenF1 at this moment of the session. Circuit outline: MultiViewer." if replay else "Real car positions from F1TV. Circuit outline: MultiViewer.")
     return True
 
 
@@ -784,7 +837,7 @@ def own_copy_guide():
             "2. **Create your app:** on Streamlit, sign in with GitHub → *Create app* → *Deploy a public app from GitHub*. "
             f"Repository `<your-github-name>/{repo.split('/')[-1]}`, branch `main`, main file `pitwall_app.py`, Advanced settings → Python **3.12** → *Deploy*.\n"
             "3. **Add your F1TV login:** in your app, ⋮ → *Settings* → *Secrets*, add `F1_USERNAME`, `F1_PASSWORD` and a `PITWALL_KEY` you make up, then *Save*.\n"
-            "4. **Sign in on your app:** open it, scroll to *Owner sign-in* and type your `PITWALL_KEY`. Live GPS and car data switch on for you only."
+            "4. **Sign in on your app:** open it, tap *🔒 Sign in for F1TV data* at the top and type your `PITWALL_KEY`. Live GPS and car data switch on for you only."
         )
         c1, c2 = st.columns(2)
         c1.link_button("1 · Fork on GitHub", f"https://github.com/{repo}/fork", width="stretch")
@@ -799,13 +852,13 @@ def owner_signin():
     if not key:
         return
     if st.session_state.get("pw_owner"):
-        c1, c2 = st.columns([3, 1])
-        c1.caption("🔓 Signed in as owner: F1TV car positions and car data are on.")
-        if c2.button("Sign out", key="pw_signout"):
-            st.session_state["pw_owner"] = False
-            st.rerun()
+        with st.popover("🔓 Signed in · F1TV on", width="stretch"):
+            st.caption("F1TV car positions and car data are on in this browser.")
+            if st.button("Sign out", key="pw_signout"):
+                st.session_state["pw_owner"] = False
+                st.rerun()
         return
-    with st.expander("🔒 Owner sign-in (F1TV data)"):
+    with st.popover("🔒 Sign in for F1TV data", width="stretch"):
         tries = st.session_state.get("pw_tries", 0)
         if tries >= MAX_TRIES:
             st.error("Too many wrong tries. Reload the page to try again.")
@@ -848,10 +901,13 @@ def main(autorecord=False):
     if autorecord:
         ensure_recorder()
     mode, loss, refresh = sidebar()
-    st.title("F1 Pit Wall")
+    head_l, head_r = st.columns([5, 2], vertical_alignment="center")
+    with head_l:
+        st.title("F1 Pit Wall")
+    with head_r:
+        owner_signin()
     rep = replay_controls() if mode == "Replay" else None
     run(mode, loss, refresh, rep)
-    owner_signin()
     own_copy_guide()
 
 
@@ -902,6 +958,7 @@ def run(mode, loss, refresh, rep):
                 st.session_state.pw_lap += 1
             lap = st.slider("Lap", 1, rep.total_laps, key="pw_lap")
             snap = rep.snapshot(lap)
+        snap = add_replay_gps(snap)
         render(snap, loss, f"Replay · {'playing' if st.session_state.pw_play else 'paused'}")
 
     if mode == "Live":

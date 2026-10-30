@@ -159,6 +159,7 @@ def styles_section(snap, focus):
         driver_style_card(snap, profiles[focus], _colour(snap, focus), track)
     with c2:
         driver_style_card(snap, profiles[rival], _colour(snap, rival), track)
+    grid_comparison(snap, data, focus, rival)
     with st.expander("How the styles are worked out"):
         st.markdown(
             f"- From {len({r['session_key'] for r in data.get('rows', [])})} races this season (OpenF1 data), built {str(data.get('built', ''))[:10]}.\n"
@@ -198,3 +199,49 @@ def start_tyres_section(snap):
         )
     gl.plain(f"Each line is the fastest {res['laps']}-lap race plan that starts on that tyre, with a pit stop costing ~{res['pit_loss']:.0f}s. "
              "Softs are quicker off the line but wear out sooner; the time shown is the whole race. Tyre wear comes from this weekend's laps when there are enough, otherwise season defaults.")
+
+
+QUADRANTS = [(75, 92, "Hunters and walls"), (25, 92, "Hunters"), (75, 8, "Walls"), (25, 8, "Quiet racers")]
+
+
+def grid_comparison(snap, data, focus, rival):
+    import pandas as pd
+    import plotly.graph_objects as go
+
+    from f1analytics.ui.pitwall_page import _font
+
+    profiles = data["profiles"]
+    pool = [p for p in profiles.values() if p.get("attack_score") is not None and p.get("defence_score") is not None]
+    if not pool:
+        return
+    st.subheader("Grid comparison: attack, defence and podiums")
+    colours = {d.get("code"): d.get("colour") for d in (snap or {}).get("drivers", [])}
+    fig = go.Figure()
+    for x, y, name in QUADRANTS:
+        fig.add_annotation(x=x, y=y, text=name, showarrow=False, font=dict(size=11, color="#6B6B7A"))
+    fig.add_shape(type="line", x0=50, x1=50, y0=0, y1=100, line=dict(color="#2E2E3A", width=1))
+    fig.add_shape(type="line", x0=0, x1=100, y0=50, y1=50, line=dict(color="#2E2E3A", width=1))
+    key = {focus, rival}
+    fig.add_trace(go.Scatter(
+        x=[p["defence_score"] for p in pool], y=[p["attack_score"] for p in pool], mode="markers+text",
+        text=[p["code"] for p in pool], textposition="top center",
+        textfont=dict(size=[13 if p["code"] in key else 10 for p in pool], color=["#F3F3F5" if p["code"] in key else "#9A9AA8" for p in pool]),
+        marker=dict(size=[18 if p["code"] in key else 11 for p in pool], color=[colours.get(p["code"]) or "#777" for p in pool], line=dict(width=1.5, color="#15151E")),
+        hovertext=[f"{p['code']}: attack {p['attack_score']}, defence {p['defence_score']}" for p in pool], hoverinfo="text"))
+    fig.update_xaxes(title="Defence (holds position under pressure) →", range=[-3, 103], showgrid=False, zeroline=False)
+    fig.update_yaxes(title="Attack (gets passes done) →", range=[-3, 103], showgrid=False, zeroline=False)
+    fig.update_layout(height=430, margin=dict(l=10, r=10, t=10, b=10), showlegend=False)
+    c1, c2 = st.columns([3, 2], gap="medium")
+    with c1:
+        st.plotly_chart(_font(fig), key=f"grid_scatter_{focus}_{rival}", config={"displayModeBar": False})
+    with c2:
+        table = rc.podium_table(data.get("rows", []))
+        if not table.empty:
+            show = table.head(12).copy()
+            show["Driver"] = show["code"].map(lambda c: f"⭐ {c}" if c in key else c)
+            show = show.rename(columns={"wins": "Wins", "podiums": "Podiums", "gained": "Places gained", "beat_mate": "Beat teammate %"})
+            show["Beat teammate %"] = show["Beat teammate %"].round(0)
+            st.dataframe(show[["Driver", "Wins", "Podiums", "Places gained", "Beat teammate %"]].round(1), hide_index=True, width="stretch")
+    gl.plain("Top right are drivers who both make passes stick and are hard to pass. 'Places gained' is grid to chequered flag on average; "
+             "'Beat teammate %' is how often he finishes ahead of the driver in the same car, the fairest way to see who gets more out of it "
+             "and turns it into podiums.")

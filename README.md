@@ -63,7 +63,7 @@ Needs an F1TV Access or Pro subscription. Your email and password are typed by y
   F1_PASSWORD = "your F1TV password"
   PITWALL_KEY = "any long random words you choose"
   ```
-  Save; the app restarts. Then open the app, scroll to **🔒 Owner sign-in** at the bottom and enter that PITWALL_KEY. Car positions and car data switch on for your browser only; everyone else sees the free data. After 5 wrong tries the box locks until the page is reloaded.
+  Save; the app restarts. Then open the app, tap **🔒 Sign in for F1TV data** at the top (next to the title) and enter that PITWALL_KEY. Car positions and car data switch on for your browser only; everyone else sees the free data. After 5 wrong tries the box locks until the page is reloaded.
 
   Secrets live on Streamlit's servers, not in this repo (`.streamlit/secrets.toml` is git-ignored), so making the repo public never exposes them. If F1TV details are set without a PITWALL_KEY, the app hides F1TV data from everyone to be safe.
 
