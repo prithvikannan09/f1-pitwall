@@ -8,4 +8,5 @@ logs/
 .venv/
 data/live/
 data/*.png
-data/shots/
+.streamlit/secrets.toml
+.env

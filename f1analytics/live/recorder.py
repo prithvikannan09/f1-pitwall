@@ -56,6 +56,7 @@ def record(live_dir=None, stream=None, stop=lambda: False, raw_log=True):
             if topic == "__status__":
                 status = data
                 log.info("feed status: %s", data)
+                write_json_atomic(live_dir / "feed.json", dict(data, at=time.time()))
             elif topic == "__snapshot__":
                 key = session_key(data)
                 laps_file = live_dir / "laps.json"
@@ -83,6 +84,15 @@ def record(live_dir=None, stream=None, stop=lambda: False, raw_log=True):
             snap["feed"] = status
             write_json_atomic(live_dir / CURRENT, snap)
     return ls
+
+
+def read_feed(live_dir=None):
+    path = Path(live_dir or LIVE_DIR) / "feed.json"
+    try:
+        data = json.loads(path.read_text())
+        return data, time.time() - float(data.get("at", 0))
+    except Exception:
+        return None, None
 
 
 def replay_raw(path):

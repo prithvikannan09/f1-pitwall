@@ -21,7 +21,7 @@ def test_default_follows_hamilton_and_title():
     assert at.title[0].value == "F1 Pit Wall"
     assert at.selectbox(key="pw_team").value == "Ferrari"
     assert at.selectbox(key="pw_driver").value == "HAM"
-    assert "⭐ P" in " ".join(m.value for m in at.markdown)
+    assert "⭐ HAM" in " ".join(m.value for m in at.markdown)
 
 
 def test_link_opens_on_any_driver():

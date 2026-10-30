@@ -130,7 +130,25 @@ def test_public_link_hides_f1tv_data(tmp_path, monkeypatch):
     at = AppTest.from_file(page, default_timeout=120)
     at.run()
     assert "Track map (live GPS)" not in [h.value for h in at.subheader]
-    at2 = AppTest.from_file(page, default_timeout=120)
-    at2.query_params["key"] = "s3cret-key"
-    at2.run()
-    assert "Track map (live GPS)" in [h.value for h in at2.subheader]
+    at.query_params["key"] = "s3cret-key"
+    at.run()
+    assert "Track map (live GPS)" not in [h.value for h in at.subheader]
+    at.text_input(key="pw_pass").input("wrong")
+    at.button(key="FormSubmitter:pw_signin-Sign in").click().run()
+    assert at.error and "Track map (live GPS)" not in [h.value for h in at.subheader]
+    at.text_input(key="pw_pass").input("s3cret-key")
+    at.button(key="FormSubmitter:pw_signin-Sign in").click().run()
+    assert not at.exception
+    assert "Track map (live GPS)" in [h.value for h in at.subheader]
+    assert "s3cret-key" not in " ".join([m.value for m in at.markdown] + [c.value for c in at.caption])
+
+
+def test_cloud_without_key_hides_f1tv(monkeypatch):
+    from f1analytics.ui.pitwall_page import owner_view
+
+    monkeypatch.delenv("PITWALL_KEY", raising=False)
+    monkeypatch.setenv("F1_USERNAME", "a")
+    monkeypatch.setenv("F1_PASSWORD", "b")
+    assert owner_view() is False
+    monkeypatch.delenv("F1_USERNAME")
+    assert owner_view() is True
