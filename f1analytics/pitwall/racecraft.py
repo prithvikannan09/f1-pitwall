@@ -491,6 +491,7 @@ def load(year=2026):
 H2H_RUNS = 4000
 LAP_NOISE_S = 0.25
 STRATEGY_NOISE_S = 2.5
+RACE_FORM_SD = 0.0035
 
 
 def _car(snapshot, code):
@@ -574,7 +575,7 @@ def head_to_head(snapshot, profiles, a, b, seed=11, track=None):
         if ta and tb:
             per_lap += (tb["score"] - ta["score"]) / 100 * lap_s * 0.5
             reasons.append(f"At {track}: {a} is usually {_track_word(ta['score'])} ({ta['visits']} visits), {b} {_track_word(tb['score'])} ({tb['visits']} visits).")
-        sd = LAP_NOISE_S * np.sqrt(laps_left) + STRATEGY_NOISE_S + 3.0
+        sd = LAP_NOISE_S * np.sqrt(laps_left) + STRATEGY_NOISE_S + 3.0 + laps_left * lap_s * RACE_FORM_SD
         final = gap_now + per_lap * laps_left + rng.normal(0, sd, H2H_RUNS)
         reasons.append(f"Season race pace: {a} averages {abs(per_lap):.2f}s a lap {'quicker' if per_lap > 0 else 'slower'} than {b}.")
     a_ahead_now = gap_now >= 0
