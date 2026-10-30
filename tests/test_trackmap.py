@@ -34,8 +34,8 @@ def test_track_layout_used_when_available(monkeypatch):
     at.slider(key="pw_lap").set_value(20).run()
     assert not at.exception and not at.error
     assert (9, 2026) in calls
-    assert any("Track (from gaps)" in h.value for h in at.subheader)
-    assert any("start line" in c.value for c in at.caption)
+    assert "Race playback (GPS track)" in [h.value for h in at.subheader]
+    assert any("whole race" in c.value for c in at.caption)
 
 
 def test_replay_shows_gps_from_openf1(monkeypatch):
@@ -119,10 +119,28 @@ def test_smooth_lap_animation(monkeypatch):
     at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(20).run()
     assert not at.exception and not at.error
-    assert "Track map (GPS)" in [h.value for h in at.subheader]
-    assert any("snapped to the track" in c.value for c in at.caption)
+    assert "Race playback (GPS track)" in [h.value for h in at.subheader]
+    assert any("real GPS lap's speed" in c.value for c in at.caption)
     sk, t0, t1 = calls["win"]
     assert sk == 11396 and t0 < t1 and t0.startswith("2026-10-25")
     _, _, total, along = project_traces(outline["x"], outline["y"], fake_trace(0, 0, 0))
     for t, s in along.values():
         assert all(b >= a for a, b in zip(s, s[1:]))
+
+
+
+def test_race_payload_timing_is_consistent():
+    from f1analytics.live.replay import RaceReplay, load_fixture
+    from f1analytics.ui.race_anim import race_payload
+
+    rep = RaceReplay(load_fixture(Path(__file__).resolve().parent.parent / "f1analytics" / "replays" / "usgp2026"))
+    snap = rep.snapshot(56)
+    drivers = {d["number"]: {"code": d["code"], "colour": d["colour"]} for d in snap["drivers"]}
+    p = race_payload(rep.laps, drivers, rep.total_laps)
+    assert len(p["cars"]) == 22 and p["laps"] == 56 and p["t0"] < p["start0"] < p["t1"]
+    for c in p["cars"]:
+        for a, b1, b2, e in zip(c["s0"], c["b1"], c["b2"], c["e"]):
+            assert a < b1 < b2 < e
+        assert all(x <= y + 1e-6 for x, y in zip(c["e"], c["s0"][1:]))
+    winner = min(p["cars"], key=lambda c: c["e"][-1] if len(c["e"]) == 56 else 1e9)
+    assert winner["code"] == next(d["code"] for d in snap["drivers"] if d["position"] == 1)

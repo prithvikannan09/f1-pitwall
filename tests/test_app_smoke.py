@@ -27,7 +27,7 @@ def test_pit_wall_page_live_and_replay(tmp_path, monkeypatch):
     assert not at.exception and not at.error
     assert any("BOX THIS LAP" in m.value for m in at.markdown)
     assert len(at.get("audio")) > 0
-    assert any("Track (from gaps)" in h.value for h in at.subheader)
+    assert any(h.value in ("Track (from gaps)", "Race playback (GPS track)") for h in at.subheader)
 
 
 def test_pit_wall_practice_replay():

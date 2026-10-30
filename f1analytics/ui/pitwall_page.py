@@ -219,14 +219,38 @@ def animated_track(snap, team, focus):
     if not win:
         return False
     outline = _outline_for(snap)
-    traces = lap_trace(snap.get("session_key"), win[0], win[1]) if outline else {}
-    if not traces:
+    if not outline:
+        return False
+    traces = lap_trace(snap.get("session_key"), win[0], win[1])
+    race = snap.get("race_payload")
+    if not traces and not race:
         return False
     rot = outline["rotation"]
     ox, oy = _rotate(outline["x"], outline["y"], rot)
-    rotated = {n: (t, *_rotate(x, y, rot)) for n, (t, x, y) in traces.items()}
-    rx, ry, total, along = race_anim.project_traces(ox, oy, rotated)
+    rotated = {n: (t, *_rotate(x, y, rot)) for n, (t, x, y) in (traces or {}).items()}
+    if not rotated:
+        rx, ry, total, along = race_anim.project_traces(ox, oy, {"_": ([0, 1, 2], ox[:3], oy[:3])})
+        along = {}
+    else:
+        rx, ry, total, along = race_anim.project_traces(ox, oy, rotated)
     by_num = {d["number"]: d for d in snap.get("drivers", [])}
+    if race:
+        leader = next((d["number"] for d in snap.get("drivers", []) if d.get("position") == 1), None)
+        focus_num = next((d["number"] for d in snap.get("drivers", []) if d["code"] == focus), None)
+        pick = next((n for n in (leader, focus_num) if n in along), None) or (max(along, key=lambda n: len(along[n][0])) if along else None)
+        ref_t, ref_s = race_anim.reference_profile(*along[pick]) if pick else (None, None)
+        if ref_t:
+            race = dict(race, refT=ref_t, refS=ref_s)
+        style = {}
+        for d in snap.get("drivers", []):
+            mine = team.lower() in str(d.get("team") or "").lower()
+            style[d["code"]] = {"size": 9 if d["code"] == focus else (6.5 if mine else 4.5), "focus": d["code"] == focus, "mine": mine}
+        st.subheader("Race playback (GPS track)")
+        race_anim.render_race({"x": rx, "y": ry}, total, race, style, speed=st.session_state.get("pw_speed", 10), height=360)
+        st.caption("The whole race, smooth from the lap you picked to the flag. Cars pass each timing line at their real times; between lines they follow "
+                   + ("a real GPS lap's speed through corners and straights." if ref_t else "a steady pace.")
+                   + " Drag the bar to jump; 1×–50× changes speed.")
+        return True
     cars = []
     for num, (t, sdist) in along.items():
         d = by_num.get(num)
@@ -244,6 +268,26 @@ def animated_track(snap, team, focus):
     race_anim.render({"x": rx, "y": ry}, total, cars, float(win[2]), title, speed=st.session_state.get("pw_speed", 2), height=340)
     st.caption("Real GPS from OpenF1, snapped to the track and played back smoothly. Your driver has the big dot. Use 1×–10× to change speed.")
     return True
+
+
+def race_payload_for(rep, snap, lap, begin):
+    from f1analytics.ui import race_anim
+
+    base = getattr(rep, "_race_payload", None)
+    if base is None:
+        drivers = {d["number"]: {"code": d["code"], "colour": d.get("colour")} for d in snap.get("drivers", [])}
+        base = race_anim.race_payload(rep.laps, drivers, rep.total_laps)
+        rep._race_payload = base
+    tb = base["tb"]
+    row = rep.laps[rep.laps["LapNumber"] == lap].sort_values("T").head(1)
+    if len(row):
+        r = row.iloc[0]
+        s1, s2, dur = r["Sector1Time"], r["Sector2Time"], r["S"]
+        if pd.notna(s1) and pd.notna(s2) and dur and dur > 0:
+            a, b = s1.total_seconds() / dur, (s1 + s2).total_seconds() / dur
+            if 0 < a < b < 1:
+                tb = [0.0, a, b, 1.0]
+    return dict(base, start=max(begin, base["t0"]) if lap > 1 else base["t0"], tb=tb)
 
 
 def add_replay_gps(snap):
@@ -315,14 +359,7 @@ def replay_controls():
     st.session_state.setdefault("pw_play", False)
     st.session_state.setdefault("pw_lap", 1)
     st.session_state.setdefault("pw_min", int(rep.duration_s // 60) + 1 if practice else 1)
-    c1, c2, c3 = st.columns([1, 1, 3])
-    c3.radio("Playback speed", [1, 2, 5, 10], index=1, horizontal=True, key="pw_speed", format_func=lambda v: f"{v}×",
-             help="How fast laps play. With ▶ Play, the next lap starts when the current one has finished.")
-    if c1.button("▶ Play" if not st.session_state.pw_play else "⏸ Pause", width="stretch"):
-        st.session_state.pw_play = not st.session_state.pw_play
-    if c2.button("⏮ Start", width="stretch"):
-        st.session_state.pw_lap = 1
-        st.session_state.pw_min = 1
+    st.session_state.pw_play = False
     if practice:
         st.session_state.pw_min = min(max(int(st.session_state.pw_min), 1), int(rep.duration_s // 60) + 1)
     else:
@@ -442,7 +479,7 @@ def driver_card(r, focus=False):
         if w["series"]:
             df = pd.DataFrame(w["series"])
             fig = go.Figure(go.Scatter(x=df["age"], y=df["time"], mode="markers+lines", line=dict(color=car["colour"])))
-            st.plotly_chart(_font(charts.style(fig, None, "Tyre age (laps)", "Fuel-corrected lap (s)", 200)), key=f"wear_{car['number']}_{len(df)}")
+            st.plotly_chart(_font(charts.style(fig, None, "Tyre age (laps)", "Fuel-corrected lap (s)", 200)), key=f"wear_{car['number']}")
 
 
 def tower(snap, team, focus=None):
@@ -583,7 +620,7 @@ def real_track_map(snap, team, focus):
                              marker=dict(size=sizes, color=cols, line=dict(width=1, color="#222")), hovertext=hovers, hoverinfo="text"))
     _track_figure(fig)
     st.subheader("Track map (GPS)" if replay else "Track map (live GPS)")
-    st.plotly_chart(fig, key=f"gps_{snap.get('positions_utc')}", config={"displayModeBar": False, "staticPlot": False})
+    st.plotly_chart(fig, key="gps_map", config={"displayModeBar": False, "staticPlot": False})
     st.caption("Real car positions from OpenF1 at this moment of the session. Circuit outline: MultiViewer." if replay else "Real car positions from F1TV. Circuit outline: MultiViewer.")
     return True
 
@@ -616,7 +653,7 @@ def track_map(snap, team, focus):
         fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers+text", text=labels, textposition="top center", textfont=dict(size=11, color="#F3F3F5"),
                                  marker=dict(size=sizes, color=cols, line=dict(width=1.5, color="#15151E")), hovertext=hovers, hoverinfo="text"))
         st.subheader("Track (from gaps)")
-        st.plotly_chart(_track_figure(fig, 320), key=f"trackmap_{snap['session'].get('lap')}_{len(xs)}", config={"displayModeBar": False})
+        st.plotly_chart(_track_figure(fig, 320), key="gap_trackmap", config={"displayModeBar": False})
         st.caption("The leader is drawn at the start line and everyone else behind by their time gap. An estimate: exact GPS positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
         return
     rows = []
@@ -634,7 +671,7 @@ def track_map(snap, team, focus):
     fig.update_layout(polar=dict(bgcolor="rgba(0,0,0,0)", radialaxis=dict(visible=False, range=[0, 1.25]), angularaxis=dict(visible=False, rotation=90, direction="clockwise")),
                       showlegend=False, height=320, margin=dict(l=10, r=10, t=10, b=10))
     st.subheader("Track (from gaps)")
-    st.plotly_chart(_font(fig), key=f"track_{snap['session'].get('lap')}_{len(df)}", config={"displayModeBar": False})
+    st.plotly_chart(_font(fig), key="gap_track", config={"displayModeBar": False})
     st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
 
 
@@ -1131,6 +1168,7 @@ def run(mode, loss, refresh, rep):
                 end = float(lt[lap])
                 begin = float(lt.get(lap - 1, end - 110.0))
                 snap["anim_window"] = ((rep.start + pd.Timedelta(seconds=begin)).isoformat(), (rep.start + pd.Timedelta(seconds=end)).isoformat(), end - begin)
+                snap["race_payload"] = race_payload_for(rep, snap, lap, begin)
         snap = add_replay_gps(snap)
         render(snap, loss, f"Replay · {'playing' if st.session_state.pw_play else 'paused'}")
 
