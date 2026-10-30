@@ -51,25 +51,28 @@ STATUS_STYLE = {
 
 CSS = """
 <style>
-@import url('https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,300;0,400;0,600;0,700;0,900;1,700;1,900&display=swap');
-:root{--carbon:#15151E;--asphalt:#1F1F2B;--line:#2E2E3A;--chalk:#F3F3F5;--tarmac:#9A9AA8;--kerb:#E10600;--flag:#FFD12E;--go:#00B050}
+@import url('https://fonts.googleapis.com/css2?family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&family=Titillium+Web:wght@300;400;600;700&display=swap');
+:root{--display:'Saira',sans-serif;--carbon:#15151E;--asphalt:#1F1F2B;--line:#2E2E3A;--chalk:#F3F3F5;--tarmac:#9A9AA8;--kerb:#E10600;--flag:#FFD12E;--go:#00B050}
 .stApp,.stApp :is(div,p,label,input,button,li,td,th,h1,h2,h3,h4,textarea,select,small,b,strong,a,summary,table){font-family:'Titillium Web',system-ui,sans-serif !important}
 .stApp [data-testid="stIconMaterial"],.stApp .material-symbols-rounded{font-family:'Material Symbols Rounded' !important}
 .stApp{background:var(--carbon);color:var(--chalk)}
 [data-testid="stToolbar"],[data-testid="stDecoration"]{display:none}
 .block-container{max-width:1500px;padding-top:3.6rem !important}
-h1{font-weight:900 !important;font-style:italic;letter-spacing:-0.5px;font-size:2.3rem !important;padding:0 !important;margin:0 0 .6rem !important;display:flex;align-items:center;gap:.6rem}
+.stApp h1,.stApp .pw-d,.stApp .pw-pos,.stApp .pw-code,.stApp .pw-call,.stApp .pw-call span,.stApp .pw-lap,.stApp .pw-flag,.stApp .pw-tower .code,.stApp .pw-tower .p,.stApp .pw-empty b{font-family:var(--display) !important;font-stretch:125%;font-variation-settings:'wdth' 125}
+.stApp h3{font-family:var(--display) !important;font-stretch:112%;font-variation-settings:'wdth' 112;text-transform:none}
+h1{font-weight:800 !important;font-style:italic;letter-spacing:-0.5px;font-size:2.1rem !important;padding:0 !important;margin:0 0 .6rem !important;display:flex;align-items:center;gap:.6rem}
 h1::before{content:"";width:44px;height:.62em;background:var(--kerb);transform:skewX(-20deg);display:inline-block}
 h3{font-weight:700 !important;font-size:1.05rem !important;letter-spacing:.2px;border-bottom:1px solid var(--line);padding:.2rem 0 .35rem !important;margin:1rem 0 .5rem !important}
 h3 a{display:none !important}
 .num{font-variant-numeric:tabular-nums}
 .pw-strip{display:flex;flex-wrap:wrap;align-items:stretch;gap:0;margin:.2rem 0 .3rem;border-radius:4px;overflow:hidden;background:var(--asphalt)}
-.pw-strip>div{padding:.45rem .9rem;display:flex;flex-direction:column;justify-content:center}
-.pw-flag{color:#111;font-weight:900;font-style:italic;min-width:120px}
-.pw-lap{font-weight:900;font-size:1.5rem;line-height:1}
+.pw-strip>div{padding:.5rem .9rem;display:flex;flex-direction:column;justify-content:center}
+.pw-flag{color:#111;font-weight:800;font-style:italic;font-size:.85rem;min-width:120px}
+.pw-lap{font-weight:800;font-style:italic;font-size:1.35rem;line-height:1}
 .pw-lap small{font-weight:400;color:var(--tarmac);font-size:.95rem}
 .pw-gp{font-weight:600}
-.pw-gp small{display:block;color:var(--tarmac);font-weight:400;font-size:.8rem}
+.pw-gp small,.pw-loss small{display:block;color:var(--tarmac);font-weight:400;font-size:.8rem}
+.pw-loss{margin-left:auto;text-align:right;font-weight:700}
 .pw-feed{color:var(--tarmac);font-size:.8rem;margin:0 0 .6rem}
 .pw-live-dot{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--kerb);margin-right:6px;animation:pw-pulse 1.6s infinite}
 @keyframes pw-pulse{0%,100%{opacity:1}50%{opacity:.25}}
@@ -78,11 +81,11 @@ h3 a{display:none !important}
 .pw-hero{position:relative;background:linear-gradient(100deg,color-mix(in srgb,var(--team) 34%,var(--asphalt)) 0%,var(--asphalt) 55%);border-radius:6px;padding:.9rem 1rem .8rem;margin-bottom:.6rem;overflow:hidden}
 .pw-hero::after{content:"";position:absolute;right:-30px;top:0;bottom:0;width:90px;background:var(--team);opacity:.18;transform:skewX(-20deg)}
 .pw-id{display:flex;align-items:flex-end;gap:.9rem}
-.pw-pos{font-weight:900;font-style:italic;font-size:3.4rem;line-height:.85;font-variant-numeric:tabular-nums}
+.pw-pos{font-weight:800;font-style:italic;font-size:3.1rem;line-height:.85;font-variant-numeric:tabular-nums}
 .pw-pos small{font-size:1.4rem;opacity:.7}
-.pw-code{font-weight:900;font-size:1.7rem;line-height:1;letter-spacing:.5px}
+.pw-code{font-weight:800;font-size:1.5rem;line-height:1;letter-spacing:.5px}
 .pw-name{color:var(--tarmac);font-size:.9rem}
-.pw-call{display:inline-block;margin:.8rem 0 .2rem .4rem;padding:.35rem 1.4rem .35rem 1.1rem;transform:skewX(-14deg);font-weight:900;font-style:italic;font-size:1.9rem;letter-spacing:.3px;box-shadow:-8px 0 0 var(--team)}
+.pw-call{display:inline-block;margin:.8rem 0 .2rem .4rem;padding:.35rem 1.4rem .35rem 1.1rem;transform:skewX(-14deg);font-weight:800;font-style:italic;font-size:1.6rem;letter-spacing:.3px;box-shadow:-8px 0 0 var(--team)}
 .pw-call>span{display:inline-block;transform:skewX(14deg)}
 .pw-why{color:var(--chalk);opacity:.85;font-size:.95rem;margin-top:.35rem}
 .pw-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:2px;margin:.2rem 0 .9rem;background:var(--line);border-radius:4px;overflow:hidden}
@@ -99,7 +102,7 @@ h3 a{display:none !important}
 .pw-tower .p{font-weight:900;width:1.8em;text-align:right;color:var(--tarmac)}
 .pw-tower tr.focus .p,.pw-tower tr.mine .p{color:var(--chalk)}
 .pw-tower .bar{width:4px;padding:0;background:var(--team)}
-.pw-tower .code{font-weight:900;letter-spacing:.4px}
+.pw-tower .code{font-weight:700;font-size:.9rem;letter-spacing:.3px}
 .pw-tower .gap,.pw-tower .int{text-align:right;color:var(--chalk)}
 .pw-tower .int{color:var(--tarmac)}
 .pw-tower .pit{font-size:.7rem;font-weight:700;background:var(--chalk);color:#111;border-radius:2px;padding:0 .3em;margin-left:.3em}
@@ -123,15 +126,16 @@ h3 a{display:none !important}
 }
 @media (max-width:640px){
   .block-container{padding:3.2rem .75rem 2rem !important}
-  h1{font-size:1.7rem !important}
+  h1{font-size:1.55rem !important}
   [data-testid="stHorizontalBlock"] > [data-testid="stColumn"]{min-width:100% !important}
   .pw-strip>div{padding:.35rem .6rem}
   .pw-lap{font-size:1.25rem}
   .pw-flag{min-width:0}
   .pw-gp{flex-basis:100%}
-  .pw-pos{font-size:2.7rem}
-  .pw-code{font-size:1.4rem}
-  .pw-call{font-size:1.45rem;padding:.3rem 1rem .3rem .9rem}
+  .pw-loss{margin-left:0;text-align:left;flex-basis:100%;border-top:1px solid var(--line)}
+  .pw-pos{font-size:2.5rem}
+  .pw-code{font-size:1.25rem}
+  .pw-call{font-size:1.25rem;padding:.3rem 1rem .3rem .9rem}
   .pw-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .pw-live{grid-template-columns:repeat(3,minmax(0,1fr))}
   .pw-tower{font-size:.9rem}
@@ -229,14 +233,13 @@ def header(snap, result, feed_note):
     st.markdown(
         f"<div class='pw-strip'><div class='pw-flag' style='background:{colour}'>{label}</div>"
         f"<div class='pw-lap num'>{progress}</div>"
-        f"<div class='pw-gp'>{s.get('meeting') or ''}<small>{s.get('name') or ''}</small></div></div>"
+        f"<div class='pw-gp'>{s.get('meeting') or ''}<small>{s.get('name') or ''}</small></div>"
+        + (f"<div class='pw-loss num'>Pit stop ≈{result['pit_loss']:.1f}s<small>{result['pit_loss_source']}</small></div>" if result else "")
+        + "</div>"
         f"<div class='pw-feed'>{live}{feed_note}</div>",
         unsafe_allow_html=True,
     )
-    gl.plain(gl.status_text(status) if result or status != "1" else "")
-    if result:
-        st.caption(f"Pit-stop loss used: **{result['pit_loss']:.1f} s** ({result['pit_loss_source']}).")
-        gl.plain(f"A pit stop here costs about {result['pit_loss']:.0f} seconds compared with staying out. Every call below weighs new, faster tyres against that cost.")
+    return status
 
 
 def sc_banner(result):
@@ -522,7 +525,7 @@ def follow_picker(snap):
     _set_param("team", team)
     _set_param("driver", focus)
     colour = by_code[focus].get("colour") or "#888"
-    st.markdown(f"<div class='pw-sub' style='border-left:4px solid {colour};padding-left:8px;margin:-4px 0 8px'>Following ⭐ {focus} and {team}. Bookmark or share this link to open straight on them.</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='pw-sub' style='border-left:4px solid {colour};padding-left:8px;margin:-4px 0 8px'>Following ⭐ {focus} · share this link and it opens on them.</div>", unsafe_allow_html=True)
     return team, focus
 
 
@@ -574,16 +577,21 @@ def car_panel(snap, focus, teammate):
 
 
 def render(snap, loss, feed_note):
-    team, focus = follow_picker(snap)
+    top_l, top_r = st.columns([3, 2], vertical_alignment="bottom", gap="medium")
+    with top_r:
+        team, focus = follow_picker(snap)
     if team is None:
         st.info("Waiting for the driver list from the session…")
         return
     kind = str((snap.get("session") or {}).get("type") or "").lower()
     if kind and kind not in RACE_TYPES:
+        with top_l:
+            header(snap, None, feed_note)
         render_practice(snap, team, focus, feed_note)
         return
     result = analyse(snap, team=team, pit_loss=loss)
-    header(snap, result, feed_note)
+    with top_l:
+        status = header(snap, result, feed_note)
     sc_banner(result)
     if not result["cars"]:
         st.warning(f"No running {team} cars in this session.")
@@ -593,6 +601,9 @@ def render(snap, loss, feed_note):
         for i, r in enumerate(ordered):
             if i == 0:
                 driver_card(r, focus=True)
+                if status != "1":
+                    gl.plain(gl.status_text(status))
+                gl.plain(f"A pit stop here costs about {result['pit_loss']:.0f} seconds compared with staying out. Every call weighs new, faster tyres against that cost.")
                 gl.words("call", "Strategy words explained")
                 teammate = ordered[1]["car"]["code"] if len(ordered) > 1 else None
                 car_panel(snap, r["car"]["code"], teammate)
@@ -625,7 +636,6 @@ def render(snap, loss, feed_note):
 
 
 def render_practice(snap, team, focus, feed_note):
-    header(snap, None, feed_note)
     summary = practice_summary(snap, team, focus or "")
     gl.plain("This is practice, not a race. Teams test car setups and tyres, so the order here does not count. Watch the long runs: they are the best clue to Sunday's race pace.")
     left, mid, right = st.columns([5, 4, 3], gap="medium")
