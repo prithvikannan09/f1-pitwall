@@ -31,7 +31,7 @@ function fit() {
   cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   const xs = D.outline.x, ys = D.outline.y;
   const minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys);
-  const pad = 26, s = Math.min((r.width - 2 * pad) / (maxx - minx), (r.height - 2 * pad - 14) / (maxy - miny));
+  const pad = 16, s = Math.min((r.width - 2 * pad) / (maxx - minx), (r.height - 2 * pad - 14) / (maxy - miny));
   box = { s, ox: (r.width - s * (maxx - minx)) / 2 - s * minx, oy: (r.height + 14 + s * (maxy - miny)) / 2 + s * miny };
 }
 function P(x, y) { return [box.ox + box.s * x, box.oy - box.s * y]; }
@@ -165,7 +165,7 @@ function dist(c, t) {
 }
 let box;
 function fit() { const r = cv.getBoundingClientRect(), dpr = window.devicePixelRatio || 1; cv.width = r.width * dpr; cv.height = r.height * dpr; ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-  const xs = D.outline.x, ys = D.outline.y, minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys), pad = 24;
+  const xs = D.outline.x, ys = D.outline.y, minx = Math.min(...xs), maxx = Math.max(...xs), miny = Math.min(...ys), maxy = Math.max(...ys), pad = 16;
   const s = Math.min((r.width - 2 * pad) / (maxx - minx), (r.height - 2 * pad - 18) / (maxy - miny));
   box = { s, ox: (r.width - s * (maxx - minx)) / 2 - s * minx, oy: (r.height + 18 + s * (maxy - miny)) / 2 + s * miny }; }
 function P(x, y) { return [box.ox + box.s * x, box.oy - box.s * y]; }

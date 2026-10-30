@@ -115,6 +115,12 @@ h3 a{display:none !important}
 .pw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,0.25);overflow:hidden;margin-top:6px}
 .pw-bar>span{display:block;height:100%}
 .pw-tag{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:700;font-size:.8rem}
+.rc-feed{max-height:330px;overflow-y:auto;border-radius:6px;background:var(--asphalt);padding:4px 4px 4px 0;scrollbar-width:thin;scrollbar-color:#3A3A48 transparent}
+.rc-row{border-left:3px solid var(--edge);padding:.42rem .65rem;margin:0 0 3px 0}
+.rc-row+.rc-row{border-top:1px solid var(--line)}
+.rc-top{font-weight:600;font-size:.86rem;line-height:1.3}
+.rc-lap{display:inline-block;min-width:2.3rem;color:var(--tarmac);font-weight:700;font-variant-numeric:tabular-nums}
+.rc-note{color:var(--tarmac);font-size:.78rem;line-height:1.35;margin:.15rem 0 0 2.3rem}
 .pw-plain{border-left:3px solid #4EA1FF;background:rgba(78,161,255,0.09);border-radius:0 4px 4px 0;padding:.5rem .8rem;margin:.3rem 0 .7rem;font-size:.93rem}
 .pw-empty{background:var(--asphalt);border-radius:6px;padding:1.4rem 1.2rem;margin:.6rem 0;max-width:640px}
 .pw-empty b{font-size:1.4rem;font-weight:900;font-style:italic;display:block;margin-bottom:.3rem}
@@ -246,7 +252,8 @@ def animated_track(snap, team, focus):
             mine = team.lower() in str(d.get("team") or "").lower()
             style[d["code"]] = {"size": 9 if d["code"] == focus else (6.5 if mine else 4.5), "focus": d["code"] == focus, "mine": mine}
         st.subheader("Race playback (GPS track)")
-        race_anim.render_race({"x": rx, "y": ry}, total, race, style, speed=st.session_state.get("pw_speed", 10), height=360)
+        ratio = (max(ry) - min(ry)) / max(max(rx) - min(rx), 1)
+        race_anim.render_race({"x": rx, "y": ry}, total, race, style, speed=st.session_state.get("pw_speed", 10), height=int(min(380, max(200, 330 * ratio + 50))))
         st.caption("The whole race, smooth from the lap you picked to the flag. Cars pass each timing line at their real times; between lines they follow "
                    + ("a real GPS lap's speed through corners and straights." if ref_t else "a steady pace.")
                    + " Drag the bar to jump; 1×–50× changes speed.")
@@ -265,7 +272,8 @@ def animated_track(snap, team, focus):
     s = snap.get("session") or {}
     title = f"Lap {s.get('lap')}" if s.get("lap") else "Last minute"
     st.subheader("Track map (GPS)")
-    race_anim.render({"x": rx, "y": ry}, total, cars, float(win[2]), title, speed=st.session_state.get("pw_speed", 2), height=340)
+    ratio = (max(ry) - min(ry)) / max(max(rx) - min(rx), 1)
+    race_anim.render({"x": rx, "y": ry}, total, cars, float(win[2]), title, speed=st.session_state.get("pw_speed", 2), height=int(min(380, max(200, 330 * ratio + 50))))
     st.caption("Real GPS from OpenF1, snapped to the track and played back smoothly. Your driver has the big dot. Use 1×–10× to change speed.")
     return True
 
@@ -675,12 +683,33 @@ def track_map(snap, team, focus):
     st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
 
 
-def race_control(snap):
-    msgs = list(reversed(snap.get("race_control") or []))[:8]
+RC_EDGE = {"Green": "#00B050", "Yellow": "#FFD12E", "Double yellow": "#FFD12E", "SC board": "#FFD12E", "VSC board": "#FFD12E",
+           "Red": "#E10600", "Blue": "#2563EB", "Black and white": "#F3F3F5", "Black with orange circle": "#F97316", "Black": "#9A9AA8",
+           "Red and yellow stripes": "#F97316", "White": "#F3F3F5", "Chequered": "#F3F3F5"}
+
+
+def race_control(snap, shown=14):
+    import html as _html
+    import re
+
+    msgs = list(reversed(snap.get("race_control") or []))[:shown]
+    if not msgs:
+        st.caption("No race control messages yet.")
+        return
+    rows, sector = [], False
     for m in msgs:
-        note = gl.flag_note(m.get("message")) if gl.beginner_on() else ""
-        note = f"<div class='pw-sub' style='margin:2px 0 6px 0'>{note}</div>" if note else ""
-        st.markdown(f"<span class='pw-sub'>Lap {m.get('lap') or '–'}</span> {m.get('message')}{note}", unsafe_allow_html=True)
+        text = str(m.get("message") or "")
+        edge = RC_EDGE.get(gl.flag_for(text), "#3A3A48")
+        note = ""
+        if gl.beginner_on():
+            note = re.sub(r"^<span[^>]*></span>", "", gl.flag_note(text))
+            sector = sector or "Sector =" in note
+            note = note.replace(" (Sector = one of about 20 small marshal zones.)", "")
+        rows.append(f"<div class='rc-row' style='--edge:{edge}'><div class='rc-top'><span class='rc-lap'>L{m.get('lap') or '–'}</span>{_html.escape(text)}</div>"
+                    + (f"<div class='rc-note'>{note}</div>" if note else "") + "</div>")
+    st.markdown(f"<div class='rc-feed'>{''.join(rows)}</div>", unsafe_allow_html=True)
+    if sector:
+        st.caption("'Sector' in these messages means one of about 20 small marshal zones round the track.")
 
 
 def team_codes(snap, team):
@@ -808,21 +837,21 @@ def render(snap, loss, feed_note):
                     gl.plain(gl.status_text(status))
                 gl.plain(f"A pit stop here costs about {result['pit_loss']:.0f} seconds compared with staying out. Every call weighs new, faster tyres against that cost.")
                 gl.words("call", "Strategy words explained")
-                teammate = ordered[1]["car"]["code"] if len(ordered) > 1 else None
-                car_panel(snap, r["car"]["code"], teammate)
-                st.divider()
             else:
                 with st.expander(f"Teammate: P{r['car']['position']} {r['car']['code']} · {r['call']}", expanded=False):
                     driver_card(r)
     with mid:
         st.subheader("Timing")
         tower(snap, team, focus)
+        st.subheader("Race control")
+        race_control(snap)
         gl.words("timing", "Timing words explained")
     with right:
         track_map(snap, team, focus)
+        if ordered:
+            st.subheader("Car data")
+            car_panel(snap, ordered[0]["car"]["code"], ordered[1]["car"]["code"] if len(ordered) > 1 else None)
         radio_panel(snap, team, focus, "race")
-        st.subheader("Race control")
-        race_control(snap)
     with st.expander("How the calls are made"):
         st.markdown(
             f"- **Tyre model:** lap time = α + β·tyre age per compound, fitted live on clean laps (no pit, Safety Car or lap 1) after fuel correction "
@@ -880,6 +909,8 @@ def render_practice(snap, team, focus, feed_note):
     with mid:
         st.subheader("Timing (best laps)")
         tower(snap, team, focus)
+        st.subheader("Race control")
+        race_control(snap)
         gl.words("timing", "Timing words explained")
     with right:
         if len(summary["wear"]):
@@ -887,8 +918,6 @@ def render_practice(snap, team, focus, feed_note):
             st.dataframe(summary["wear"].rename(columns={"compound": "Tyre", "runs": "Runs", "wear_s_per_lap": "Wear s/lap", "avg_pace": "Avg lap s"}).round(3), hide_index=True)
             st.caption("Practice fuel loads are unknown, so wear here is a rough guide (burning fuel hides some wear).")
         radio_panel(snap, team, focus, "practice")
-        st.subheader("Race control")
-        race_control(snap)
         gl.words("practice", "Practice words explained")
 
 
