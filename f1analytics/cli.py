@@ -109,9 +109,13 @@ def main(argv=None):
         from f1analytics.pitwall import racecraft
 
         logging.basicConfig(level=logging.INFO, format="%(message)s")
-        year = int(argv[2]) if len(argv) > 2 else 2026
+        years = [int(x) for x in argv[1:] if x.isdigit()]
+        year = years[0] if years else 2026
         data = racecraft.build(year, telemetry="--no-telemetry" not in argv)
         print(f"Built driver styles from {len(data['races'])} races for {len(data['profiles'])} drivers.")
+        if "--no-history" not in argv:
+            hist = racecraft.build_history(tuple(range(2023, year + 1)))
+            print(f"Built track history: {len(hist['rows'])} driver-races since 2023.")
         return 0
     if argv and argv[0] == "live":
         from f1analytics.live.cli import main as live_main
