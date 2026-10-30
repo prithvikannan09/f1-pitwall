@@ -1,0 +1,136 @@
+import base64
+import json
+import zlib
+from pathlib import Path
+from unittest import mock
+
+import pytest
+from streamlit.testing.v1 import AppTest
+
+from f1analytics.live import signalr
+from f1analytics.live.recorder import write_json_atomic
+from f1analytics.live.state import LiveState, build_snapshot, decode_z
+
+FIX = Path(__file__).resolve().parent / "fixtures" / "live_state_usgp2026.json"
+
+
+def _z(obj):
+    c = zlib.compressobj(wbits=-zlib.MAX_WBITS)
+    return base64.b64encode(c.compress(json.dumps(obj).encode()) + c.flush()).decode()
+
+
+POS = {"Position": [
+    {"Timestamp": "2026-11-01T20:10:00Z", "Entries": {"44": {"Status": "OnTrack", "X": 100, "Y": 200, "Z": 0}, "16": {"Status": "OnTrack", "X": 150, "Y": 260, "Z": 0}}},
+    {"Timestamp": "2026-11-01T20:10:00.3Z", "Entries": {"44": {"Status": "OnTrack", "X": 110, "Y": 205, "Z": 0}, "16": {"Status": "OnTrack", "X": 160, "Y": 262, "Z": 0}}},
+]}
+CAR = {"Entries": [{"Utc": "2026-11-01T20:10:00.3Z", "Cars": {"44": {"Channels": {"0": 11500, "2": 312, "3": 8, "4": 100, "5": 0, "45": 12}}}}]}
+
+
+def test_decode_z_roundtrip():
+    assert decode_z(_z(POS)) == POS
+
+
+def test_positions_and_car_data_into_snapshot():
+    ls = LiveState()
+    ls.load_snapshot(dict(json.loads(FIX.read_text()), **{"Position.z": _z(POS)}))
+    ls.apply("CarData.z", _z(CAR))
+    snap = ls.snapshot()
+    assert snap["positions"]["44"] == {"x": 110.0, "y": 205.0, "status": "OnTrack"}
+    assert snap["car"]["44"]["speed"] == 312 and snap["car"]["44"]["drs_open"] and snap["car"]["44"]["gear"] == 8
+    assert snap["circuit_key"] == 9
+
+
+def test_bad_payload_is_ignored():
+    ls = LiveState()
+    ls.load_snapshot(json.loads(FIX.read_text()))
+    ls.apply("Position.z", "not-base64!!")
+    assert build_snapshot(ls.state, [])["positions"] == {}
+
+
+class _Neg:
+    ok = True
+    cookies = {}
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return {"connectionToken": "abc"}
+
+
+def test_signed_in_connect_sends_bearer_and_extra_topics():
+    calls = {}
+
+    class WS:
+        def send(self, msg):
+            calls.setdefault("sent", []).append(msg)
+
+        def recv(self, timeout=None):
+            return "{}\x1e"
+
+    def fake_post(url, headers=None, timeout=None):
+        calls["neg_headers"] = headers
+        return _Neg()
+
+    def fake_connect(url, additional_headers=None, **kw):
+        calls["ws_headers"] = additional_headers
+        return WS()
+
+    with mock.patch("requests.post", fake_post), mock.patch("websockets.sync.client.connect", fake_connect):
+        signalr.connect_once(signalr.TOPICS + signalr.AUTH_TOPICS, access_token="tok123")
+    assert calls["neg_headers"]["Authorization"] == "Bearer tok123"
+    assert calls["ws_headers"]["Authorization"] == "Bearer tok123"
+    assert "Position.z" in calls["sent"][-1] and "CarData.z" in calls["sent"][-1]
+
+
+def test_no_token_means_free_topics(monkeypatch):
+    seen = {}
+
+    def fake_connect_once(topics, access_token=None, timeout=15):
+        seen["topics"], seen["token"] = list(topics), access_token
+        raise RuntimeError("stop")
+
+    monkeypatch.setattr(signalr, "connect_once", fake_connect_once)
+    monkeypatch.setattr(signalr.time, "sleep", lambda s: None)
+    gen = signalr.stream(token_fn=lambda: None)
+    next(gen)
+    assert seen["token"] is None and "Position.z" not in seen["topics"]
+
+
+def test_pit_wall_shows_gps_map_and_car_data(tmp_path, monkeypatch):
+    ls = LiveState()
+    ls.load_snapshot(dict(json.loads(FIX.read_text()), **{"Position.z": _z(POS), "CarData.z": _z(CAR)}))
+    snap = ls.snapshot()
+    snap["feed"] = {"connected": True, "f1tv": True}
+    write_json_atomic(tmp_path / "current.json", snap)
+    monkeypatch.setenv("F1_LIVE_DIR", str(tmp_path))
+    import f1analytics.live.recorder as rec
+
+    monkeypatch.setattr(rec, "LIVE_DIR", tmp_path)
+    page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
+    at = AppTest.from_file(page, default_timeout=120)
+    at.run()
+    assert not at.exception, [e.value for e in at.exception]
+    heads = [h.value for h in at.subheader]
+    assert "Track map (live GPS)" in heads
+    text = " ".join(m.value for m in at.markdown)
+    assert "312 km/h" in text and "OPEN" in text
+
+
+def test_public_link_hides_f1tv_data(tmp_path, monkeypatch):
+    ls = LiveState()
+    ls.load_snapshot(dict(json.loads(FIX.read_text()), **{"Position.z": _z(POS), "CarData.z": _z(CAR)}))
+    snap = ls.snapshot()
+    write_json_atomic(tmp_path / "current.json", snap)
+    import f1analytics.live.recorder as rec
+
+    monkeypatch.setattr(rec, "LIVE_DIR", tmp_path)
+    monkeypatch.setenv("PITWALL_KEY", "s3cret-key")
+    page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
+    at = AppTest.from_file(page, default_timeout=120)
+    at.run()
+    assert "Track map (live GPS)" not in [h.value for h in at.subheader]
+    at2 = AppTest.from_file(page, default_timeout=120)
+    at2.query_params["key"] = "s3cret-key"
+    at2.run()
+    assert "Track map (live GPS)" in [h.value for h in at2.subheader]

@@ -1,9 +1,56 @@
+import base64
 import copy
+import json
 import re
+import zlib
 from datetime import datetime, timezone
 
 NEUTRAL = {"4", "5", "6", "7"}
 GAP_LAPS = re.compile(r"^\+?\s*(\d+)\s*L", re.I)
+
+
+DRS_OPEN = {10, 12, 14}
+
+
+def decode_z(data):
+    if isinstance(data, (dict, list)):
+        return data
+    raw = zlib.decompress(base64.b64decode(data), -zlib.MAX_WBITS)
+    return json.loads(raw)
+
+
+def latest_positions(payload):
+    frames = (payload or {}).get("Position") or []
+    if not frames:
+        return None, {}
+    frame = frames[-1]
+    out = {}
+    for num, e in (frame.get("Entries") or {}).items():
+        try:
+            out[str(num)] = {"x": float(e["X"]), "y": float(e["Y"]), "status": e.get("Status")}
+        except (KeyError, TypeError, ValueError):
+            continue
+    return frame.get("Timestamp"), out
+
+
+def latest_car_data(payload):
+    entries = (payload or {}).get("Entries") or []
+    if not entries:
+        return None, {}
+    entry = entries[-1]
+    out = {}
+    for num, car in (entry.get("Cars") or {}).items():
+        ch = (car or {}).get("Channels") or {}
+        try:
+            drs = int(ch.get("45", 0) or 0)
+            out[str(num)] = {
+                "rpm": int(ch.get("0", 0) or 0), "speed": int(ch.get("2", 0) or 0), "gear": int(ch.get("3", 0) or 0),
+                "throttle": int(ch.get("4", 0) or 0), "brake": int(ch.get("5", 0) or 0) > 0,
+                "drs": drs, "drs_open": drs in DRS_OPEN,
+            }
+        except (TypeError, ValueError):
+            continue
+    return entry.get("Utc"), out
 
 
 def merge(dst, src):
@@ -85,7 +132,12 @@ class LiveState:
         self._status_seen = set()
 
     def load_snapshot(self, data):
-        self.state = merge({}, data or {})
+        data = dict(data or {})
+        compressed = {k: data.pop(k) for k in list(data) if k.endswith(".z")}
+        self.state = merge({}, data)
+        for topic, payload in compressed.items():
+            if payload:
+                self._apply_z(topic, payload)
         for num, line in self._lines().items():
             self._count[num] = int(line.get("NumberOfLaps") or 0)
             self._flags[num] = self._pit_flags(line)
@@ -102,8 +154,23 @@ class LiveState:
             flags.add("pit_out")
         return flags
 
+    def _apply_z(self, topic, payload):
+        try:
+            decoded = decode_z(payload)
+        except Exception:
+            return
+        if topic == "Position.z":
+            ts, pos = latest_positions(decoded)
+            if pos:
+                self.state["_positions"] = {"utc": ts, "cars": {**(self.state.get("_positions") or {}).get("cars", {}), **pos}}
+        elif topic == "CarData.z":
+            ts, car = latest_car_data(decoded)
+            if car:
+                self.state["_car"] = {"utc": ts, "cars": {**(self.state.get("_car") or {}).get("cars", {}), **car}}
+
     def apply(self, topic, delta):
         if topic.endswith(".z"):
+            self._apply_z(topic, delta)
             return
         if topic == "TrackStatus":
             self.state = merge(self.state, {topic: delta})
@@ -274,4 +341,8 @@ def build_snapshot(state, laps, source="live"):
             for m in messages[-30:] if isinstance(m, dict)
         ],
         "radio": radio_clips(state, codes),
+        "circuit_key": (meeting.get("Circuit") or {}).get("Key"),
+        "positions": (state.get("_positions") or {}).get("cars") or {},
+        "positions_utc": (state.get("_positions") or {}).get("utc"),
+        "car": (state.get("_car") or {}).get("cars") or {},
     }

@@ -36,7 +36,21 @@ A second page, **Pit Wall**, follows a live race from F1's own free live-timing 
 - **Safety Car plan:** "box now under SC / VSC?" with the cheaper stop worked out, plus a double-stack warning when both cars would queue.
 - **Tyre wear:** this stint's wear rate against the field on the same compound.
 - **Team radio:** the clips F1 makes public, playable on the page, Ferrari first (toggle for everyone).
-- **Track (from gaps):** every car placed around a circle by its time gap to the leader. An estimate: real GPS car positions are F1TV-only data since the 2025 Dutch GP.
+- **Track map:** with F1TV signed in, the real live GPS position of every car on the circuit outline. Without it, a free estimate that places cars around a circle by their time gap.
+- **Hamilton right now (F1TV):** live speed, gear, throttle, brake, RPM and whether DRS is open.
+
+### F1TV (real car positions and car data)
+
+Needs an F1TV Access or Pro subscription. Your email and password are typed by you, only into your own terminal or Streamlit's private Secrets, never into chat or code.
+
+- **On your Mac:** `python -m f1analytics live login` (it asks for your email and password, then keeps a sign-in token for a few days). Check with `python -m f1analytics live check`.
+- **On the hosted app:** share.streamlit.io → your app → ⋮ → *Settings* → *Secrets*, paste and fill in:
+  ```
+  F1_USERNAME = "your F1TV email"
+  F1_PASSWORD = "your F1TV password"
+  PITWALL_KEY = "any long random words you choose"
+  ```
+  Save; the app restarts. Your **private link** is the app link + `?key=` + that PITWALL_KEY. Anyone with the plain link sees only the free data, so your F1TV data isn't shared.
 
 ### Race night (all times IST)
 
@@ -57,7 +71,7 @@ Start the recorder **before** lights out: tyre-wear fits need the lap history fr
 
 Checked against real races. 2025 Mexico: box calls for Leclerc (window laps 26–32, stopped lap 31, then no more stops) and Hamilton (laps 21–29 → stopped 23; laps 41–47 → stopped 47). 2026 US GP: Leclerc box call at lap 12–14, stopped lap 15.
 
-**Limits:** pit loss starts as a track estimate and switches to the measured value after 4+ green-flag stops. Tyre wear is a straight-line model blended with defaults until enough laps are in. Car positions on track, DRS and pit-stop durations are paid F1TV data and not used. The live feed is unofficial and for personal use; if this becomes a paid product it needs a data licence.
+**Limits:** pit loss starts as a track estimate and switches to the measured value after 4+ green-flag stops. Tyre wear is a straight-line model blended with defaults until enough laps are in. Car positions and car data need your F1TV login (see above); pit-stop durations are not used. The live feed is unofficial and for personal use; if this becomes a paid product it needs a data licence.
 
 ### On your phone (hosted, Mac can be off)
 
@@ -124,7 +138,7 @@ CRON_TZ=Asia/Kolkata
 pytest
 ```
 
-80 tests, all offline, including a headless run of every dashboard tab.
+87 tests, all offline, including a headless run of every dashboard tab.
 
 ## Credits
 

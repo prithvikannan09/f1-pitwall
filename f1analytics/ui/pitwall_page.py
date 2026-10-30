@@ -51,7 +51,21 @@ CSS = """
 .pw-v{font-size:1.15rem;font-weight:700;white-space:nowrap}
 .pw-focus{border:2px solid var(--team);border-radius:14px;padding:4px 10px 10px;margin-bottom:14px}
 .pw-banner{border-radius:10px;padding:12px 16px;font-weight:700;margin:8px 0;color:#111}
-@media (max-width: 640px){.pw-call{font-size:1.3rem}.pw-head{font-size:1.15rem}.pw-v{font-size:1rem}}
+.pw-live{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px 12px;margin:6px 0 10px}
+.pw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,0.25);overflow:hidden;margin-top:4px}
+.pw-bar>span{display:block;height:100%}
+.pw-tag{display:inline-block;padding:2px 8px;border-radius:6px;font-weight:700;font-size:0.8rem}
+[data-testid="stToolbar"]{display:none}
+@media (max-width: 640px){
+  .block-container{padding-top:1.2rem !important;padding-left:0.8rem !important;padding-right:0.8rem !important}
+  h1{font-size:1.7rem !important}
+  .pw-call{font-size:1.3rem;padding:10px 12px}
+  .pw-head{font-size:1.15rem}
+  .pw-v{font-size:1rem}
+  .pw-pill{font-size:0.75rem;padding:3px 9px;margin-bottom:4px}
+  .pw-card{padding:10px 12px}
+  .pw-live{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
 </style>
 """
 
@@ -238,23 +252,23 @@ def driver_card(r, focus=False):
 
 
 def tower(snap, team):
-    rows = []
+    rows, mine = [], []
     for d in sorted([d for d in snap["drivers"] if d.get("position")], key=lambda d: d["position"]):
+        pit = " IN" if d.get("in_pit") else (" OUT" if d.get("pit_out") else "")
         rows.append({
-            "P": d["position"], "Driver": d["code"], "Team": d.get("team"),
+            "P": d["position"], "Car": d["code"] + pit,
             "Gap": "OUT" if d.get("retired") else ("Leader" if d["position"] == 1 else fmt_gap(d.get("gap_to_leader"), d.get("laps_down"))),
             "Int": fmt_gap(d.get("interval"), d.get("interval_laps")) if d["position"] > 1 and not d.get("retired") else "",
-            "Tyre": f"{(d.get('compound') or '?')[:1]} {d.get('tyre_age')}",
-            "Stops": d.get("stops"), "Last": f"{d['last_lap']:.3f}" if d.get("last_lap") else "",
-            "Pit": "IN" if d.get("in_pit") else ("OUT" if d.get("pit_out") else ""),
+            "Tyre": f"{(d.get('compound') or '?')[:1]}{d.get('tyre_age')}",
+            "Pits": d.get("stops"),
         })
+        mine.append(team.lower() in str(d.get("team") or "").lower())
     df = pd.DataFrame(rows)
     if df.empty:
         st.info("No timing yet.")
         return
-    mine = df["Team"].fillna("").str.contains(team, case=False)
     st.dataframe(df.style.apply(lambda r: ["background-color: rgba(225,6,0,0.25)" if mine[r.name] else "" for _ in r], axis=1),
-                 hide_index=True, height=min(38 * (len(df) + 1), 820))
+                 hide_index=True, height=min(36 * (len(df) + 1), 820))
 
 
 IST = "Asia/Kolkata"
@@ -285,7 +299,70 @@ def radio_panel(snap, team, focus, key):
     st.caption("Clips are the ones F1 makes public, a few seconds to a minute after they air. Newest first.")
 
 
+@st.cache_data(ttl=86400, show_spinner=False)
+def circuit_outline(circuit_key, year):
+    import requests
+
+    for y in (year, (year or 0) - 1, (year or 0) - 2):
+        if not circuit_key or not y:
+            break
+        try:
+            r = requests.get(f"https://api.multiviewer.app/api/v1/circuits/{int(circuit_key)}/{int(y)}", headers={"User-Agent": "f1-pitwall"}, timeout=10)
+            if r.ok:
+                d = r.json()
+                if d.get("x") and d.get("y"):
+                    return {"x": d["x"], "y": d["y"], "rotation": float(d.get("rotation") or 0)}
+        except Exception:
+            continue
+    return None
+
+
+def _rotate(xs, ys, deg):
+    import math
+
+    a = math.radians(deg)
+    c, s_ = math.cos(a), math.sin(a)
+    return [x * c - y * s_ for x, y in zip(xs, ys)], [x * s_ + y * c for x, y in zip(xs, ys)]
+
+
+def real_track_map(snap, team, focus):
+    pos = snap.get("positions") or {}
+    if not pos:
+        return False
+    by_num = {d["number"]: d for d in snap.get("drivers", [])}
+    year = (snap.get("session") or {}).get("year")
+    outline = circuit_outline(snap.get("circuit_key"), year)
+    rot = outline["rotation"] if outline else 0.0
+    fig = go.Figure()
+    if outline:
+        ox, oy = _rotate(outline["x"], outline["y"], rot)
+        fig.add_trace(go.Scatter(x=ox + ox[:1], y=oy + oy[:1], mode="lines", line=dict(color="rgba(150,150,150,0.55)", width=6), hoverinfo="skip"))
+    xs, ys, cols, sizes, labels, hovers = [], [], [], [], [], []
+    for num, p in pos.items():
+        d = by_num.get(num)
+        if d is None or d.get("retired"):
+            continue
+        (x,), (y,) = _rotate([p["x"]], [p["y"]], rot)
+        xs.append(x); ys.append(y)
+        mine = team.lower() in str(d.get("team") or "").lower()
+        cols.append(d.get("colour") or "#888")
+        sizes.append(18 if d["code"] == focus else (13 if mine else 9))
+        labels.append(d["code"] if (mine or (d.get("position") or 99) <= 5) else "")
+        hovers.append(f"P{d.get('position')} {d['code']}")
+    fig.add_trace(go.Scatter(x=xs, y=ys, mode="markers+text", text=labels, textposition="top center",
+                             marker=dict(size=sizes, color=cols, line=dict(width=1, color="#222")), hovertext=hovers, hoverinfo="text"))
+    fig.update_xaxes(visible=False)
+    fig.update_yaxes(visible=False, scaleanchor="x", scaleratio=1)
+    fig.update_layout(showlegend=False, height=300, margin=dict(l=4, r=4, t=4, b=4))
+    st.subheader("Track map (live GPS)")
+    st.plotly_chart(fig, key=f"gps_{snap.get('positions_utc')}", config={"displayModeBar": False, "staticPlot": False})
+    st.caption("Real car positions from F1TV. Circuit outline: MultiViewer.")
+    return True
+
+
 def track_map(snap, team, focus):
+    if real_track_map(snap, team, focus):
+        return
     cars = [d for d in snap.get("drivers", []) if not d.get("retired") and d.get("position") and d.get("gap_to_leader") is not None]
     if len(cars) < 2:
         return
@@ -305,7 +382,7 @@ def track_map(snap, team, focus):
     fig.update_layout(polar=dict(radialaxis=dict(visible=False, range=[0, 1.25]), angularaxis=dict(visible=False, rotation=90, direction="clockwise")),
                       showlegend=False, height=320, margin=dict(l=10, r=10, t=10, b=10))
     st.subheader("Track (from gaps)")
-    st.plotly_chart(fig, key=f"track_{snap['session'].get('lap')}_{len(df)}")
+    st.plotly_chart(fig, key=f"track_{snap['session'].get('lap')}_{len(df)}", config={"displayModeBar": False})
     st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions are paid F1TV data.")
 
 
@@ -330,7 +407,29 @@ def pick_focus(snap, team):
     return st.segmented_control("Focus driver", codes, key="pw_focus", label_visibility="collapsed") or default
 
 
+def live_car(snap, focus):
+    num = next((d["number"] for d in snap.get("drivers", []) if d["code"] == focus), None)
+    car = (snap.get("car") or {}).get(num) if num else None
+    if not car:
+        return
+    drs = "OPEN" if car["drs_open"] else ("ready" if car["drs"] == 8 else "closed")
+    drs_bg = "var(--live, #1E9E5A)" if car["drs_open"] else "rgba(128,128,128,0.35)"
+    st.markdown(
+        f"**{focus} right now (F1TV car data)**"
+        f"<div class='pw-live'>"
+        f"<div><div class='pw-k'>Speed</div><div class='pw-v'>{car['speed']} km/h</div></div>"
+        f"<div><div class='pw-k'>Gear</div><div class='pw-v'>{car['gear']}</div></div>"
+        f"<div><div class='pw-k'>DRS</div><div class='pw-v'><span class='pw-tag' style='background:{drs_bg}'>{drs}</span></div></div>"
+        f"<div><div class='pw-k'>Throttle {car['throttle']}%</div><div class='pw-bar'><span style='width:{max(0, min(100, car['throttle']))}%;background:#1E9E5A'></span></div></div>"
+        f"<div><div class='pw-k'>Brake</div><div class='pw-bar'><span style='width:{100 if car['brake'] else 0}%;background:#E10600'></span></div></div>"
+        f"<div><div class='pw-k'>RPM</div><div class='pw-v'>{car['rpm']:,}</div></div>"
+        f"</div>",
+        unsafe_allow_html=True,
+    )
+
+
 def car_panel(snap, focus, teammate):
+    live_car(snap, focus)
     sp = speed_profile(snap, focus, teammate)
     st.markdown(f"**{focus}'s car (estimated from speed traps)**")
     if not sp:
@@ -443,9 +542,38 @@ def render_practice(snap, team, feed_note):
         race_control(snap)
 
 
+def owner_view():
+    import hmac
+    import os
+
+    key = os.environ.get("PITWALL_KEY", "")
+    if not key:
+        return True
+    given = str(st.query_params.get("key", ""))
+    return bool(given) and hmac.compare_digest(given, key)
+
+
+def strip_f1tv(snap):
+    if snap and not owner_view():
+        snap = dict(snap, positions={}, car={})
+    return snap
+
+
+def f1tv_badge(snap):
+    feed = (snap or {}).get("feed") or {}
+    if (snap or {}).get("positions"):
+        return "F1TV ✓ GPS + car data"
+    if feed.get("f1tv"):
+        return "F1TV signed in"
+    return "free data"
+
+
 def main(autorecord=False):
     st.set_page_config(page_title="Pit Wall", page_icon="🏁", layout="wide", initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
+    from f1analytics.live.auth import load_streamlit_secrets
+
+    load_streamlit_secrets()
     if autorecord:
         ensure_recorder()
     mode, team, loss, refresh = sidebar()
@@ -463,9 +591,10 @@ def run(mode, team, loss, refresh, rep):
         if snap is None:
             st.info("Connecting to F1 live timing… (on a laptop without the hosted app, run `python -m f1analytics live record`).")
             return
+        snap = strip_f1tv(snap)
         feed = snap.get("feed") or {}
         status = (snap.get("session") or {}).get("status")
-        note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'} · updated {age:.0f}s ago · session {status or '?'}"
+        note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'} · {f1tv_badge(snap)} · updated {age:.0f}s ago · session {status or '?'}"
         if age > 30 and status not in ("Finished", "Finalised", "Ends", "Inactive"):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
         render(snap, team, loss, note)
