@@ -162,9 +162,14 @@ SEASONS = [2026, 2025, 2024, 2023]
 
 @st.cache_data(ttl=3600, show_spinner="Loading the season's sessions…")
 def season_list(year):
-    from f1analytics.live.replay import season_sessions
+    import os
 
-    return season_sessions(year)
+    from f1analytics.live.replay import season_sessions
+    from f1analytics.sources.openf1_source import OpenF1Source
+
+    if os.environ.get("F1_REPLAY_LIST", "1") == "0":
+        return []
+    return season_sessions(year, OpenF1Source(timeout=15, retries=3))
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -211,40 +216,38 @@ def ensure_recorder():
 
 
 def sidebar():
-    st.sidebar.header("Pit wall")
-    qp = st.query_params
-    mode = st.sidebar.radio("Mode", ["Live", "Replay"], index=0 if qp.get("mode", "live").lower() != "replay" else 1,
-                            help="Live follows the session happening now. Replay steps through a past session.")
+    st.sidebar.header("Settings")
     loss = st.sidebar.number_input("Pit-stop time loss override (s)", min_value=0.0, max_value=40.0, value=0.0, step=0.5,
                                    help="0 = automatic: measured from this race's stops once 3+ have happened, otherwise a track default (est.).")
     refresh = st.sidebar.slider("Refresh every (s)", 2, 15, 3)
     gl.sidebar_toggle()
-    return mode, (loss or None), refresh
+    return (loss or None), refresh
+
+
+SAVED = "Saved replays (offline)"
 
 
 def replay_controls():
-    st.sidebar.divider()
-    st.sidebar.subheader("Replay")
-    choice = st.sidebar.radio("Session", ["Any session (pick below)"] + list(BUNDLED), index=1,
-                              help="Bundled replays work offline. 'Any session' loads every finished 2023–2026 session from OpenF1.")
+    c1, c2, c3 = st.columns([1, 2, 1.4])
+    year = c1.selectbox("Season", SEASONS + [SAVED], key="pw_year")
     try:
-        if choice in BUNDLED:
+        sessions = [] if year == SAVED else season_list(year)
+        if year != SAVED and not sessions:
+            c2.warning(f"Couldn't load the {year} sessions from OpenF1 just now, so here's a saved replay.")
+        if not sessions:
+            choice = c2.selectbox("Replay", list(BUNDLED), key="pw_saved") if year == SAVED else list(BUNDLED)[0]
             rep = get_replay("bundled", choice)
         else:
-            year = st.sidebar.selectbox("Season", SEASONS, key="pw_year")
-            sessions = season_list(year)
-            if not sessions:
-                st.sidebar.warning("No finished sessions found for that season.")
-                return None
             rounds = list(dict.fromkeys(x["round"] for x in sessions))
             label = {x["round"]: f"R{x['round']} · {x['meeting']}" for x in sessions}
-            rnd = st.sidebar.selectbox("Race weekend", rounds, index=len(rounds) - 1, format_func=label.get, key=f"pw_round_{year}")
+            rnd = c2.selectbox("Race weekend", rounds, index=len(rounds) - 1, format_func=label.get, key=f"pw_round_{year}")
             opts = [x for x in sessions if x["round"] == rnd]
             names = {x["session_key"]: x["session"] for x in opts}
             keys = list(names)
             race = next((i for i, k in enumerate(keys) if names[k] == "Race"), len(keys) - 1)
-            sk = st.sidebar.selectbox("Session", keys, index=race, format_func=names.get, key=f"pw_sess_{year}_{rnd}")
-            rep = get_replay("openf1", sk)
+            sk = c3.selectbox("Session", keys, index=race, format_func=names.get, key=f"pw_sess_{year}_{rnd}")
+            with st.spinner("Loading that session from OpenF1…"):
+                rep = get_replay("openf1", sk)
             choice = f"openf1:{sk}"
     except Exception as exc:
         st.error(f"Could not load that session: {exc}")
@@ -258,7 +261,7 @@ def replay_controls():
     st.session_state.setdefault("pw_play", False)
     st.session_state.setdefault("pw_lap", 1)
     st.session_state.setdefault("pw_min", int(rep.duration_s // 60) + 1 if practice else 1)
-    c1, c2 = st.sidebar.columns(2)
+    c1, c2, _ = st.columns([1, 1, 3])
     if c1.button("▶ Play" if not st.session_state.pw_play else "⏸ Pause", width="stretch"):
         st.session_state.pw_play = not st.session_state.pw_play
     if c2.button("⏮ Start", width="stretch"):
@@ -684,6 +687,10 @@ def render(snap, loss, feed_note):
     if team is None:
         st.info("Waiting for the driver list from the session…")
         return
+    s = snap.get("session") or {}
+    playing = st.session_state.get("pw_play") and snap.get("source") == "replay"
+    sig = (focus,) if snap.get("source") != "replay" else (focus, s.get("meeting"), s.get("name"), s.get("lap"), snap.get("now_utc") if not s.get("lap") else None)
+    remember(snap, focus, st.session_state.get("pw_sig") if playing else sig)
     kind = str((snap.get("session") or {}).get("type") or "").lower()
     if kind and kind not in RACE_TYPES:
         with top_l:
@@ -721,13 +728,6 @@ def render(snap, loss, feed_note):
         radio_panel(snap, team, focus, "race")
         st.subheader("Race control")
         race_control(snap)
-    from f1analytics.ui.styles_panel import start_tyres_section, styles_section
-
-    if (snap.get("session") or {}).get("lap") in (None, 0, 1):
-        start_tyres_section(snap)
-    styles_section(snap, focus)
-    gl.flags_panel("race")
-    gl.glossary("race")
     with st.expander("How the calls are made"):
         st.markdown(
             f"- **Tyre model:** lap time = α + β·tyre age per compound, fitted live on clean laps (no pit, Safety Car or lap 1) after fuel correction "
@@ -795,12 +795,32 @@ def render_practice(snap, team, focus, feed_note):
         st.subheader("Race control")
         race_control(snap)
         gl.words("practice", "Practice words explained")
+
+
+def below_fold():
     from f1analytics.ui.styles_panel import start_tyres_section, styles_section
 
-    start_tyres_section(snap)
+    snap = st.session_state.get("pw_last_snap")
+    focus = st.session_state.get("pw_driver")
+    st.session_state["pw_full_run"] = False
+    if not snap or not focus:
+        return
+    st.session_state["pw_below_sig"] = st.session_state.get("pw_sig")
+    s = snap.get("session") or {}
+    race = str(s.get("type") or "").lower() in RACE_TYPES
+    if not race or s.get("lap") in (None, 0, 1):
+        start_tyres_section(snap)
     styles_section(snap, focus)
-    gl.flags_panel("practice")
-    gl.glossary("practice")
+    gl.flags_panel("race" if race else "practice")
+    gl.glossary("race" if race else "practice")
+
+
+def remember(snap, focus, sig):
+    st.session_state["pw_last_snap"] = snap
+    st.session_state["pw_sig"] = sig
+    below = st.session_state.get("pw_below_sig")
+    if below is not None and below != sig and not st.session_state.get("pw_full_run"):
+        st.rerun(scope="app")
 
 
 MAX_TRIES = 5
@@ -900,12 +920,17 @@ def main(autorecord=False):
     load_streamlit_secrets()
     if autorecord:
         ensure_recorder()
-    mode, loss, refresh = sidebar()
+    st.session_state["pw_full_run"] = True
+    loss, refresh = sidebar()
     head_l, head_r = st.columns([5, 2], vertical_alignment="center")
     with head_l:
         st.title("F1 Pit Wall")
     with head_r:
         owner_signin()
+    if "pw_mode" not in st.session_state:
+        st.session_state["pw_mode"] = "Past races" if str(st.query_params.get("mode", "")).lower() == "replay" else "Live"
+    view = st.radio("View", ["Live", "Past races"], horizontal=True, key="pw_mode", label_visibility="collapsed")
+    mode = "Replay" if view == "Past races" else "Live"
     rep = replay_controls() if mode == "Replay" else None
     run(mode, loss, refresh, rep)
     own_copy_guide()
@@ -931,8 +956,8 @@ def run(mode, loss, refresh, rep):
                 st.caption(f"Connected to F1 live timing {ago:.0f}s ago, waiting for the first data.")
             else:
                 st.caption(f"Can't reach F1 live timing yet, retrying: {feed.get('error') or 'no reply'}")
-            if st.button("Watch the 2026 US GP replay", type="primary"):
-                st.query_params["mode"] = "replay"
+            if st.button("Watch past races", type="primary"):
+                st.session_state["pw_mode"] = "Past races"
                 st.rerun(scope="app")
             return
         snap = strip_f1tv(snap)
@@ -943,7 +968,7 @@ def run(mode, loss, refresh, rep):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
         render(snap, loss, note)
 
-    @st.fragment(run_every=refresh)
+    @st.fragment(run_every=refresh if st.session_state.get("pw_play") else None)
     def replay_view():
         if rep is None:
             return
@@ -961,7 +986,13 @@ def run(mode, loss, refresh, rep):
         snap = add_replay_gps(snap)
         render(snap, loss, f"Replay · {'playing' if st.session_state.pw_play else 'paused'}")
 
+    @st.fragment(run_every=60)
+    def below_live():
+        below_fold()
+
     if mode == "Live":
         live_view()
+        below_live()
     else:
         replay_view()
+        below_fold()

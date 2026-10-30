@@ -82,7 +82,7 @@ Start the recorder **before** lights out: tyre-wear fits need the lap history fr
 
 - `python -m f1analytics live check`: confirms the live feed answers.
 - `python -m f1analytics live demo --seconds 3`: replays last Sunday's US GP into the Live pit wall, one lap every 3 s.
-- Or switch the page to **Replay** and scrub through any 2023+ race lap by lap.
+- Or tap **Past races** at the top of the page, pick a season, race weekend and session (any finished session 2023–2026, practice to race), then scrub lap by lap or press Play. Replays show real GPS car positions from OpenF1.
 
 Checked against real races. 2025 Mexico: box calls for Leclerc (window laps 26–32, stopped lap 31, then no more stops) and Hamilton (laps 21–29 → stopped 23; laps 41–47 → stopped 47). 2026 US GP: Leclerc box call at lap 12–14, stopped lap 15.
 
@@ -102,7 +102,7 @@ Anyone you share this repo with can run their own copy. Nothing needs to run on 
    - *Advanced settings* → Python version **3.12**
    Press **Deploy**. The first build takes about 5 minutes.
 4. **Make it open for anyone with the link.** In the app, *Share* (top right) → switch on **This app is public**. On the free plan one private-repo app is allowed per account.
-5. **Check it.** You want the title **F1 Pit Wall**, your driver picked at the top, and "Live feed connected" during a session. Between sessions it shows the last session; switch to *Replay* in the side menu to try a past race.
+5. **Check it.** You want the title **F1 Pit Wall**, your driver picked at the top, and "Live feed connected" during a session. Between sessions it shows the last session; tap *Past races* at the top to try any finished race.
 6. **Optional, F1TV data:** add your own F1TV login under *Settings* → *Secrets* (see the F1TV section above). Each person uses their own subscription; the plain link never shows F1TV data.
 
 Open the link **10–15 minutes before each session** so the app is awake and records laps from the start (free apps sleep after hours without visitors). Updates you push to `main` reach the app by themselves within a couple of minutes.

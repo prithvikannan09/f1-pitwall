@@ -1,7 +1,7 @@
 import streamlit as st
 
 TERMS = {
-    "Delta": "The difference between two numbers, usually lap times. +0.5s means half a second slower, −0.5s means half a second faster.",
+    "Delta": "The difference between two numbers, usually times. Lap delta: +0.5s means this lap was half a second slower than the one you compare it with (your best, or a rival's). Gap delta: if the gap to the car ahead goes from 2.0s to 1.6s, the delta is −0.4s, so you are catching. On the TV the live delta shows whether a driver is up (−, green) or down (+, red) on his best lap right now.",
     "Gap": "How far a car is behind the race leader, in seconds. +12.0s = it would cross the line 12 seconds after the leader.",
     "Interval (Int)": "How far a car is behind the car directly in front of it. Under 1 second at the detection point gives the chasing car Overtake mode.",
     "Lapped (+1 lap)": "The leader has caught and passed this car, so it has done one lap fewer.",
@@ -50,7 +50,9 @@ TERMS = {
     "Speed trap": "A point on the longest straight where every car's speed is measured.",
     "Top speed": "The fastest speed a car reached at the speed trap.",
     "Wing level (downforce)": "How much wing the team has fitted for this track. More wing = more grip in corners but slower on straights, even with Straight mode open. We guess it from top speed, because the real settings are secret.",
-    "Tow / slipstream": "Following close behind another car on a straight. The car in front punches a hole in the air, so the car behind goes faster.",
+    "Dirty air": "The messy, turbulent air coming off a car in front. Following closely through corners, your wings get less clean air, so you lose grip (downforce), slide more and heat your tyres. That's why cars struggle to follow within about a second in fast corners, even when they're quicker.",
+    "Clean air": "Air nobody has disturbed: what the leader or a car with a big gap ahead gets. Full grip and cooler tyres, so it's the fastest way to run. Teams pit so a driver comes out in clean air, not stuck behind someone.",
+    "Tow / slipstream": "Following close behind another car on a straight. The car in front punches a hole in the air, so the car behind has less drag and goes faster (often 5–15 km/h). The flip side of dirty air: it hurts in corners but helps on straights. In qualifying, teammates sometimes give each other a tow on purpose.",
     "Engine modes": "Settings the driver switches between: more power for attack or defence, less to save fuel or the engine.",
     "Throttle": "The accelerator pedal, 0% to 100%.",
     "Brake": "Whether the driver is braking right now.",
@@ -73,8 +75,8 @@ TERMS = {
 
 SECTIONS = {
     "call": ["BOX THIS LAP", "STAY OUT", "Pit window", "Plan A / Plan B", "Delta", "Pit-stop loss", "Rejoin", "Traffic", "Undercut", "Cover", "Undercut threat %", "Safety Car (SC)", "Virtual Safety Car (VSC)", "Tyre wear (degradation, 'deg')", "Double stack"],
-    "car": ["Active aero", "Straight mode", "Overtake mode", "Boost", "Recharge", "Speed trap", "Top speed", "Wing level (downforce)", "Tow / slipstream", "Throttle", "RPM", "est."],
-    "timing": ["P1, P2…", "Gap", "Interval (Int)", "Overtake mode", "Lapped (+1 lap)", "Compound", "Box"],
+    "car": ["Active aero", "Straight mode", "Overtake mode", "Boost", "Recharge", "Speed trap", "Top speed", "Wing level (downforce)", "Tow / slipstream", "Dirty air", "Clean air", "Throttle", "RPM", "est."],
+    "timing": ["P1, P2…", "Gap", "Interval (Int)", "Delta", "Dirty air", "Overtake mode", "Lapped (+1 lap)", "Compound", "Box"],
     "practice": ["Practice (FP1, FP2, FP3)", "Long run", "Tyre wear (degradation, 'deg')", "Fuel correction", "Delta", "Out-lap / In-lap"],
 }
 

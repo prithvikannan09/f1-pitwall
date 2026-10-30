@@ -38,7 +38,7 @@ def _run(beginner):
     at = AppTest.from_file(PAGE, default_timeout=120)
     at.query_params["beginner"] = "1" if beginner else "0"
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(14).run()
     assert not at.exception and not at.error
     return " ".join(m.value for m in at.markdown), [e.label for e in at.expander]
@@ -80,7 +80,7 @@ def test_flags_from_real_race_control():
 def test_flags_shown_in_page():
     at = AppTest.from_file(PAGE, default_timeout=120)
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(56).run()
     assert not at.exception and not at.error
     assert any("Flags explained" in e.label for e in at.expander)

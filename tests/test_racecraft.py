@@ -114,14 +114,15 @@ def test_styles_on_page():
     page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
     at = AppTest.from_file(page, default_timeout=120)
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(30).run()
     assert not at.exception and not at.error
     text = " ".join(m.value for m in at.markdown)
     assert "Chance HAM finishes ahead of" in text and "Strongest tracks" in text and "At Austin" in text
     at.selectbox(key="sty_rival_HAM").set_value("VER").run()
     assert "Chance HAM finishes ahead of VER" in " ".join(m.value for m in at.markdown)
-    at.sidebar.radio[1].set_value("2025 Mexico · Practice 2 (bundled)").run()
+    at.selectbox(key="pw_year").set_value("Saved replays (offline)").run()
+    at.selectbox(key="pw_saved").set_value("2025 Mexico · Practice 2 (bundled)").run()
     assert not at.exception and not at.error
     heads = [h.value for h in at.subheader]
     assert "Best tyre to start on" in heads and "Driving styles and head to head" in heads

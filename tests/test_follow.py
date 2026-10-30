@@ -10,7 +10,7 @@ def _replay(params=None):
     for k, v in (params or {}).items():
         at.query_params[k] = v
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(14).run()
     assert not at.exception and not at.error
     return at

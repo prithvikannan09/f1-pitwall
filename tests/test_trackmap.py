@@ -30,7 +30,7 @@ def test_track_layout_used_when_available(monkeypatch):
     monkeypatch.setattr(pw, "circuit_outline", fake_outline)
     at = AppTest.from_file(PAGE, default_timeout=120)
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(20).run()
     assert not at.exception and not at.error
     assert (9, 2026) in calls
@@ -59,7 +59,7 @@ def test_replay_shows_gps_from_openf1(monkeypatch):
     monkeypatch.setattr(pw, "circuit_outline", lambda k, y: None)
     at = AppTest.from_file(PAGE, default_timeout=120)
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     at.slider(key="pw_lap").set_value(20).run()
     assert not at.exception and not at.error
     assert "Track map (GPS)" in [h.value for h in at.subheader]
@@ -85,10 +85,9 @@ def test_any_session_picker(monkeypatch):
     pw.get_replay.clear()
     at = AppTest.from_file(PAGE, default_timeout=120)
     at.run()
-    at.sidebar.radio[0].set_value("Replay").run()
-    at.sidebar.radio[1].set_value("Any session (pick below)").run()
+    at.radio(key="pw_mode").set_value("Past races").run()
     assert not at.exception and not at.error, [e.value for e in at.exception]
-    assert at.sidebar.selectbox(key="pw_round_2026").value == 20
-    assert at.sidebar.selectbox(key="pw_sess_2026_20").value == 11396
+    assert at.selectbox(key="pw_round_2026").value == 20
+    assert at.selectbox(key="pw_sess_2026_20").value == 11396
     assert loaded == [11396]
     assert any("BOX" in m.value or "STAY OUT" in m.value for m in at.markdown)
