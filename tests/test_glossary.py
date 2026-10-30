@@ -86,3 +86,11 @@ def test_flags_shown_in_page():
     assert any("Flags explained" in e.label for e in at.expander)
     text = " ".join(m.value for m in at.markdown)
     assert "End of the race or session" in text
+
+
+def test_rain_risk_wording():
+    from f1analytics.ui.glossary import flag_note
+
+    assert flag_note("RISK OF RAIN FOR F1 RACE IS 0%") == "Race control's forecast: no rain expected."
+    assert "possible" in flag_note("RISK OF RAIN FOR F1 RACE IS 40%")
+    assert "possible" in flag_note("RISK OF RAIN FOR F1 RACE IS 10%")

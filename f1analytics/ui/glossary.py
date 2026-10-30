@@ -82,6 +82,8 @@ TERMS = {
     "Bogey track": "A track where a driver is usually furthest below his own normal level, even if he has done well there.",
     "Head to head chance": "The app replays the rest of the race thousands of times with small random changes (pace, stops, Safety Cars) and counts how often one driver finishes ahead.",
     "Style tags": "Short labels from the scores: Hunter (strong attack), The wall (strong defence), Rocket starts, Tyre whisperer, Race-pace king, Late braker, Strong on the straights, Patient (rarely forces passes), Can be passed (weaker defence).",
+    "Air density": "How much air is packed into each cubic metre. Thinner air (high altitude or heat) means less downforce and drag, weaker cooling and harder work for the turbo.",
+    "Altitude": "Height above sea level. Mexico City's track is over 2,200 m up, the highest on the calendar, so its air is roughly a quarter thinner than at sea level.",
     "est.": "An estimate: worked out by us from public data, not an official number.",
 }
 
@@ -238,6 +240,7 @@ OTHER_NOTES = [
     (r"PENALTY", "The stewards have punished a driver, usually with seconds added to their race time or served at their next pit stop."),
     (r"NOTED", "Race control has seen an incident and may look into it."),
     (r"SAFETY CAR IN THIS LAP", "The Safety Car comes in at the end of this lap and racing restarts."),
+    (r"RISK OF RAIN.*(?<!\d)0\s*%", "Race control's forecast: no rain expected."),
     (r"RISK OF RAIN", "Rain is possible. Watch for teams fitting inters (green) or wets (blue)."),
 ]
 

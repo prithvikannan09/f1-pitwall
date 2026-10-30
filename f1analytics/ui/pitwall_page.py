@@ -57,7 +57,8 @@ CSS = """
 .stApp [data-testid="stIconMaterial"],.stApp .material-symbols-rounded{font-family:'Material Symbols Rounded' !important}
 .stApp{background:var(--carbon);color:var(--chalk)}
 [data-testid="stToolbar"],[data-testid="stDecoration"]{display:none}
-.block-container{max-width:1500px;padding-top:3.6rem !important}
+[data-testid="stHeader"]{background:transparent !important}
+.block-container{max-width:1920px;padding:3.6rem 2rem 2rem !important}
 .stApp h1,.stApp .pw-d,.stApp .pw-pos,.stApp .pw-code,.stApp .pw-call,.stApp .pw-call span,.stApp .pw-lap,.stApp .pw-flag,.stApp .pw-tower .code,.stApp .pw-tower .p,.stApp .pw-empty b{font-family:var(--display) !important;font-stretch:125%;font-variation-settings:'wdth' 125}
 .stApp h3{font-family:var(--display) !important;font-stretch:112%;font-variation-settings:'wdth' 112;text-transform:none}
 h1{font-weight:800 !important;font-style:italic;letter-spacing:-0.5px;font-size:2.1rem !important;padding:0 !important;margin:0 0 .6rem !important;display:flex;align-items:center;gap:.6rem}
@@ -115,6 +116,14 @@ h3 a{display:none !important}
 .pw-bar{height:6px;border-radius:3px;background:rgba(128,128,128,0.25);overflow:hidden;margin-top:6px}
 .pw-bar>span{display:block;height:100%}
 .pw-tag{display:inline-block;padding:1px 8px;border-radius:3px;font-weight:700;font-size:.8rem}
+.cond{background:var(--asphalt);border-radius:6px;padding:.7rem .8rem .5rem}
+.cond-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.45rem .8rem;margin-bottom:.6rem}
+.cond-air{border-top:1px solid var(--line);padding-top:.55rem;margin-bottom:.4rem}
+.cond-bar{height:8px;border-radius:4px;background:#2E2E3A;overflow:hidden;margin:.3rem 0}
+.cond-bar>span{display:block;height:100%;background:linear-gradient(90deg,#4EA1FF,#9AD0FF)}
+.cond-big{font-family:var(--display);font-stretch:112%;font-variation-settings:'wdth' 112;font-weight:700;font-size:1.05rem}
+.cond-fx{font-size:.86rem;line-height:1.4;padding:.45rem 0;border-top:1px solid var(--line);color:var(--chalk)}
+.cond-fx b{display:block;font-weight:700;margin-bottom:1px}
 .rc-feed{max-height:330px;overflow-y:auto;border-radius:6px;background:var(--asphalt);padding:4px 4px 4px 0;scrollbar-width:thin;scrollbar-color:#3A3A48 transparent}
 .rc-row{border-left:3px solid var(--edge);padding:.42rem .65rem;margin:0 0 3px 0}
 .rc-row+.rc-row{border-top:1px solid var(--line)}
@@ -683,6 +692,38 @@ def track_map(snap, team, focus):
     st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
 
 
+def weather_backdrop(snap):
+    from f1analytics.pitwall.conditions import analyse, theme_css, weather_kind
+
+    kind, _ = weather_kind(analyse((snap or {}).get("weather")))
+    css = theme_css(kind)
+    if css:
+        st.markdown(css, unsafe_allow_html=True)
+
+
+def conditions_panel(snap):
+    from f1analytics.pitwall.conditions import analyse, weather_kind
+
+    c = analyse(snap.get("weather"))
+    if c["air"] is None and c["track"] is None:
+        return
+    _, label = weather_kind(c)
+    st.subheader(f"Conditions · {label}" if label else "Conditions")
+    def f(v, fmt):
+        return "—" if v is None else fmt.format(v)
+    cells = [("Air", f(c["air"], "{:.0f}°C")), ("Track", f(c["track"], "{:.0f}°C")), ("Humidity", f(c["humidity"], "{:.0f}%")),
+             ("Wind", f(c["wind"], "{:.1f} m/s")), ("Rain", "Yes" if c["rain"] else "No"), ("Pressure", f(c["pressure"], "{:.0f} hPa"))]
+    html = "<div class='cond-grid'>" + "".join(f"<div><div class='pw-k'>{k}</div><div class='pw-v'>{v}</div></div>" for k, v in cells) + "</div>"
+    if c["thinner_pct"] is not None:
+        thin = max(0.0, c["thinner_pct"])
+        alt = f", like being about {c['altitude_m']:,.0f} m up" if (c["altitude_m"] or 0) > 300 else ""
+        html += (f"<div class='cond-air'><div class='pw-k'>Air density vs sea level</div>"
+                 f"<div class='cond-bar'><span style='width:{100 - thin:.0f}%'></span></div>"
+                 f"<div class='cond-big'>{thin:.0f}% thinner air{alt}</div></div>")
+    html += "".join(f"<div class='cond-fx'><b>{t}</b> {d}</div>" for t, d in c["effects"])
+    st.markdown(f"<div class='cond'>{html}</div>", unsafe_allow_html=True)
+
+
 RC_EDGE = {"Green": "#00B050", "Yellow": "#FFD12E", "Double yellow": "#FFD12E", "SC board": "#FFD12E", "VSC board": "#FFD12E",
            "Red": "#E10600", "Blue": "#2563EB", "Black and white": "#F3F3F5", "Black with orange circle": "#F97316", "Black": "#9A9AA8",
            "Red and yellow stripes": "#F97316", "White": "#F3F3F5", "Chequered": "#F3F3F5"}
@@ -805,6 +846,7 @@ def car_panel(snap, focus, teammate):
 
 
 def render(snap, loss, feed_note):
+    weather_backdrop(snap)
     top_l, top_r = st.columns([3, 2], vertical_alignment="bottom", gap="medium")
     with top_r:
         team, focus = follow_picker(snap)
@@ -851,6 +893,7 @@ def render(snap, loss, feed_note):
         if ordered:
             st.subheader("Car data")
             car_panel(snap, ordered[0]["car"]["code"], ordered[1]["car"]["code"] if len(ordered) > 1 else None)
+        conditions_panel(snap)
         radio_panel(snap, team, focus, "race")
     with st.expander("How the calls are made"):
         st.markdown(
@@ -917,6 +960,7 @@ def render_practice(snap, team, focus, feed_note):
             st.subheader("Tyre wear from long runs (for Sunday)")
             st.dataframe(summary["wear"].rename(columns={"compound": "Tyre", "runs": "Runs", "wear_s_per_lap": "Wear s/lap", "avg_pace": "Avg lap s"}).round(3), hide_index=True)
             st.caption("Practice fuel loads are unknown, so wear here is a rough guide (burning fuel hides some wear).")
+        conditions_panel(snap)
         radio_panel(snap, team, focus, "practice")
         gl.words("practice", "Practice words explained")
 

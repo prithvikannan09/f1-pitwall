@@ -130,6 +130,18 @@ class RaceReplay:
         lead = self.laps.sort_values("T").groupby("LapNumber")["T"].min()
         self.leader_time = lead
 
+    def weather_at(self, now_abs):
+        wx = getattr(self, "wx", None)
+        if wx is None or len(wx) == 0:
+            return {}
+        w = wx[wx["t"] <= now_abs].tail(1)
+        if not len(w):
+            w = wx.head(1)
+        w = w.iloc[0]
+        keys = {"AirTemp": "air_temperature", "TrackTemp": "track_temperature", "Humidity": "humidity", "Rainfall": "rainfall",
+                "WindSpeed": "wind_speed", "WindDirection": "wind_direction", "Pressure": "pressure"}
+        return {k: _num(w.get(v)) for k, v in keys.items() if v in w and _num(w.get(v)) is not None}
+
     def status_at(self, abs_time):
         status = "1"
         for t0, t1, code in self.windows:
@@ -204,12 +216,7 @@ class RaceReplay:
             for x in upto.itertuples()
         ]
         rc = self.rc[self.rc["t"] <= now_abs].tail(30)
-        weather = {}
-        if len(self.wx):
-            w = self.wx[self.wx["t"] <= now_abs].tail(1)
-            if len(w):
-                w = w.iloc[0]
-                weather = {"AirTemp": w["air_temperature"], "TrackTemp": w["track_temperature"], "Humidity": w["humidity"], "Rainfall": float(w["rainfall"]), "WindSpeed": w["wind_speed"]}
+        weather = self.weather_at(now_abs)
         status = self.status_at(now_abs)
         return {
             "source": "replay",
@@ -319,7 +326,7 @@ class SessionReplay(RaceReplay):
                 "track_status": self.status_at(now_abs), "track_message": None,
                 "remaining": f"{left // 3600:02d}:{left % 3600 // 60:02d}:{left % 60:02d}",
             },
-            "weather": {},
+            "weather": self.weather_at(now_abs),
             "drivers": drivers,
             "laps": laps,
             "race_control": [
