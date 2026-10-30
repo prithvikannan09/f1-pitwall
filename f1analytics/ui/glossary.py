@@ -151,3 +151,100 @@ def glossary(key="main"):
         if not hits:
             st.caption("No match. Try another word.")
         st.markdown("\n".join(f"- **{t}:** {d}" for t, d in hits))
+
+
+FLAGS = [
+    ("Green", "#1E9E5A", "Track is clear. Normal racing, overtaking allowed."),
+    ("Yellow", "#F5C518", "Danger near the track in that zone (a stopped car, debris). Slow down, no overtaking there."),
+    ("Double yellow", "repeating-linear-gradient(90deg,#F5C518 0 45%,transparent 45% 55%,#F5C518 55%)", "Serious danger, often marshals on track. Slow right down and be ready to stop. No overtaking there."),
+    ("Red", "#E10600", "Session stopped. All cars drive slowly to the pit lane. Teams may change tyres for free."),
+    ("Blue", "#2563EB", "A faster car is about to lap you: let it past. Ignoring it three times earns a penalty. In practice it means a car on a fast lap is coming."),
+    ("Black and white", "linear-gradient(135deg,#111 50%,#F9FAFB 50%)", "Warning to one driver for bad behaviour or going off track too often (track limits). Next time is a penalty."),
+    ("Black with orange circle", "radial-gradient(circle,#F97316 0 34%,#111 36%)", "That car has damage or a problem (loose part, smoke) and must come into the pits to fix it."),
+    ("Black", "#111111", "That driver is disqualified and must return to the pits."),
+    ("Red and yellow stripes", "repeating-linear-gradient(90deg,#E10600 0 20%,#F5C518 20% 40%)", "Slippery track in that zone: oil, water or gravel on the racing line."),
+    ("White", "#F9FAFB", "A slow vehicle ahead in that zone, like a recovery truck or a car limping back."),
+    ("Chequered", "repeating-conic-gradient(#111 0 25%,#F9FAFB 0 50%) 0 0/12px 12px", "End of the race or session."),
+    ("SC board", "#F5C518", "Safety Car: everyone follows a road car slowly in a line, no overtaking, while a crash is cleared."),
+    ("VSC board", "#F5C518", "Virtual Safety Car: everyone drives to a set slower speed shown on their dashboard, no overtaking."),
+]
+
+_FLAG_RULES = [
+    (r"DOUBLE YELLOW", "Double yellow"),
+    (r"BLACK AND WHITE", "Black and white"),
+    (r"BLACK AND ORANGE|MECHANICAL", "Black with orange circle"),
+    (r"\bBLACK FLAG\b|DISQUALIFIED", "Black"),
+    (r"CHEQUERED", "Chequered"),
+    (r"RED FLAG", "Red"),
+    (r"BLUE FLAG", "Blue"),
+    (r"SLIPPERY", "Red and yellow stripes"),
+    (r"\bYELLOW\b", "Yellow"),
+    (r"VIRTUAL SAFETY CAR|\bVSC\b", "VSC board"),
+    (r"SAFETY CAR", "SC board"),
+    (r"^CLEAR IN|TRACK CLEAR|GREEN FLAG", "Green"),
+]
+FLAG_INFO = {n: (c, m) for n, c, m in FLAGS}
+
+
+def flag_for(message):
+    import re
+
+    text = str(message or "").upper()
+    for pattern, name in _FLAG_RULES:
+        if re.search(pattern, text):
+            return name
+    return None
+
+
+def swatch(name, size=18):
+    colour = FLAG_INFO[name][0]
+    return (f"<span style='display:inline-block;width:{size + 8}px;height:{size}px;border-radius:3px;vertical-align:middle;"
+            f"margin-right:6px;border:1px solid rgba(128,128,128,0.6);background:{colour}'></span>")
+
+
+OTHER_NOTES = [
+    (r"OVERTAKE ENABLED", "Overtake mode is switched on: a driver within 1 second of the car ahead now gets extra battery power to attack."),
+    (r"OVERTAKE DISABLED", "Overtake mode is switched off for now (usually at the start, in rain or under a Safety Car)."),
+    (r"DRS ENABLED", "DRS is switched on: the chasing car can open its rear-wing flap (2025 and earlier)."),
+    (r"DRS DISABLED", "DRS is switched off for now (2025 and earlier)."),
+    (r"MARSHALS ON TRACK", "Track workers are on the track clearing something. Drivers must slow right down there."),
+    (r"PIT EXIT CLOSED", "Cars cannot leave the pit lane right now."),
+    (r"PIT EXIT OPEN", "Cars can leave the pit lane."),
+    (r"PIT ENTRY CLOSED", "Cars cannot come into the pits right now, except for an emergency."),
+    (r"TRACK LIMITS|DELETED", "The driver went off the track (all four wheels past the white line), so that lap time does not count. Repeat offences get a warning flag, then a penalty."),
+    (r"UNDER INVESTIGATION", "The stewards (the referees) are looking at an incident. A penalty may follow."),
+    (r"NO FURTHER (ACTION|INVESTIGATION)", "The stewards looked at it and decided no penalty."),
+    (r"PENALTY", "The stewards have punished a driver, usually with seconds added to their race time or served at their next pit stop."),
+    (r"NOTED", "Race control has seen an incident and may look into it."),
+    (r"SAFETY CAR IN THIS LAP", "The Safety Car comes in at the end of this lap and racing restarts."),
+    (r"RISK OF RAIN", "Rain is possible. Watch for teams fitting inters (green) or wets (blue)."),
+]
+
+
+def flag_note(message):
+    import re
+
+    text = str(message or "").upper()
+    name = flag_for(message)
+    if not name or (name == "SC board" and "IN THIS LAP" in text):
+        for pattern, note in OTHER_NOTES:
+            if re.search(pattern, text):
+                return note
+        return ""
+    meaning = FLAG_INFO[name][1]
+    if name == "Green" and "SECTOR" in text:
+        meaning = "The danger in that zone is gone; racing is back to normal there."
+    if "SECTOR" in text:
+        meaning += " (Sector = one of about 20 small marshal zones.)"
+    return swatch(name, 12) + meaning
+
+
+def flags_panel(key="main"):
+    if not beginner_on():
+        return
+    with st.expander("🏁 Flags explained"):
+        st.markdown(
+            "".join(f"<div style='margin:6px 0'>{swatch(n)}<b>{n}:</b> {m}</div>" for n, _, m in FLAGS)
+            + "<div class='pw-sub' style='margin-top:8px'>Marshals wave flags at posts round the track; drivers also see them as lights on track and on their steering-wheel screen.</div>",
+            unsafe_allow_html=True,
+        )

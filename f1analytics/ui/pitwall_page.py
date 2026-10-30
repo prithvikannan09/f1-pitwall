@@ -396,7 +396,9 @@ def track_map(snap, team, focus):
 def race_control(snap):
     msgs = list(reversed(snap.get("race_control") or []))[:8]
     for m in msgs:
-        st.markdown(f"<span class='pw-sub'>Lap {m.get('lap') or '–'}</span> {m.get('message')}", unsafe_allow_html=True)
+        note = gl.flag_note(m.get("message")) if gl.beginner_on() else ""
+        note = f"<div class='pw-sub' style='margin:2px 0 6px 0'>{note}</div>" if note else ""
+        st.markdown(f"<span class='pw-sub'>Lap {m.get('lap') or '–'}</span> {m.get('message')}{note}", unsafe_allow_html=True)
 
 
 def team_codes(snap, team):
@@ -493,6 +495,7 @@ def render(snap, team, loss, feed_note):
         st.subheader("Race control")
         race_control(snap)
         gl.words("timing", "Timing words explained")
+    gl.flags_panel("race")
     gl.glossary("race")
     with st.expander("How the calls are made"):
         st.markdown(
@@ -559,6 +562,7 @@ def render_practice(snap, team, feed_note):
         st.subheader("Race control")
         race_control(snap)
         gl.words("practice", "Practice words explained")
+    gl.flags_panel("practice")
     gl.glossary("practice")
 
 
