@@ -10,3 +10,4 @@ data/live/
 data/*.png
 .streamlit/secrets.toml
 .env
+data/shots/
