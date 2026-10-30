@@ -175,6 +175,26 @@ class LiveState:
         return build_snapshot(self.state, self.laps, source)
 
 
+STATIC = "https://livetiming.formula1.com/static/"
+RADIO_KEEP = 60
+
+
+def radio_clips(state, codes):
+    info = state.get("SessionInfo") or {}
+    base = STATIC + str(info.get("Path") or "")
+    caps = (state.get("TeamRadio") or {}).get("Captures") or []
+    if isinstance(caps, dict):
+        caps = [caps[k] for k in sorted(caps, key=lambda k: int(k) if str(k).isdigit() else 0)]
+    out = []
+    for c in caps:
+        if not isinstance(c, dict) or not c.get("Path"):
+            continue
+        num = str(c.get("RacingNumber") or "")
+        out.append({"utc": c.get("Utc"), "number": num, "code": codes.get(num, num), "url": base + c["Path"]})
+    out.sort(key=lambda c: c["utc"] or "", reverse=True)
+    return out[:RADIO_KEEP]
+
+
 def build_snapshot(state, laps, source="live"):
     info = state.get("SessionInfo") or {}
     meeting = info.get("Meeting") or {}
@@ -253,4 +273,5 @@ def build_snapshot(state, laps, source="live"):
             {"utc": m.get("Utc"), "lap": m.get("Lap"), "category": m.get("Category"), "flag": m.get("Flag"), "message": m.get("Message")}
             for m in messages[-30:] if isinstance(m, dict)
         ],
+        "radio": radio_clips(state, codes),
     }

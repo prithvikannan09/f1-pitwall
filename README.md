@@ -35,6 +35,8 @@ A second page, **Pit Wall**, follows a live race from F1's own free live-timing 
 - **Undercut threats:** live chance (from 3,000 simulated stops) of undercutting the car ahead, and of the car behind undercutting us. Teammates are not treated as threats.
 - **Safety Car plan:** "box now under SC / VSC?" with the cheaper stop worked out, plus a double-stack warning when both cars would queue.
 - **Tyre wear:** this stint's wear rate against the field on the same compound.
+- **Team radio:** the clips F1 makes public, playable on the page, Ferrari first (toggle for everyone).
+- **Track (from gaps):** every car placed around a circle by its time gap to the leader. An estimate: real GPS car positions are F1TV-only data since the 2025 Dutch GP.
 
 ### Race night (all times IST)
 
@@ -122,7 +124,7 @@ CRON_TZ=Asia/Kolkata
 pytest
 ```
 
-78 tests, all offline, including a headless run of every dashboard tab.
+80 tests, all offline, including a headless run of every dashboard tab.
 
 ## Credits
 

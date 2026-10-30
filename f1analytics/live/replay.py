@@ -26,6 +26,10 @@ def load_openf1_race(year, gp, source=None, session="R"):
     event, sess = src._resolve(int(year), gp, session)
     sk = int(sess["session_key"])
     raw = {ep: src._get(ep, session_key=sk) for ep in ("drivers", "laps", "stints", "pit", "race_control", "weather")}
+    try:
+        raw["team_radio"] = src._get("team_radio", session_key=sk)
+    except Exception:
+        raw["team_radio"] = pd.DataFrame()
     raw["session"] = dict(sess)
     raw["event"] = {"EventName": event["EventName"], "Location": event["Location"], "year": int(year)}
     return raw
@@ -34,6 +38,8 @@ def load_openf1_race(year, gp, source=None, session="R"):
 def load_fixture(folder):
     folder = Path(folder)
     raw = {ep: pd.DataFrame(json.loads((folder / f"{ep}.json").read_text())) for ep in ("drivers", "laps", "stints", "pit", "race_control", "weather")}
+    radio = folder / "team_radio.json"
+    raw["team_radio"] = pd.DataFrame(json.loads(radio.read_text())) if radio.exists() else pd.DataFrame()
     sess = json.loads((folder / "session.json").read_text())
     raw["session"] = sess
     raw["event"] = {"EventName": f"{sess.get('country_name', '')} Grand Prix", "Location": sess.get("circuit_short_name"), "year": int(str(sess.get("date_start", "0000"))[:4])}
@@ -60,6 +66,13 @@ class RaceReplay:
             wx["t"] = _ts(wx["date"])
         self.wx = wx
         self.windows = _status_windows(raw["race_control"])
+        radio = raw.get("team_radio")
+        if radio is not None and len(radio) and "recording_url" in radio:
+            radio = radio.copy()
+            radio["t"] = _ts(radio["date"])
+            self.radio = radio.sort_values("t")
+        else:
+            self.radio = pd.DataFrame(columns=["t", "driver_number", "recording_url"])
         lead = self.laps.sort_values("T").groupby("LapNumber")["T"].min()
         self.leader_time = lead
 
@@ -166,7 +179,15 @@ class RaceReplay:
                 {"utc": str(m.date), "lap": m.lap_number if pd.notna(m.lap_number) else None, "category": m.category, "flag": m.flag, "message": m.message}
                 for m in rc.itertuples()
             ],
+            "radio": _radio_until(self, now_abs, {d["number"]: d["code"] for d in drivers}),
         }
+
+
+def _radio_until(rep, now_abs, codes):
+    rows = rep.radio[rep.radio["t"] <= now_abs].tail(60)
+    out = [{"utc": str(r.t), "number": str(int(r.driver_number)), "code": codes.get(str(int(r.driver_number)), str(int(r.driver_number))), "url": r.recording_url}
+           for r in rows.itertuples()]
+    return list(reversed(out))
 
 
 class SessionReplay(RaceReplay):
@@ -249,4 +270,5 @@ class SessionReplay(RaceReplay):
                 {"utc": str(m.date), "lap": m.lap_number if pd.notna(m.lap_number) else None, "category": m.category, "flag": m.flag, "message": m.message}
                 for m in rc.itertuples()
             ],
+            "radio": _radio_until(self, now_abs, {d["number"]: d["code"] for d in drivers}),
         }

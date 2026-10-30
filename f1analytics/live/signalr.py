@@ -9,6 +9,7 @@ RS = "\x1e"
 TOPICS = [
     "Heartbeat", "SessionInfo", "SessionStatus", "TrackStatus", "LapCount", "DriverList",
     "TimingData", "TimingAppData", "TimingStats", "RaceControlMessages", "WeatherData", "ExtrapolatedClock",
+    "TeamRadio",
 ]
 PING_EVERY_S = 10
 log = logging.getLogger("f1analytics.live")

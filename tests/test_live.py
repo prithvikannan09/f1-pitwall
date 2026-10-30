@@ -106,3 +106,24 @@ def test_replay_laps_grow(replay):
     a, b = replay.snapshot(10), replay.snapshot(20)
     assert len(b["laps"]) > len(a["laps"])
     assert a["session"]["lap"] == 10
+
+
+def test_radio_from_live_feed():
+    from f1analytics.live.state import radio_clips
+
+    state = {
+        "SessionInfo": {"Path": "2026/2026-11-01_Mexico_City_Grand_Prix/2026-11-01_Race/"},
+        "TeamRadio": {"Captures": [{"Utc": "2026-11-01T20:05:00Z", "RacingNumber": "44", "Path": "TeamRadio/HAM_44_1.mp3"}]},
+    }
+    ls = LiveState()
+    ls.load_snapshot(state)
+    ls.apply("TeamRadio", {"Captures": {"1": {"Utc": "2026-11-01T20:09:00Z", "RacingNumber": "16", "Path": "TeamRadio/LEC_16_2.mp3"}}})
+    clips = radio_clips(ls.state, {"44": "HAM", "16": "LEC"})
+    assert [c["code"] for c in clips] == ["LEC", "HAM"]
+    assert clips[1]["url"] == "https://livetiming.formula1.com/static/2026/2026-11-01_Mexico_City_Grand_Prix/2026-11-01_Race/TeamRadio/HAM_44_1.mp3"
+
+
+def test_replay_radio_grows(replay):
+    early, late = replay.snapshot(5)["radio"], replay.snapshot(50)["radio"]
+    assert len(late) > len(early)
+    assert all(c["url"].startswith("https://livetiming.formula1.com/static/") for c in late)

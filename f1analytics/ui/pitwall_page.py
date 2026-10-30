@@ -257,6 +257,58 @@ def tower(snap, team):
                  hide_index=True, height=min(38 * (len(df) + 1), 820))
 
 
+IST = "Asia/Kolkata"
+RADIO_SHOWN = 6
+
+
+def radio_panel(snap, team, focus, key):
+    clips = snap.get("radio") or []
+    st.subheader("Team radio")
+    if not clips:
+        st.caption("No radio clips yet this session.")
+        return
+    codes = set(team_codes(snap, team))
+    only = st.toggle(f"{team} only", value=True, key=f"radio_only_{key}")
+    shown = [c for c in clips if (c["code"] in codes) or not only]
+    if not shown:
+        st.caption(f"No {team} radio yet. Turn off the filter to hear everyone.")
+        return
+    for c in shown[:RADIO_SHOWN]:
+        try:
+            when = pd.Timestamp(c["utc"]).tz_localize("UTC") if pd.Timestamp(c["utc"]).tzinfo is None else pd.Timestamp(c["utc"])
+            label = when.tz_convert(IST).strftime("%H:%M:%S IST")
+        except Exception:
+            label = ""
+        star = "⭐ " if c["code"] == focus else ""
+        st.markdown(f"**{star}{c['code']}** <span class='pw-sub'>{label}</span>", unsafe_allow_html=True)
+        st.audio(c["url"], format="audio/mpeg")
+    st.caption("Clips are the ones F1 makes public, a few seconds to a minute after they air. Newest first.")
+
+
+def track_map(snap, team, focus):
+    cars = [d for d in snap.get("drivers", []) if not d.get("retired") and d.get("position") and d.get("gap_to_leader") is not None]
+    if len(cars) < 2:
+        return
+    ref = [d["last_lap"] for d in cars if d.get("last_lap")]
+    lap = float(pd.Series(ref).median()) if ref else 90.0
+    rows = []
+    for d in cars:
+        frac = (d["gap_to_leader"] % lap) / lap
+        mine = team.lower() in str(d.get("team") or "").lower()
+        rows.append({"code": d["code"], "theta": -frac * 360, "colour": d["colour"], "size": 18 if d["code"] == focus else (14 if mine else 10),
+                     "text": f"P{d['position']} {d['code']} {('+' + format(d['gap_to_leader'], '.1f') + 's') if d['position'] > 1 else 'leader'}"})
+    df = pd.DataFrame(rows)
+    fig = go.Figure(go.Scatterpolar(
+        r=[1] * len(df), theta=df["theta"], mode="markers+text", text=df["code"], textposition="top center",
+        marker=dict(size=df["size"], color=df["colour"], line=dict(width=1, color="#888")), hovertext=df["text"], hoverinfo="text",
+    ))
+    fig.update_layout(polar=dict(radialaxis=dict(visible=False, range=[0, 1.25]), angularaxis=dict(visible=False, rotation=90, direction="clockwise")),
+                      showlegend=False, height=320, margin=dict(l=10, r=10, t=10, b=10))
+    st.subheader("Track (from gaps)")
+    st.plotly_chart(fig, key=f"track_{snap['session'].get('lap')}_{len(df)}")
+    st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions are paid F1TV data.")
+
+
 def race_control(snap):
     msgs = list(reversed(snap.get("race_control") or []))[:8]
     for m in msgs:
@@ -320,6 +372,8 @@ def render(snap, team, loss, feed_note):
                 with st.expander(f"Teammate: P{r['car']['position']} {r['car']['code']} · {r['call']}", expanded=False):
                     driver_card(r)
     with right:
+        track_map(snap, team, focus)
+        radio_panel(snap, team, focus, "race")
         st.subheader("Timing")
         tower(snap, team)
         st.subheader("Race control")
@@ -384,6 +438,7 @@ def render_practice(snap, team, feed_note):
             st.subheader("Tyre wear from long runs (for Sunday)")
             st.dataframe(summary["wear"].rename(columns={"compound": "Tyre", "runs": "Runs", "wear_s_per_lap": "Wear s/lap", "avg_pace": "Avg lap s"}).round(3), hide_index=True)
             st.caption("Practice fuel loads are unknown, so wear here is a rough guide (burning fuel hides some wear).")
+        radio_panel(snap, team, focus, "practice")
         st.subheader("Race control")
         race_control(snap)
 
