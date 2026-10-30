@@ -27,17 +27,23 @@ python3.12 -m venv .venv && source .venv/bin/activate
 
 The first time you open a real session it takes up to a minute or two (the free data service limits how fast we can ask). After that it is saved in `fastf1_cache/` and opens in about a second.
 
-## Live pit wall (Ferrari by default)
+## F1 Pit Wall: follow your driver or team live
 
-A second page, **Pit Wall**, follows a live race from F1's own free live-timing feed (the one the official app uses; no login needed for timing, gaps, tyres, race control and weather). For each car of the chosen team it shows:
+A second page, **F1 Pit Wall**, follows a live session from F1's own free live-timing feed (the one the official app uses; no login needed for timing, gaps, tyres, race control and weather).
+
+**Pick who you follow** at the top of the page: *Your team* and *Your driver* (any car on the grid; it opens on Hamilton and Ferrari by default). The link updates as you pick, so bookmark it or send it to a friend and it opens straight on that driver. You can also build links by hand: `?driver=VER`, `?team=McLaren`.
+
+**Beginner mode** (on by default, switch in the side menu; `?beginner=0` turns it off) explains each call in plain words, every F1 term (delta, undercut, Overtake mode, Boost…), and every flag and race control message.
+
+For your driver and their teammate it shows:
 
 - **Box / stay-out call** with the pit window, the tyre to fit, Plan A and Plan B, and where the car would rejoin (and who it would be stuck behind) if it boxed now.
 - **Undercut threats:** live chance (from 3,000 simulated stops) of undercutting the car ahead, and of the car behind undercutting us. Teammates are not treated as threats.
 - **Safety Car plan:** "box now under SC / VSC?" with the cheaper stop worked out, plus a double-stack warning when both cars would queue.
 - **Tyre wear:** this stint's wear rate against the field on the same compound.
-- **Team radio:** the clips F1 makes public, playable on the page, Ferrari first (toggle for everyone).
+- **Team radio:** the clips F1 makes public, playable on the page, your team first (toggle for everyone).
 - **Track map:** with F1TV signed in, the real live GPS position of every car on the circuit outline. Without it, a free estimate that places cars around a circle by their time gap.
-- **Hamilton right now (F1TV):** live speed, gear, throttle, brake, RPM and whether DRS is open.
+- **Your driver right now (F1TV):** live speed, gear, throttle, brake, RPM and wing mode (Straight / Corner).
 
 ### F1TV (real car positions and car data)
 
@@ -73,18 +79,26 @@ Checked against real races. 2025 Mexico: box calls for Leclerc (window laps 26�
 
 **Limits:** pit loss starts as a track estimate and switches to the measured value after 4+ green-flag stops. Tyre wear is a straight-line model blended with defaults until enough laps are in. Car positions and car data need your F1TV login (see above); pit-stop durations are not used. The live feed is unofficial and for personal use; if this becomes a paid product it needs a data licence.
 
-### On your phone (hosted, Mac can be off)
+### Deploy it (free, about 10 minutes, works on any phone)
 
-The repo has a hosted entry point, `pitwall_app.py`, that runs the live recorder inside the app, so nothing needs to run on your laptop.
+Anyone you share this repo with can run their own copy. Nothing needs to run on a laptop: the hosted entry point `pitwall_app.py` runs the live recorder inside the app.
 
-1. On your phone open **share.streamlit.io** → *Continue with GitHub* → sign in as `prithvikannan09` and allow access to private repos.
-2. *Create app* → *Deploy from GitHub*: repository `prithvikannan09/f1-pitwall`, branch `main`, main file `pitwall_app.py`, pick an app URL (e.g. `hamilton-pitwall`). Under *Advanced settings* choose Python 3.12. Deploy (first build takes about 5 minutes).
-3. In the app press *Share* (top right) and switch on **This app is public**, so anyone with the link can open it.
-4. You want: "Ferrari Pit Wall" with "Live feed connected". Between sessions it shows the last session; during a session it switches by itself (practice view in FP1–FP3 and qualifying, race calls in the race).
+1. **Get the code on your GitHub.** If the repo was shared with you, open it on github.com and press *Fork* (top right) to copy it into your account.
+2. **Sign in to Streamlit.** Go to **share.streamlit.io** → *Continue to sign-in* → *Continue with GitHub*. If the repo is private, allow Streamlit to see private repos when GitHub asks.
+3. **Create the app.** *Create app* → *Deploy a public app from GitHub* and fill in:
+   - Repository: `<your-github-name>/f1-pitwall`
+   - Branch: `main`
+   - Main file path: `pitwall_app.py`
+   - App URL: `f1-pitwall` (if taken, try `<yourname>-f1-pitwall`)
+   - *Advanced settings* → Python version **3.12**
+   Press **Deploy**. The first build takes about 5 minutes.
+4. **Make it open for anyone with the link.** In the app, *Share* (top right) → switch on **This app is public**. On the free plan one private-repo app is allowed per account.
+5. **Check it.** You want the title **F1 Pit Wall**, your driver picked at the top, and "Live feed connected" during a session. Between sessions it shows the last session; switch to *Replay* in the side menu to try a past race.
+6. **Optional, F1TV data:** add your own F1TV login under *Settings* → *Secrets* (see the F1TV section above). Each person uses their own subscription; the plain link never shows F1TV data.
 
-Open the link **10–15 minutes before each session** so the app is awake and starts recording laps from the beginning (free hosted apps sleep after hours without visitors). Add `?driver=LEC` or `?team=McLaren` to the link to change the default focus.
+Open the link **10–15 minutes before each session** so the app is awake and records laps from the start (free apps sleep after hours without visitors). Updates you push to `main` reach the app by themselves within a couple of minutes.
 
-**Wing and mode estimates:** real wing angles and engine/energy modes are private to the teams. The pit wall estimates the wing level from top speed against the field, and flags laps where straight-line speed jumps (tow or extra battery deployment) or drops (harvesting or lifting). Treat these as hints, not facts.
+**Wing and mode estimates:** real wing angles and engine/energy modes are private to the teams. The pit wall estimates the wing level from top speed against the field, and flags laps where straight-line speed jumps (tow, Boost or Overtake mode) or drops (recharging the battery or lifting). Treat these as hints, not facts.
 
 ## Where the data comes from
 

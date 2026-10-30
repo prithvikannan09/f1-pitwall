@@ -23,7 +23,6 @@ BUNDLED = {
     "2025 Mexico · Practice 2 (bundled)": ("practice", REPLAYS / "mex2025_fp2"),
 }
 RACE_TYPES = {"race", "sprint"}
-TEAMS = ["Ferrari", "McLaren", "Mercedes", "Red Bull", "Aston Martin", "Williams", "Alpine", "Haas", "Racing Bulls", "Audi", "Cadillac"]
 CALL_STYLE = {
     "BOX THIS LAP": ("#E10600", "#FFFFFF"),
     "BOX NEXT LAP": ("#F5A623", "#111111"),
@@ -102,13 +101,11 @@ def sidebar():
     qp = st.query_params
     mode = st.sidebar.radio("Mode", ["Live", "Replay"], index=0 if qp.get("mode", "live").lower() != "replay" else 1,
                             help="Live follows the session happening now. Replay steps through a past session.")
-    team_q = qp.get("team", "Ferrari")
-    team = st.sidebar.selectbox("Team", TEAMS, index=TEAMS.index(team_q) if team_q in TEAMS else 0)
     loss = st.sidebar.number_input("Pit-stop time loss override (s)", min_value=0.0, max_value=40.0, value=0.0, step=0.5,
                                    help="0 = automatic: measured from this race's stops once 3+ have happened, otherwise a track default (est.).")
     refresh = st.sidebar.slider("Refresh every (s)", 2, 15, 3)
     gl.sidebar_toggle()
-    return mode, team, (loss or None), refresh
+    return mode, (loss or None), refresh
 
 
 def replay_controls():
@@ -405,15 +402,45 @@ def team_codes(snap, team):
     return [d["code"] for d in sorted(snap.get("drivers", []), key=lambda d: d.get("position") or 99) if team.lower() in str(d.get("team") or "").lower()]
 
 
-def pick_focus(snap, team):
-    codes = team_codes(snap, team)
-    if not codes:
-        return None
-    wanted = st.query_params.get("driver", "HAM").upper()
-    default = wanted if wanted in codes else codes[0]
-    if st.session_state.get("pw_focus") not in codes:
-        st.session_state["pw_focus"] = default
-    return st.segmented_control("Focus driver", codes, key="pw_focus", label_visibility="collapsed") or default
+def _set_param(name, value):
+    if value and st.query_params.get(name) != value:
+        st.query_params[name] = value
+
+
+def _team_changed():
+    st.session_state.pop("pw_driver", None)
+
+
+def follow_picker(snap):
+    drivers = [d for d in snap.get("drivers", []) if d.get("code")]
+    if not drivers:
+        return None, None
+    order = sorted(drivers, key=lambda d: d.get("position") or 99)
+    teams = list(dict.fromkeys(d.get("team") or "?" for d in order))
+    qp = st.query_params
+    want_driver = str(qp.get("driver", "")).upper()
+    want_team = str(qp.get("team", "")).lower()
+    by_code = {d["code"]: d for d in drivers}
+    if st.session_state.get("pw_team") not in teams:
+        if want_driver in by_code:
+            default_team = by_code[want_driver].get("team")
+        else:
+            default_team = next((t for t in teams if want_team and (want_team in t.lower() or t.lower() in want_team)), None)
+            default_team = default_team or (by_code["HAM"].get("team") if "HAM" in by_code else teams[0])
+        st.session_state["pw_team"] = default_team
+    c1, c2 = st.columns(2)
+    team = c1.selectbox("Your team", teams, key="pw_team", on_change=_team_changed)
+    mates = [d for d in order if d.get("team") == team]
+    codes = [d["code"] for d in mates]
+    if st.session_state.get("pw_driver") not in codes:
+        st.session_state["pw_driver"] = want_driver if want_driver in codes else ("HAM" if "HAM" in codes else codes[0])
+    names = {d["code"]: f"{d['code']} · {d.get('name') or ''}".strip(" ·") for d in mates}
+    focus = c2.selectbox("Your driver", codes, key="pw_driver", format_func=names.get)
+    _set_param("team", team)
+    _set_param("driver", focus)
+    colour = by_code[focus].get("colour") or "#888"
+    st.markdown(f"<div class='pw-sub' style='border-left:4px solid {colour};padding-left:8px;margin:-4px 0 8px'>Following ⭐ {focus} and {team}. Bookmark or share this link to open straight on them.</div>", unsafe_allow_html=True)
+    return team, focus
 
 
 def live_car(snap, focus):
@@ -463,17 +490,20 @@ def car_panel(snap, focus, teammate):
     gl.words("car", "Car words explained")
 
 
-def render(snap, team, loss, feed_note):
+def render(snap, loss, feed_note):
+    team, focus = follow_picker(snap)
+    if team is None:
+        st.info("Waiting for the driver list from the session…")
+        return
     kind = str((snap.get("session") or {}).get("type") or "").lower()
     if kind and kind not in RACE_TYPES:
-        render_practice(snap, team, feed_note)
+        render_practice(snap, team, focus, feed_note)
         return
     result = analyse(snap, team=team, pit_loss=loss)
     header(snap, result, feed_note)
     sc_banner(result)
     if not result["cars"]:
         st.warning(f"No running {team} cars in this session.")
-    focus = pick_focus(snap, team)
     ordered = sorted(result["cars"], key=lambda r: r["car"]["code"] != focus)
     left, right = st.columns([3, 2])
     with left:
@@ -510,9 +540,8 @@ def render(snap, team, loss, feed_note):
         )
 
 
-def render_practice(snap, team, feed_note):
+def render_practice(snap, team, focus, feed_note):
     header(snap, None, feed_note)
-    focus = pick_focus(snap, team)
     summary = practice_summary(snap, team, focus or "")
     gl.plain("This is practice, not a race. Teams test car setups and tyres, so the order here does not count. Watch the long runs: they are the best clue to Sunday's race pace.")
     left, right = st.columns([3, 2])
@@ -593,20 +622,20 @@ def f1tv_badge(snap):
 
 
 def main(autorecord=False):
-    st.set_page_config(page_title="Pit Wall", page_icon="🏁", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="F1 Pit Wall", page_icon="🏁", layout="wide", initial_sidebar_state="collapsed")
     st.markdown(CSS, unsafe_allow_html=True)
     from f1analytics.live.auth import load_streamlit_secrets
 
     load_streamlit_secrets()
     if autorecord:
         ensure_recorder()
-    mode, team, loss, refresh = sidebar()
-    st.title(f"{team} Pit Wall")
+    mode, loss, refresh = sidebar()
+    st.title("F1 Pit Wall")
     rep = replay_controls() if mode == "Replay" else None
-    run(mode, team, loss, refresh, rep)
+    run(mode, loss, refresh, rep)
 
 
-def run(mode, team, loss, refresh, rep):
+def run(mode, loss, refresh, rep):
 
 
     @st.fragment(run_every=refresh)
@@ -621,7 +650,7 @@ def run(mode, team, loss, refresh, rep):
         note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'} · {f1tv_badge(snap)} · updated {age:.0f}s ago · session {status or '?'}"
         if age > 30 and status not in ("Finished", "Finalised", "Ends", "Inactive"):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
-        render(snap, team, loss, note)
+        render(snap, loss, note)
 
     @st.fragment(run_every=refresh)
     def replay_view():
@@ -638,7 +667,7 @@ def run(mode, team, loss, refresh, rep):
                 st.session_state.pw_lap += 1
             lap = st.slider("Lap", 1, rep.total_laps, key="pw_lap")
             snap = rep.snapshot(lap)
-        render(snap, team, loss, f"Replay · {'playing' if st.session_state.pw_play else 'paused'}")
+        render(snap, loss, f"Replay · {'playing' if st.session_state.pw_play else 'paused'}")
 
     if mode == "Live":
         live_view()
