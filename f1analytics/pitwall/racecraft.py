@@ -596,8 +596,9 @@ def head_to_head(snapshot, profiles, a, b, seed=11, track=None):
     if pa and pb:
         at, df = profiles[trailing].get("attack_score"), profiles[leading].get("defence_score")
         if at is not None and df is not None:
-            reasons.append(f"Racecraft: {trailing} (behind) has an attack score of {at}/100, {leading} (ahead) a defence score of {df}/100. "
-                           + ("Expect the move to come." if at > df + 15 else ("Hard to get past him." if df > at + 15 else "An even fight if they meet on track.")))
+            lead_in = f"Racecraft: {trailing} (behind) has an attack score of {at}/100, {leading} (ahead) a defence score of {df}/100. " if abs(gap_now) >= 0.05 else \
+                f"Racecraft if they meet on track: {a} attack {profiles[a].get('attack_score')}/defence {profiles[a].get('defence_score')}, {b} attack {profiles[b].get('attack_score')}/defence {profiles[b].get('defence_score')}. "
+            reasons.append(lead_in + ("" if abs(gap_now) < 0.05 else ("Expect the move to come." if at > df + 15 else ("Hard to get past him." if df > at + 15 else "An even fight if they meet on track."))))
     return {"a": a, "b": b, "prob": prob, "pace_only": pace_only, "source": source, "reasons": reasons, "per_lap_pass": p}
 
 
