@@ -63,6 +63,11 @@ TERMS = {
     "Long run": "In practice, many laps in a row on one set of tyres to copy race conditions. It is the best clue to Sunday's pace.",
     "Qualifying": "The timed session that sets the starting order (the grid). Fastest single lap starts at the front (pole).",
     "Team radio": "Messages between the driver and their engineer. F1 makes some of them public a short time after they air.",
+    "Clipping": "When the battery runs low near the end of a straight, the car stops accelerating or even slows while the driver is still flat out.",
+    "Deployment": "Using the battery's electric power. Where and how hard a team deploys decides who is fastest on each straight.",
+    "Late braking": "Hitting the brakes later than others into a corner. It gains time and helps overtaking, but risks running wide.",
+    "Racecraft": "How good a driver is in wheel-to-wheel fights: attacking, defending and avoiding contact.",
+    "Percentile score": "0 to 100 compared with this season's drivers. 50 is average; 90 means better than 9 in 10.",
     "est.": "An estimate: worked out by us from public data, not an official number.",
 }
 

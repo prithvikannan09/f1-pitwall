@@ -438,3 +438,26 @@ def _double_stack(reports):
     }
     for r in reports:
         r["double_stack"] = note
+
+
+def start_tyre_options(snapshot, pit_loss=None):
+    from f1analytics.pitwall.tracks import race_laps_for
+
+    session = snapshot.get("session") or {}
+    race = str(session.get("type") or "").lower() in ("race", "sprint")
+    total = (total_laps(snapshot) if race else None) or race_laps_for(session.get("circuit"), session.get("meeting")) or 60
+    laps_df = laps_frame(snapshot)
+    table, _ = compound_table(laps_df, total)
+    loss = float(pit_loss) if pit_loss else pit_loss_for(session.get("circuit") or session.get("meeting"))[0]
+    rows = []
+    for c in DRY:
+        plans = plan_options(table, c, 0, total, loss, [c])
+        if not len(plans):
+            continue
+        best = plans.iloc[0]
+        rows.append({"compound": c, "stops": int(best["stops"]), "next": list(best["compounds"]), "pit_laps": list(best["pit_after"]), "total": float(best["total"]),
+                     "source": table[c]["source"]})
+    rows.sort(key=lambda r: r["total"])
+    for r in rows:
+        r["delta"] = r["total"] - rows[0]["total"]
+    return {"laps": total, "pit_loss": loss, "options": rows}

@@ -45,6 +45,13 @@ For your driver and their teammate it shows:
 - **Track map:** with F1TV signed in, the real live GPS position of every car on the circuit outline. Without it, a free estimate that places cars around a circle by their time gap.
 - **Your driver right now (F1TV):** live speed, gear, throttle, brake, RPM and wing mode (Straight / Corner).
 
+### Driving styles, head to head and starting tyre
+
+- **Driving styles:** for every driver, 0–100 scores for attack, defence, starts, tyre care, race pace, late braking and straight-line deployment, plus plain-English tags ("Hunter", "The wall", "Late braker"…). Built from all 2026 races so far with OpenF1 data: on-track passes only (lap 1, Safety Cars and pit cycles are left out), and car telemetry from each driver's fastest clean lap in clear air. Braking and straights are also shown against the teammate in the same car, so you can tell driver from car.
+- **Can X beat Y?:** pick a rival under your driver. During a race it uses today's gap, each car's best strategy from the pit-wall model and recent pace, then checks whether the faster car can actually pass using the two drivers' attack and defence records (4,000 simulated finishes). Before the race it uses season form.
+- **Best tyre to start on:** before the race and in practice, the fastest whole-race plan starting on soft, medium and hard, and how many places each tyre has gained on lap 1 this season.
+- **Refresh after each race:** `python -m f1analytics styles build 2026` (about 15 minutes; it saves `f1analytics/styles/racecraft_2026.json`, then commit and push it).
+
 ### F1TV (real car positions and car data)
 
 Needs an F1TV Access or Pro subscription. Your email and password are typed by you, only into your own terminal or Streamlit's private Secrets, never into chat or code.

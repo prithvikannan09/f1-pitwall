@@ -70,3 +70,21 @@ def circuit_key_for(*names):
             if alias in key:
                 return value
     return None
+
+
+RACE_LAPS = {
+    "mexico": 71, "austin": 56, "são paulo": 71, "sao paulo": 71, "interlagos": 71, "las vegas": 50, "lusail": 57, "qatar": 57,
+    "yas marina": 58, "abu dhabi": 58, "monza": 53, "silverstone": 52, "spa": 44, "monaco": 78, "monte carlo": 78, "suzuka": 53,
+    "sakhir": 57, "bahrain": 57, "jeddah": 50, "melbourne": 58, "shanghai": 56, "miami": 57, "imola": 63, "montreal": 70,
+    "montréal": 70, "barcelona": 66, "catalunya": 66, "spielberg": 71, "hungaroring": 70, "budapest": 70, "zandvoort": 72,
+    "baku": 51, "singapore": 62, "marina bay": 62,
+}
+
+
+def race_laps_for(*names):
+    for name in names:
+        key = str(name or "").strip().lower()
+        for alias, laps in RACE_LAPS.items():
+            if key and alias in key:
+                return laps
+    return None

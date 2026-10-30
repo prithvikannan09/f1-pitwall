@@ -668,6 +668,11 @@ def render(snap, loss, feed_note):
         radio_panel(snap, team, focus, "race")
         st.subheader("Race control")
         race_control(snap)
+    from f1analytics.ui.styles_panel import start_tyres_section, styles_section
+
+    if (snap.get("session") or {}).get("lap") in (None, 0, 1):
+        start_tyres_section(snap)
+    styles_section(snap, focus)
     gl.flags_panel("race")
     gl.glossary("race")
     with st.expander("How the calls are made"):
@@ -737,6 +742,10 @@ def render_practice(snap, team, focus, feed_note):
         st.subheader("Race control")
         race_control(snap)
         gl.words("practice", "Practice words explained")
+    from f1analytics.ui.styles_panel import start_tyres_section, styles_section
+
+    start_tyres_section(snap)
+    styles_section(snap, focus)
     gl.flags_panel("practice")
     gl.glossary("practice")
 

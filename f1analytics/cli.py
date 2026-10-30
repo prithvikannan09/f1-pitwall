@@ -103,6 +103,16 @@ def build_parser():
 
 def main(argv=None):
     argv = list(sys.argv[1:] if argv is None else argv)
+    if argv and argv[0] == "styles":
+        import logging
+
+        from f1analytics.pitwall import racecraft
+
+        logging.basicConfig(level=logging.INFO, format="%(message)s")
+        year = int(argv[2]) if len(argv) > 2 else 2026
+        data = racecraft.build(year, telemetry="--no-telemetry" not in argv)
+        print(f"Built driver styles from {len(data['races'])} races for {len(data['profiles'])} drivers.")
+        return 0
     if argv and argv[0] == "live":
         from f1analytics.live.cli import main as live_main
 
