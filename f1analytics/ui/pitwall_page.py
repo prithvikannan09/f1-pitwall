@@ -503,7 +503,7 @@ def track_map(snap, team, focus):
                                  marker=dict(size=sizes, color=cols, line=dict(width=1.5, color="#15151E")), hovertext=hovers, hoverinfo="text"))
         st.subheader("Track (from gaps)")
         st.plotly_chart(_track_figure(fig, 320), key=f"trackmap_{snap['session'].get('lap')}_{len(xs)}", config={"displayModeBar": False})
-        st.caption("The leader is drawn at the start line and everyone else behind by their time gap. An estimate: exact GPS positions need F1TV sign-in.")
+        st.caption("The leader is drawn at the start line and everyone else behind by their time gap. An estimate: exact GPS positions need F1TV (see 'Get your own F1TV pit wall' at the bottom).")
         return
     rows = []
     for d in cars:
@@ -521,7 +521,7 @@ def track_map(snap, team, focus):
                       showlegend=False, height=320, margin=dict(l=10, r=10, t=10, b=10))
     st.subheader("Track (from gaps)")
     st.plotly_chart(_font(fig), key=f"track_{snap['session'].get('lap')}_{len(df)}", config={"displayModeBar": False})
-    st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions are paid F1TV data.")
+    st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (see 'Get your own F1TV pit wall' at the bottom).")
 
 
 def race_control(snap):
@@ -767,6 +767,31 @@ def owner_view():
     return bool(st.session_state.get("pw_owner"))
 
 
+REPO = "prithvikannan09/f1-pitwall"
+
+
+def own_copy_guide():
+    import os
+
+    if owner_view() and (st.session_state.get("pw_owner") or not _owner_key()):
+        return
+    repo = os.environ.get("PITWALL_REPO", REPO)
+    with st.expander("📡 Get your own F1TV pit wall (live GPS + car data)"):
+        st.markdown(
+            "Have an F1TV Access or Pro subscription? Run your own free copy of this pit wall with your own login. "
+            "Your password goes only into your own app's private settings: you never type it into this site.\n\n"
+            "1. **Copy the code:** press *Fork* on GitHub (you need a free GitHub account).\n"
+            "2. **Create your app:** on Streamlit, sign in with GitHub → *Create app* → *Deploy a public app from GitHub*. "
+            f"Repository `<your-github-name>/{repo.split('/')[-1]}`, branch `main`, main file `pitwall_app.py`, Advanced settings → Python **3.12** → *Deploy*.\n"
+            "3. **Add your F1TV login:** in your app, ⋮ → *Settings* → *Secrets*, add `F1_USERNAME`, `F1_PASSWORD` and a `PITWALL_KEY` you make up, then *Save*.\n"
+            "4. **Sign in on your app:** open it, scroll to *Owner sign-in* and type your `PITWALL_KEY`. Live GPS and car data switch on for you only."
+        )
+        c1, c2 = st.columns(2)
+        c1.link_button("1 · Fork on GitHub", f"https://github.com/{repo}/fork", width="stretch")
+        c2.link_button("2 · Deploy on Streamlit", "https://share.streamlit.io/", width="stretch")
+        st.caption("Free on both sites. Each person uses their own F1TV subscription, so nobody shares an account.")
+
+
 def owner_signin():
     import hmac
 
@@ -827,6 +852,7 @@ def main(autorecord=False):
     rep = replay_controls() if mode == "Replay" else None
     run(mode, loss, refresh, rep)
     owner_signin()
+    own_copy_guide()
 
 
 def run(mode, loss, refresh, rep):

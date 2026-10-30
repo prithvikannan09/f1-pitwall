@@ -152,3 +152,17 @@ def test_cloud_without_key_hides_f1tv(monkeypatch):
     assert owner_view() is False
     monkeypatch.delenv("F1_USERNAME")
     assert owner_view() is True
+
+
+def test_own_copy_guide_for_visitors(monkeypatch):
+    from pathlib import Path as _P
+
+    monkeypatch.setenv("PITWALL_KEY", "k")
+    monkeypatch.setenv("F1_USERNAME", "a")
+    monkeypatch.setenv("F1_PASSWORD", "b")
+    page = str(_P(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
+    at = AppTest.from_file(page, default_timeout=120)
+    at.run()
+    labels = [e.label for e in at.expander]
+    assert any("Get your own F1TV pit wall" in l for l in labels)
+    assert not any(t.key and "pass" in t.key and t.label.lower().startswith("f1") for t in at.text_input)
