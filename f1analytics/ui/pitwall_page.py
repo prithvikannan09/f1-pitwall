@@ -1254,4 +1254,8 @@ def run(mode, loss, refresh, rep):
         below_live()
     else:
         replay_view()
+        if rep is not None and not isinstance(rep, SessionReplay):
+            from f1analytics.ui.review_panel import review_section
+
+            review_section(rep, st.session_state.get("pw_driver"))
         below_fold()

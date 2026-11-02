@@ -84,6 +84,14 @@ TERMS = {
     "Style tags": "Short labels from the scores: Hunter (strong attack), The wall (strong defence), Rocket starts, Tyre whisperer, Race-pace king, Late braker, Strong on the straights, Patient (rarely forces passes), Can be passed (weaker defence).",
     "Air density": "How much air is packed into each cubic metre. Thinner air (high altitude or heat) means less downforce and drag, weaker cooling and harder work for the turbo.",
     "Altitude": "Height above sea level. Mexico City's track is over 2,200 m up, the highest on the calendar, so its air is roughly a quarter thinner than at sea level.",
+    "Clean lap": "A normal racing lap: not lap 1, not behind a Safety Car or red flag, and not a lap into or out of the pits. Pace is compared on clean laps only.",
+    "New set": "A set of tyres that hasn't been driven on before this stint. New tyres are faster for the first few laps.",
+    "Used set": "A set of tyres already run earlier in the weekend, usually in qualifying. It starts the race with some laps already on it.",
+    "Tyre age": "How many laps a set of tyres has done, counting laps from earlier sessions.",
+    "Tyre edge": "Who had the better tyres in a phase: a softer compound or a fresher set. It explains part of any pace gap.",
+    "Pit-lane time": "Time from the pit entry line to the pit exit line. About 22 to 24 seconds at most tracks; a time penalty served at a stop adds to it.",
+    "Phase": "A stretch of green-flag racing. A new phase starts after a Safety Car, a red flag or the driver's own pit stop.",
+    "Tyre allocation": "The sets each driver gets for a weekend. Usually 8 soft, 3 medium and 2 hard (6, 4 and 2 on sprint weekends). Sets used in practice and qualifying are gone for the race.",
     "est.": "An estimate: worked out by us from public data, not an official number.",
 }
 
@@ -93,6 +101,7 @@ SECTIONS = {
     "call": ["BOX THIS LAP", "STAY OUT", "Pit window", "Plan A / Plan B", "Delta", "Pit-stop loss", "Rejoin", "Traffic", "Undercut", "Cover", "Undercut threat %", "Safety Car (SC)", "Virtual Safety Car (VSC)", "Tyre wear (degradation, 'deg')", "Double stack"],
     "car": ["Active aero", "Straight mode", "Overtake mode", "Boost", "Recharge", "Speed trap", "Top speed", "Wing level (downforce)", "Tow / slipstream", "Dirty air", "Clean air", "Throttle", "RPM", "est."],
     "timing": ["P1, P2…", "Gap", "Interval (Int)", "Delta", "Dirty air", "Overtake mode", "Lapped (+1 lap)", "Compound", "Box"],
+    "review": ["Clean lap", "Phase", "Tyre edge", "New set", "Used set", "Tyre age", "Tyre allocation", "Pit-lane time", "Stint", "Undercut", "Tyre wear (degradation, 'deg')", "Speed trap", "Safety Car (SC)"],
     "practice": ["Practice (FP1, FP2, FP3)", "Long run", "Tyre wear (degradation, 'deg')", "Fuel correction", "Delta", "Out-lap / In-lap"],
 }
 
