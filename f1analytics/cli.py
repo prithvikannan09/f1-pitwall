@@ -117,6 +117,14 @@ def main(argv=None):
             hist = racecraft.build_history(tuple(range(2023, year + 1)))
             print(f"Built track history: {len(hist['rows'])} driver-races since 2023.")
         return 0
+    if argv and argv[0] == "rivals":
+        from f1analytics.pitwall import rivalry
+
+        results = None if "--no-results" in argv else rivalry.build_results()
+        races, passes = (None, None) if "--no-overtakes" in argv else rivalry.build_overtakes()
+        rivalry.save(results, races, passes)
+        print(f"Saved {len(results or [])} results and {len(races or [])} races with {len(passes or [])} on-track passes.")
+        return 0
     if argv and argv[0] == "live":
         from f1analytics.live.cli import main as live_main
 

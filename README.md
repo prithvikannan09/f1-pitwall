@@ -52,6 +52,14 @@ For your driver and their teammate it shows:
 - **Best tyre to start on:** before the race and in practice, the fastest whole-race plan starting on soft, medium and hard, and how many places each tyre has gained on lap 1 this season.
 - **Updates itself:** a GitHub Action (`.github/workflows/driver-styles.yml`) rebuilds the styles and track history every Monday at 08:47 IST, after each race weekend, and pushes the new data; the hosted app picks it up within minutes. To run it right away: GitHub → *Actions* → *Refresh driver styles* → *Run workflow*. By hand on a laptop: `python -m f1analytics styles build 2026` (about 40 minutes), then commit and push.
 
+### Rivals & tracks
+
+Open it from the **Rivals & tracks** tab, or share `?mode=rivals` (add `&driver=HAM` to start on a driver).
+
+- **Rivalries:** pick any two drivers and seasons from 2023 on. Races, qualifying and sprints head to head, how often both were on the podium, how many places apart they finish, season by season (teammate years marked), and every race listed. A retirement counts as finishing behind; races both retired from are left out.
+- **Where can you overtake?:** every track ranked by on-track passes per 10 green-flag laps (2024 on), passes per race each season, the corners where passes happen and a heat map on the real track layout. Lap 1, Safety Cars, pit-stop swaps and lapping backmarkers are removed. Corners are approximate. 2023 is left out because its overtaking data isn't reliable.
+- **Data:** `f1analytics/styles/rivalry_results.json` and `overtaking.json`, built from OpenF1 with `python -m f1analytics rivals` (about 15 minutes the first time). Run it after each race weekend, then commit and push.
+
 ### F1TV (real car positions and car data)
 
 **Any visitor can use their own F1TV:** tap **🔒 Sign in with F1TV** at the top of the page and enter their F1TV Access/Pro email and password. The password goes once to F1's login (the same way the open-source FastF1 library signs in) and is thrown away: it isn't saved, logged or shown. Only a sign-in token stays in that browser tab, and it opens that person's own live connection for car positions and car data. Sign out (or closing the tab) ends it. Up to 6 people can use live F1TV data at once on the free Streamlit server. F1 doesn't officially support outside apps signing people in, so this could stop working if F1 changes its login.

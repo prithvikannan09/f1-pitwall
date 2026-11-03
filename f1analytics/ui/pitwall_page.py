@@ -1169,8 +1169,15 @@ def main(autorecord=False):
     with head_r:
         owner_signin()
     if "pw_mode" not in st.session_state:
-        st.session_state["pw_mode"] = "Past races" if str(st.query_params.get("mode", "")).lower() == "replay" else "Live"
-    view = st.radio("View", ["Live", "Past races"], horizontal=True, key="pw_mode", label_visibility="collapsed")
+        want = str(st.query_params.get("mode", "")).lower()
+        st.session_state["pw_mode"] = {"replay": "Past races", "rivals": "Rivals & tracks"}.get(want, "Live")
+    view = st.radio("View", ["Live", "Past races", "Rivals & tracks"], horizontal=True, key="pw_mode", label_visibility="collapsed")
+    if view == "Rivals & tracks":
+        from f1analytics.ui.rivals_page import page as rivals_page
+
+        rivals_page(st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper() or None)
+        own_copy_guide()
+        return
     mode = "Replay" if view == "Past races" else "Live"
     rep = replay_controls() if mode == "Replay" else None
     run(mode, loss, refresh, rep)

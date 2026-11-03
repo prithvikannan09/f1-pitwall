@@ -92,6 +92,12 @@ TERMS = {
     "Pit-lane time": "Time from the pit entry line to the pit exit line. About 22 to 24 seconds at most tracks; a time penalty served at a stop adds to it.",
     "Phase": "A stretch of green-flag racing. A new phase starts after a Safety Car, a red flag or the driver's own pit stop.",
     "Tyre allocation": "The sets each driver gets for a weekend. Usually 8 soft, 3 medium and 2 hard (6, 4 and 2 on sprint weekends). Sets used in practice and qualifying are gone for the race.",
+    "Head to head": "Two drivers' record against each other: how many times each finished ahead. A retirement counts as finishing behind.",
+    "Both on podium": "Races where both drivers finished in the top three, the clearest sign of a fight at the front.",
+    "Places apart": "The average gap in finishing positions when both drivers see the flag.",
+    "On-track pass": "An overtake made by racing, not by a pit stop, a Safety Car shuffle or lapping a backmarker.",
+    "Passes per 10 laps": "On-track passes for every 10 green-flag laps. Higher means overtaking is easier at that track.",
+    "Passing spot": "The corner where most passes are completed, usually the braking zone at the end of a long straight.",
     "est.": "An estimate: worked out by us from public data, not an official number.",
 }
 
@@ -101,6 +107,7 @@ SECTIONS = {
     "call": ["BOX THIS LAP", "STAY OUT", "Pit window", "Plan A / Plan B", "Delta", "Pit-stop loss", "Rejoin", "Traffic", "Undercut", "Cover", "Undercut threat %", "Safety Car (SC)", "Virtual Safety Car (VSC)", "Tyre wear (degradation, 'deg')", "Double stack"],
     "car": ["Active aero", "Straight mode", "Overtake mode", "Boost", "Recharge", "Speed trap", "Top speed", "Wing level (downforce)", "Tow / slipstream", "Dirty air", "Clean air", "Throttle", "RPM", "est."],
     "timing": ["P1, P2…", "Gap", "Interval (Int)", "Delta", "Dirty air", "Overtake mode", "Lapped (+1 lap)", "Compound", "Box"],
+    "rivals": ["Head to head", "Both on podium", "Places apart", "On-track pass", "Passes per 10 laps", "Passing spot", "Overtake mode", "Tow / slipstream", "Dirty air"],
     "review": ["Clean lap", "Phase", "Tyre edge", "New set", "Used set", "Tyre age", "Tyre allocation", "Pit-lane time", "Stint", "Undercut", "Tyre wear (degradation, 'deg')", "Speed trap", "Safety Car (SC)"],
     "practice": ["Practice (FP1, FP2, FP3)", "Long run", "Tyre wear (degradation, 'deg')", "Fuel correction", "Delta", "Out-lap / In-lap"],
 }
