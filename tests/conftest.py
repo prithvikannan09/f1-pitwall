@@ -7,6 +7,7 @@ os.environ.setdefault("F1_REPLAY_GPS", "0")
 os.environ.setdefault("F1_REPLAY_LIST", "0")
 os.environ.setdefault("F1_REVIEW_FETCH", "0")
 os.environ.setdefault("F1_RIVALS_MAP", "0")
+os.environ.setdefault("F1_CODE_RELOAD", "0")
 
 from f1analytics.db.loader import write_session
 from f1analytics.db.schema import connect, init_db
