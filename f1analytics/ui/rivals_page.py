@@ -120,6 +120,64 @@ def rivalry_section(focus=None):
             st.caption("Places apart: average finishing gap when both finish, positive when the first driver is ahead.")
 
 
+def _pct(v):
+    return "–" if v is None or pd.isna(v) else f"{v * 100:.0f}%"
+
+
+def _pos(v):
+    return "–" if v is None or pd.isna(v) else f"P{v:.1f}"
+
+
+def compare_all_section(focus=None):
+    df = results()
+    if df.empty:
+        return
+    st.subheader("All drivers compared")
+    years_all = sorted(int(y) for y in df["y"].unique())
+    c1, c2 = st.columns([1, 3])
+    year = c1.selectbox("Season", list(reversed(years_all)), key="cmp_year")
+    rows = rv.all_drivers(df, year)
+    if not rows:
+        st.caption("Not enough races yet this season.")
+        return
+    table = pd.DataFrame([{"Rank": i + 1, "Driver": r["code"], "Team": r["team"], "Avg qualifying": _pos(r["avg_quali"]), "Poles": r["poles"],
+                           "Front rows": r["front_rows"], "Wins": r["wins"], "Podiums": r["podiums"], "Avg finish": _pos(r["avg_finish"]),
+                           "Beat teammate (quali)": _pct(r["beat_mate_quali"]), "Beat teammate (race)": _pct(r["beat_mate_race"]),
+                           "Teammate": r["mate"] or "–", "DNFs": r["dnfs"], "Races": r["races"]} for i, r in enumerate(rows)])
+    st.dataframe(table, hide_index=True, use_container_width=True, height=min(36 * (len(table) + 1), 760))
+    st.caption("Ranked by average qualifying position: the purest one-lap speed number we have. Avg finish only counts races the driver finished. "
+               "Beat teammate is the share of sessions he finished ahead of the driver in the other car.")
+    codes = [r["code"] for r in rows]
+    everyone = sorted(set(rv.drivers(df)))
+    want = focus if focus in everyone else st.session_state.get("rv_a")
+    if st.session_state.get("cmp_driver") not in everyone:
+        st.session_state["cmp_driver"] = want if want in everyone else ("HAM" if "HAM" in everyone else everyone[0])
+    pick = c2.selectbox("Form check: has this driver lost his speed?", everyone, key="cmp_driver")
+    form = rv.form_by_season(df, pick)
+    if not form:
+        return
+    st.markdown(f"**{pick}, season by season**")
+    st.dataframe(pd.DataFrame([{"Season": f["year"], "Team": f["team"], "Avg qualifying": _pos(f["avg_quali"]), "Poles": f["poles"], "Front rows": f["front_rows"],
+                                "Wins": f["wins"], "Podiums": f["podiums"], "Avg finish": _pos(f["avg_finish"]),
+                                "Beat teammate (quali)": f"{_pct(f['beat_mate_quali'])} vs {f['mate']}" if f["mate"] else "–",
+                                "Beat teammate (race)": _pct(f["beat_mate_race"])} for f in form]), hide_index=True, use_container_width=True)
+    now = form[-1]
+    if now["year"] == year and pick in codes and now["avg_quali"] is not None:
+        rank = codes.index(pick) + 1
+        line = f"In {year} {pick} averages **{_pos(now['avg_quali'])}** in qualifying, **{_ordinal(rank)} best of {len(codes)}** drivers"
+        if len(form) > 1 and form[-2]["avg_quali"] is not None:
+            prev = form[-2]
+            better = now["avg_quali"] < prev["avg_quali"]
+            line += f", {'up' if better else 'down'} from {_pos(prev['avg_quali'])} in {prev['year']}"
+        line += f". {now['poles']} pole{'s' if now['poles'] != 1 else ''}, {now['front_rows']} front-row start{'s' if now['front_rows'] != 1 else ''}, {now['podiums']} podium{'s' if now['podiums'] != 1 else ''}."
+        verdict = "The numbers say no: the speed is there." if rank <= max(3, len(codes) // 5) else ("Mixed: quick on his day, not every weekend." if rank <= len(codes) // 2 else "The numbers back the critics this season.")
+        st.markdown(f"<div class='rv-note'>{_md(line)} <b>{verdict}</b></div>", unsafe_allow_html=True)
+
+
+def _ordinal(n):
+    return f"{n}{'th' if 10 <= n % 100 <= 20 else {1: 'st', 2: 'nd', 3: 'rd'}.get(n % 10, 'th')}"
+
+
 def _md(text):
     import re
 
@@ -180,7 +238,7 @@ def overtaking_section():
         show = pd.DataFrame({"Track": table.index, "Passes per 10 laps": table["per10"].round(1), "Races": table["races"]})
         for y in years:
             if str(y) in table:
-                show[f"{y}"] = table[str(y)].map(lambda v: "–" if pd.isna(v) else int(v))
+                show[f"{y}"] = table[str(y)].map(lambda v: "–" if pd.isna(v) else str(int(v)))
         show["Main passing spots"] = table["spots"].replace("", "–")
         st.dataframe(show, hide_index=True, use_container_width=True, height=min(38 * (len(show) + 1), 620))
         st.caption("Sorted easiest first. Each season column is that race's on-track passes.")
@@ -275,6 +333,8 @@ def storylines_section(year=2026):
 def page(focus=None):
     st.markdown(CSS, unsafe_allow_html=True)
     rivalry_section(focus)
+    st.divider()
+    compare_all_section(focus)
     st.divider()
     overtaking_section()
     st.divider()

@@ -130,3 +130,27 @@ def test_storylines_render():
     assert "2026 storylines" in [h.value for h in at.subheader]
     labels = [e.label for e in at.expander]
     assert "Mercedes' engine loophole" in labels and "Mexico: Ferrari vs Ferrari" in labels
+
+
+def test_all_drivers_and_form():
+    df = _df()
+    rows = {r["code"]: r for r in rv.all_drivers(df, 2025, min_races=1)}
+    assert rows["LEC"]["avg_quali"] == 1.0 and rows["HAM"]["wins"] == 1 and rows["HAM"]["dnfs"] == 2
+    assert rows["LEC"]["beat_mate_quali"] == 1.0
+    assert [f["year"] for f in rv.form_by_season(df, "HAM")] == [2025, 2026]
+
+
+def test_hamilton_2026_from_real_data():
+    df = rv.load_results()
+    ham = next(r for r in rv.all_drivers(df, 2026) if r["code"] == "HAM")
+    assert ham["poles"] >= 1 and ham["avg_quali"] < 6
+
+
+def test_compare_all_renders():
+    at = AppTest.from_file(PAGE, default_timeout=180)
+    at.query_params["mode"] = "rivals"
+    at.run()
+    assert not at.exception
+    assert "All drivers compared" in [h.value for h in at.subheader]
+    assert at.selectbox(key="cmp_driver").value == "HAM"
+    assert "averages" in " ".join(m.value for m in at.markdown)

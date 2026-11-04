@@ -318,7 +318,10 @@ def teammate(df, code, year):
     mine = x[x["c"] == code]
     if mine.empty:
         return None, None
-    team = mine["t"].mode().iat[0]
+    teams_ = mine["t"].dropna().mode()
+    if teams_.empty:
+        return None, None
+    team = teams_.iat[0]
     mates = x[(x["t"] == team) & (x["c"] != code)]["c"].value_counts()
     return (mates.index[0] if len(mates) else None), team
 
@@ -338,3 +341,31 @@ def young_drivers(df, year, who=YOUNG):
                     "best": int(fin["p"].min()) if len(fin) else None, "top10": int((fin["p"] <= 10).sum()), "dnfs": rec["dnfs"],
                     "race": (r["a"], r["b"]) if r else None, "qual": (q["a"], q["b"]) if q else None})
     return out
+
+
+
+def driver_row(df, code, year):
+    x = df[df["y"] == year]
+    r = x[(x["c"] == code) & (x["s"] == "Race")]
+    if r.empty:
+        return None
+    q = x[(x["c"] == code) & (x["s"] == "Qualifying") & x["p"].notna()]
+    fin = r[~(r["dnf"] | r["dsq"]) & r["p"].notna()]
+    mate, team = teammate(df, code, year)
+    tq = head_to_head(df, code, mate, "Qualifying", [year]) if mate else None
+    tr = head_to_head(df, code, mate, "Race", [year]) if mate else None
+    return {"code": code, "team": team, "races": int(len(r)), "poles": int((q["p"] == 1).sum()), "front_rows": int((q["p"] <= 2).sum()),
+            "avg_quali": float(q["p"].mean()) if len(q) else None, "wins": int((fin["p"] == 1).sum()), "podiums": int((fin["p"] <= 3).sum()),
+            "avg_finish": float(fin["p"].mean()) if len(fin) else None, "dnfs": int(r["dnf"].sum()), "mate": mate,
+            "beat_mate_quali": (tq["a"] / tq["n"]) if tq and tq["n"] else None, "beat_mate_race": (tr["a"] / tr["n"]) if tr and tr["n"] else None}
+
+
+def all_drivers(df, year, min_races=5):
+    x = df[(df["y"] == year) & (df["s"] == "Race")]
+    codes = [c for c, n in x["c"].value_counts().items() if n >= min_races]
+    rows = [r for r in (driver_row(df, c, year) for c in codes) if r]
+    return sorted(rows, key=lambda d: (d["avg_quali"] is None, d["avg_quali"] or 99))
+
+
+def form_by_season(df, code):
+    return [{"year": int(y), **r} for y in sorted(df["y"].unique()) if (r := driver_row(df, code, int(y)))]
