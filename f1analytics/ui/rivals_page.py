@@ -218,9 +218,65 @@ def overtaking_section():
              "2023 is left out because its overtaking data isn't reliable.")
 
 
+STORIES_AS_OF = "3 November 2026, after the Mexico City GP"
+STORIES = [
+    ("Mercedes' engine loophole",
+     "The 2026 rules cap the engine's compression ratio (how hard fuel and air are squeezed before they burn) at 16:1, but it was only measured with the engine cold. "
+     "Ferrari, Audi and Honda suspected Mercedes' engine went above that once hot. The FIA changed the test: from 1 June 2026 it is checked cold and hot, and from 2027 only at running temperature.",
+     "Mercedes has been the team to beat all year, and Antonelli won the title in their car, so rivals still argue the early-season edge mattered.",
+     "Crash.net", "https://www.crash.net/f1/news/1090578/1/fia-makes-final-ruling-mercedes-f1-engine-controversy"),
+    ("'Battery world championship'",
+     "Half the power now comes from the battery, and drivers spend the lap deciding where to spend and recharge it: super clipping on straights, slower lines through fast corners, lifting before braking. "
+     "Verstappen called it \"playing Mario Kart\" and \"not racing\" after China; Alonso and others complained too.",
+     "The FIA changed the energy rules from Miami (3 May): shorter, stronger super-clip bursts in qualifying and full electric power only in the main acceleration zones.",
+     "Motor Sport", "https://www.motorsportmagazine.com/articles/single-seaters/f1/understanding-verstappens-gripes-with-f1s-battery-world-championship/"),
+    ("Yo-yo overtaking",
+     "Overtake mode gives the car behind extra battery power, so passes are easier, but the passer can be left empty on the next straight and get passed straight back. "
+     "Isack Hadjar said one pass can cost \"five laps recovering energy\".",
+     "Passes are up about 45% on tracks raced in both 2025 and 2026, but critics say many of them are battery swaps, not racing. See the overtaking table above.",
+     "The Race", "https://www.the-race.com/formula-1/six-weirdest-things-about-f1-2026-cars-explained/"),
+    ("Starts and turbo lag",
+     "With no MGU-H to spin the turbo, cars sit on the grid at high revs for a long time and some get away very slowly, a danger with cars behind at full speed.",
+     "From Miami the FIA added a 'low-power start' safety system that deploys battery power automatically if a car is crawling off the line.",
+     "Motor Sport", "https://www.motorsportmagazine.com/articles/single-seaters/f1/2026-f1-mid-season-rules-changes-whats-been-agreed-and-why/"),
+    ("Aston Martin-Honda's flop",
+     "Newey's first car, Honda's new works engine and Alonso were meant to make Aston Martin winners. Instead they had one point after 11 races.",
+     "The most-named disappointment of the year in The Race's mid-season verdict.",
+     "The Race", "https://www.the-race.com/formula-1/our-verdict-on-f1-2026s-biggest-disappointments-so-far/"),
+    ("Mexico: Ferrari vs Ferrari",
+     "Hamilton took his first Ferrari pole. At Turn 4 on lap 1 Leclerc passed him off the track, Verstappen got through, and Leclerc got 5 seconds for leaving the track and gaining an advantage. "
+     "Hamilton said he was \"pushed out by my own teammate\". The penalty put Leclerc behind Verstappen at the stops, a red flag after Bottas's crash froze that order, and Verstappen won with Hamilton 0.8 s behind.",
+     "Antonelli's third place made him the youngest champion ever, at 20. Lawson was also thrown out of qualifying for breaking the battery-power rules. See the Race review in Past races for the full breakdown.",
+     "PlanetF1", "https://www.planetf1.com/news/mexican-grand-prix-2026-race-report"),
+]
+
+
+def storylines_section(year=2026):
+    df = results()
+    st.subheader(f"{year} storylines")
+    st.caption(f"Rookies table updates with every race. Controversy notes as of {STORIES_AS_OF}.")
+    if not df.empty and year in set(df["y"]):
+        st.markdown("**Young drivers to watch**")
+        rows = []
+        for x in rv.young_drivers(df, year):
+            rows.append({"Driver": x["code"], "Where he is": f"{x['label']} · {x['team']}", "Races": x["starts"], "Wins": x["wins"], "Podiums": x["podiums"],
+                         "Best finish": "–" if x["best"] is None else f"P{x['best']}", "Top-10 finishes": x["top10"],
+                         "Vs teammate (races)": f"{x['race'][0]}–{x['race'][1]} vs {x['mate']}" if x["race"] else "–",
+                         "Vs teammate (qualifying)": f"{x['qual'][0]}–{x['qual'][1]}" if x["qual"] else "–", "DNFs": x["dnfs"]})
+        if rows:
+            st.dataframe(pd.DataFrame(rows), hide_index=True, use_container_width=True)
+        gl.plain("The teammate is whoever drove the other car in the same team most often this season. A retirement counts as finishing behind.")
+    st.markdown("**The controversies, explained**")
+    for title, what, why, src, url in STORIES:
+        with st.expander(title):
+            st.markdown(f"{what}\n\n**Why it matters:** {why}\n\nSource: [{src}]({url})")
+
+
 def page(focus=None):
     st.markdown(CSS, unsafe_allow_html=True)
     rivalry_section(focus)
     st.divider()
     overtaking_section()
+    st.divider()
+    storylines_section()
     gl.words("rivals", "Rivalry and overtaking words explained")

@@ -307,3 +307,34 @@ def year_change(races, a=2025, b=2026):
     up = sum(pb[l] > pa[l] for l in both)
     return {"tracks": len(both), "before": int(pa[both].sum()), "after": int(pb[both].sum()), "up": int(up),
             "biggest": sorted(((l, int(pa[l]), int(pb[l])) for l in both), key=lambda x: x[2] - x[1], reverse=True)[:4]}
+
+
+YOUNG = [("LIN", "2026's only rookie"), ("ANT", "Second season"), ("HAD", "Second season"), ("BEA", "Second season"),
+         ("BOR", "Second season"), ("COL", "Second full season")]
+
+
+def teammate(df, code, year):
+    x = df[(df["y"] == year) & (df["s"] == "Race")]
+    mine = x[x["c"] == code]
+    if mine.empty:
+        return None, None
+    team = mine["t"].mode().iat[0]
+    mates = x[(x["t"] == team) & (x["c"] != code)]["c"].value_counts()
+    return (mates.index[0] if len(mates) else None), team
+
+
+def young_drivers(df, year, who=YOUNG):
+    out = []
+    for code, label in who:
+        mate, team = teammate(df, code, year)
+        if not team:
+            continue
+        rec = season_record(df, code, [year])
+        x = df[(df["y"] == year) & (df["c"] == code) & (df["s"] == "Race")]
+        fin = x[~(x["dnf"] | x["dsq"]) & x["p"].notna()]
+        r = head_to_head(df, code, mate, "Race", [year]) if mate else None
+        q = head_to_head(df, code, mate, "Qualifying", [year]) if mate else None
+        out.append({"code": code, "label": label, "team": team, "mate": mate, "starts": rec["starts"], "wins": rec["wins"], "podiums": rec["podiums"],
+                    "best": int(fin["p"].min()) if len(fin) else None, "top10": int((fin["p"] <= 10).sum()), "dnfs": rec["dnfs"],
+                    "race": (r["a"], r["b"]) if r else None, "qual": (q["a"], q["b"]) if q else None})
+    return out

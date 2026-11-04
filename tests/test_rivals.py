@@ -105,3 +105,28 @@ def test_rivals_view_renders():
     assert "HAM 32 – 52 LEC" in " ".join(m.value for m in at.markdown)
     at.selectbox(key="ot_track").set_value("Baku").run()
     assert not at.exception
+
+
+def test_teammate_and_young_drivers():
+    df = _df()
+    assert rv.teammate(df, "HAM", 2025) == ("LEC", "Ferrari")
+    assert rv.teammate(df, "VER", 2026) == (None, "Red Bull Racing")
+    rows = rv.young_drivers(df, 2025, [("LEC", "test")])
+    assert rows[0]["mate"] == "HAM" and rows[0]["race"] == (2, 1) and rows[0]["starts"] == 4
+    assert rv.young_drivers(df, 2025, [("XXX", "none")]) == []
+
+
+def test_young_drivers_from_real_data():
+    rows = {x["code"]: x for x in rv.young_drivers(rv.load_results(), 2026)}
+    assert rows["LIN"]["team"] == "Racing Bulls" and rows["LIN"]["mate"] == "LAW"
+    assert rows["ANT"]["wins"] >= 9
+
+
+def test_storylines_render():
+    at = AppTest.from_file(PAGE, default_timeout=180)
+    at.query_params["mode"] = "rivals"
+    at.run()
+    assert not at.exception
+    assert "2026 storylines" in [h.value for h in at.subheader]
+    labels = [e.label for e in at.expander]
+    assert "Mercedes' engine loophole" in labels and "Mexico: Ferrari vs Ferrari" in labels
