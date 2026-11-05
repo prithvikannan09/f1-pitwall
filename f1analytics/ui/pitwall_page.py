@@ -1,3 +1,4 @@
+import os
 import warnings
 from pathlib import Path
 
@@ -124,6 +125,13 @@ h3 a{display:none !important}
 .cond-big{font-family:var(--display);font-stretch:112%;font-variation-settings:'wdth' 112;font-weight:700;font-size:1.05rem}
 .cond-fx{font-size:.86rem;line-height:1.4;padding:.45rem 0;border-top:1px solid var(--line);color:var(--chalk)}
 .cond-fx b{display:block;font-weight:700;margin-bottom:1px}
+.fc{margin:.8rem 0 .3rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line);max-width:640px}
+.fc-row{display:flex;gap:.7rem;align-items:flex-start;padding:.5rem 0;border-top:1px solid var(--line);opacity:.8}
+.fc-row:first-of-type{border-top:0}
+.fc-row.fc-next{opacity:1}
+.fc-i{font-size:1.5rem;line-height:1;flex:0 0 2rem;text-align:center}
+.fc-row b{font-size:.92rem;display:block;line-height:1.3}
+.fc-m{font-size:.8rem;opacity:.8;line-height:1.35}
 .ck{margin:.7rem 0 .4rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line)}
 .ck-h{font-family:'Titillium Web',sans-serif;font-weight:800;font-style:italic;text-transform:uppercase;font-size:.95rem;margin-bottom:.5rem}
 .ck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.55rem .9rem}
@@ -714,6 +722,80 @@ def weather_backdrop(snap, focus=None):
     st.markdown(html, unsafe_allow_html=True)
 
 
+@st.cache_data(ttl=3600, show_spinner=False)
+def _weekend_forecast(hour_bucket):
+    from f1analytics.pitwall import forecast
+
+    try:
+        return forecast.weekend_forecast()
+    except Exception:
+        return None
+
+
+@st.cache_data(ttl=6 * 3600, show_spinner=False)
+def _grid():
+    import requests
+
+    try:
+        rows = requests.get("https://api.openf1.org/v1/drivers", params={"session_key": "latest"}, timeout=10).json()
+    except Exception:
+        return {}
+    return {r["name_acronym"]: {"team": r.get("team_name"), "colour": "#" + str(r.get("team_colour") or "E10600").lstrip("#"),
+                                "name": r.get("full_name") or r["name_acronym"]} for r in rows if r.get("name_acronym")}
+
+
+def _when(iso, gmt_offset):
+    from f1analytics.ui import themes
+
+    t = pd.Timestamp(iso).tz_convert(None)
+    off = themes._offset(gmt_offset)
+    local = (t + off).strftime("%a %H:%M") + " local" if off is not None else t.strftime("%a %H:%M UTC")
+    ist = (t + pd.Timedelta(hours=5, minutes=30)).strftime("%a %-I:%M %p IST")
+    return local, ist
+
+
+FC_ICON = {"rain": "🌧️", "hot": "🔥", "dry": "☁️"}
+
+
+def forecast_panel():
+    from f1analytics.pitwall import forecast
+    from f1analytics.ui import themes
+
+    wf = _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
+    if not wf or not wf.get("sessions"):
+        return False
+    grid = _grid()
+    codes = sorted(grid) or sorted(themes.HELMETS)
+    want = st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper()
+    if st.session_state.get("pw_fc_driver") not in codes:
+        st.session_state["pw_fc_driver"] = want if want in codes else ("HAM" if "HAM" in codes else codes[0])
+    code = st.selectbox("Your driver", codes, key="pw_fc_driver",
+                        format_func=lambda c: f"{c} · {grid.get(c, {}).get('name', c)}")
+    d = grid.get(code, {})
+    nxt = wf["sessions"][0]
+    f = nxt["forecast"]
+    weather = f["kind"] if f else "dry"
+    html, info = themes.page_theme(code, d.get("team"), d.get("colour"), weather, themes.time_of_day(forecast.scene_snap(wf, 0)))
+    st.session_state["pw_scene"] = info
+    st.markdown(html, unsafe_allow_html=True)
+    rows = []
+    for i, s in enumerate(wf["sessions"]):
+        local, ist = _when(s["start"], s["gmt_offset"])
+        fc = s["forecast"]
+        icon = FC_ICON.get((fc or {}).get("kind"), "·")
+        extra = ""
+        if fc:
+            extra = f"<div class='fc-m'>Wind up to {fc['wind']:.0f} m/s · humidity {fc['humidity']:.0f}% · rain {fc['rain_mm']:.1f} mm</div>"
+        rows.append(f"<div class='fc-row{' fc-next' if i == 0 else ''}'><div class='fc-i'>{icon}</div><div>"
+                    f"<div class='pw-k'>{s['session']}{' · NEXT' if i == 0 else ''}</div>"
+                    f"<b>{forecast.headline(fc)}</b><div class='fc-m'>{local} · {ist}</div>{extra}</div></div>")
+    st.markdown(f"<div class='fc'><div class='ck-h'>Weekend forecast · {wf['meeting']}</div>{''.join(rows)}</div>", unsafe_allow_html=True)
+    st.caption(f"Forecast from Open-Meteo for the circuit, refreshed hourly. It is a forecast, not a measurement. "
+               f"Until the live feed starts, the page theme follows the {nxt['session']} forecast; once cars run it switches to the live track weather.")
+    colour_key()
+    return True
+
+
 COLOUR_KEY = [
     ("time", "day", "Blue sky, sun glow", "Afternoon session in daylight.", "linear-gradient(180deg,#4F79B8,#1B2333)"),
     ("time", "dusk", "Purple to orange sky", "Golden hour: the sun is setting at the track.", "linear-gradient(180deg,#4A3A78,#B8604E 55%,#2A1A20)"),
@@ -1257,6 +1339,8 @@ def run(mode, loss, refresh, rep):
             if st.button("Watch past races", type="primary"):
                 st.session_state["pw_mode"] = "Past races"
                 st.rerun(scope="app")
+            if os.environ.get("F1_FORECAST", "1") != "0":
+                forecast_panel()
             return
         snap = with_user_feed(strip_f1tv(snap))
         feed = snap.get("feed") or {}
