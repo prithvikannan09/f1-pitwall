@@ -125,6 +125,23 @@ h3 a{display:none !important}
 .cond-big{font-family:var(--display);font-stretch:112%;font-variation-settings:'wdth' 112;font-weight:700;font-size:1.05rem}
 .cond-fx{font-size:.86rem;line-height:1.4;padding:.45rem 0;border-top:1px solid var(--line);color:var(--chalk)}
 .cond-fx b{display:block;font-weight:700;margin-bottom:1px}
+.bu-wrap{overflow-x:auto;margin:.3rem 0 .2rem;-webkit-overflow-scrolling:touch}
+.bu{width:100%;border-collapse:collapse;font-size:.86rem;min-width:560px}
+.bu th{font-size:.7rem;text-transform:uppercase;letter-spacing:.05em;opacity:.7;text-align:left;padding:.35rem .5rem;border-bottom:1px solid var(--line)}
+.bu td{padding:.45rem .5rem;border-bottom:1px solid var(--line);background:var(--asphalt);vertical-align:top}
+.bu-row.bu-me td{background:color-mix(in srgb,var(--kerb) 16%,var(--asphalt))}
+.bu-p{font-weight:800;font-style:italic;white-space:nowrap}
+.bu-r{font-weight:400;font-style:normal;font-size:.72rem;opacity:.7}
+.bu-t{font-size:.72rem;opacity:.7}
+.bu-h{font-size:.78rem;white-space:nowrap}
+.bu-card{margin:.7rem 0;padding:.75rem .9rem;border-radius:6px;background:var(--asphalt);border-left:4px solid var(--kerb)}
+.bu-l{font-size:.86rem;line-height:1.4;padding:.25rem 0;border-top:1px solid var(--line)}
+.bu-l:first-of-type{border-top:0}
+.bu-tyres{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:.6rem;margin:.5rem 0}
+.bu-tyres>div{background:var(--asphalt);border-radius:6px;padding:.6rem .8rem}
+.bu-tw{font-size:.85rem;padding:.2rem 0}
+.bu-tw span{display:block;font-size:.75rem;opacity:.75}
+.bu-wet{margin:.4rem 0 .6rem;padding:.6rem .8rem;border-radius:6px;background:rgba(70,110,170,.22);border:1px solid rgba(160,190,230,.25);font-size:.88rem}
 .fc{margin:.8rem 0 .3rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line);max-width:640px}
 .fc-row{display:flex;gap:.7rem;align-items:flex-start;padding:.5rem 0;border-top:1px solid var(--line);opacity:.8}
 .fc-row:first-of-type{border-top:0}
@@ -793,6 +810,11 @@ def forecast_panel():
     st.caption(f"Forecast from Open-Meteo for the circuit, refreshed hourly. It is a forecast, not a measurement. "
                f"Until the live feed starts, the page theme follows the {nxt['session']} forecast; once cars run it switches to the live track weather.")
     colour_key()
+    if os.environ.get("F1_BUILDUP", "1") != "0":
+        from f1analytics.ui.buildup_panel import buildup_section
+
+        race = next((x["forecast"] for x in wf["sessions"] if x["session"] == "Race"), None)
+        buildup_section(wf["meeting"], code, (race or {}).get("kind"))
     return True
 
 
@@ -1110,6 +1132,10 @@ def below_fold():
     race = str(s.get("type") or "").lower() in RACE_TYPES
     if not race or s.get("lap") in (None, 0, 1):
         start_tyres_section(snap)
+    if snap.get("source") != "replay" and os.environ.get("F1_BUILDUP", "1") != "0":
+        from f1analytics.ui.buildup_panel import buildup_section
+
+        buildup_section(s.get("meeting") or s.get("circuit"), focus)
     styles_section(snap, focus)
     gl.flags_panel("race" if race else "practice")
     gl.glossary("race" if race else "practice")

@@ -42,3 +42,25 @@ def test_scene_snap_gives_local_daytime():
     wf = {"meeting": "São Paulo", "circuit": "Interlagos",
           "sessions": [{"session": "Practice 1", "start": "2026-11-06T15:30:00+00:00", "gmt_offset": "-03:00:00", "forecast": None}]}
     assert themes.time_of_day(forecast.scene_snap(wf)) == "day"
+
+
+def test_buildup_for_interlagos():
+    from f1analytics.pitwall import preview as pv
+    b = pv.build("São Paulo")
+    if b is None:
+        return
+    assert not b["ranked"].empty
+    assert b["lap_s"] == 72.0
+    easy, hard = pv.tyre_board(b["table"])
+    assert easy and hard and easy[0][1] <= hard[0][1]
+
+
+def test_buildup_panel_renders():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_string("""
+from f1analytics.ui.buildup_panel import buildup_section
+buildup_section("São Paulo", "HAM", "rain")
+""").run(timeout=60)
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "HAM this weekend" in text and "Rain is forecast" in text

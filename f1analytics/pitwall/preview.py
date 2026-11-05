@@ -135,8 +135,11 @@ def insights(code, table, ranked, lap_s=90.0):
     wear = _val(row, "wear_rel_last")
     if wear is not None:
         cost = stint_cost(wear)
-        side = "gains" if cost < 0 else "loses"
-        out.append(f"Tyre wear lately {wear:+.3f} s per lap against the field: he {side} about {abs(cost):.1f} s over a {STINT_LAPS}-lap stint.")
+        if abs(cost) < 0.5:
+            out.append(f"Tyre wear lately is level with the field: under half a second either way over a {STINT_LAPS}-lap stint.")
+        else:
+            side = "gains" if cost < 0 else "loses"
+            out.append(f"Tyre wear lately {wear:+.3f} s per lap against the field: he {side} about {abs(cost):.1f} s over a {STINT_LAPS}-lap stint.")
     if ranked is not None and code in ranked.index:
         rec = ranked.loc[code, "track"]
         if rec and rec.get("finishes"):
@@ -206,3 +209,34 @@ def track_history(new_results, old_results, location, field=10.0, prior=1.0, hal
                      "wins": int((g["p"] == 1).sum()), "best": None if g["p"].dropna().empty else int(g["p"].dropna().min()),
                      "weighted_place": float((np.sum(place * w) + prior * field) / (w.sum() + prior))}
     return out
+
+
+LAP_S = {"interlagos": 72.0, "são paulo": 72.0, "sao paulo": 72.0, "las vegas": 95.0, "lusail": 84.0, "qatar": 84.0,
+         "yas marina": 87.0, "abu dhabi": 87.0, "mexico": 80.0, "austin": 97.0, "singapore": 94.0, "monaco": 74.0}
+
+
+def lap_seconds(location, default=90.0):
+    key = str(location or "").lower()
+    return next((v for k, v in LAP_S.items() if k in key), default)
+
+
+def build(location, year=2026):
+    from f1analytics.pitwall import racecraft, rivalry
+
+    data = racecraft.load(year)
+    rows = season_rows(data)
+    table = driver_table(rows)
+    if table.empty:
+        return None
+    results = rivalry.load_results()
+    history = track_history(results, load_old_results(), location)
+    ranked = ranking(table, form(results, year), history)
+    teams = rows.sort_values("i").groupby("code")["team"].last() if "team" in rows else pd.Series(dtype=str)
+    races = (data or {}).get("races") or []
+    return {"table": table, "ranked": ranked, "history": history, "teams": teams.to_dict(), "lap_s": lap_seconds(location),
+            "races": len(races), "last": races[-1].get("location") if races else None, "location": location}
+
+
+def tyre_board(table, n=3):
+    w = table["wear_rel_last"].dropna().sort_values() if "wear_rel_last" in table else pd.Series(dtype=float)
+    return [(c, float(v), stint_cost(v)) for c, v in w.head(n).items()], [(c, float(v), stint_cost(v)) for c, v in w.tail(n)[::-1].items()]
