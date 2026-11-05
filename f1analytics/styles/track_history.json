@@ -1,5 +1,5 @@
 {
- "built": "2026-10-30T09:17:22.907793+00:00",
+ "built": "2026-11-05T08:23:05.408343+00:00",
  "years": [
   2023,
   2024,
@@ -15045,6 +15045,186 @@
    "pace_pct": 2.681570209180772,
    "finish": NaN,
    "grid": 13
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "NOR",
+   "team": "McLaren",
+   "pace_pct": 0.549972307079631,
+   "finish": 5.0,
+   "grid": 6
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "VER",
+   "team": "Red Bull Racing",
+   "pace_pct": 0.015544400744625476,
+   "finish": 1.0,
+   "grid": 5
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "BOR",
+   "team": "Audi",
+   "pace_pct": 1.962186462573897,
+   "finish": 8.0,
+   "grid": 13
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "HAD",
+   "team": "Red Bull Racing",
+   "pace_pct": 1.749796826482224,
+   "finish": 9.0,
+   "grid": 7
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "GAS",
+   "team": "Alpine",
+   "pace_pct": 1.6490701792258704,
+   "finish": 17.0,
+   "grid": 9
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "PER",
+   "team": "Cadillac",
+   "pace_pct": 2.6174845630018,
+   "finish": 16.0,
+   "grid": 20
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "ANT",
+   "team": "Mercedes",
+   "pace_pct": 0.3402120277652825,
+   "finish": 3.0,
+   "grid": 4
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "LEC",
+   "team": "Ferrari",
+   "pace_pct": 0.15152225496489077,
+   "finish": 4.0,
+   "grid": 3
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "ALB",
+   "team": "Williams",
+   "pace_pct": 2.1933470321335764,
+   "finish": 11.0,
+   "grid": 16
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "HUL",
+   "team": "Audi",
+   "pace_pct": 2.0255495043706984,
+   "finish": 14.0,
+   "grid": 10
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "LAW",
+   "team": "Racing Bulls",
+   "pace_pct": 1.7485579092210455,
+   "finish": 7.0,
+   "grid": 22
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "LIN",
+   "team": "Racing Bulls",
+   "pace_pct": 1.3402410843859425,
+   "finish": NaN,
+   "grid": 8
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "COL",
+   "team": "Alpine",
+   "pace_pct": 1.3845925397215488,
+   "finish": 15.0,
+   "grid": 11
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "HAM",
+   "team": "Ferrari",
+   "pace_pct": 0.0,
+   "finish": 2.0,
+   "grid": 1
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "HIR",
+   "team": null,
+   "pace_pct": 2.531526879067573,
+   "finish": 10.0,
+   "grid": 18
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "SAI",
+   "team": "Williams",
+   "pace_pct": 2.6526733784489296,
+   "finish": 12.0,
+   "grid": 15
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "RUS",
+   "team": "Mercedes",
+   "pace_pct": 0.4830886011233627,
+   "finish": 6.0,
+   "grid": 2
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "BOT",
+   "team": "Cadillac",
+   "pace_pct": 3.0596978075799215,
+   "finish": NaN,
+   "grid": 21
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "PIA",
+   "team": "McLaren",
+   "pace_pct": 1.1385382238061972,
+   "finish": 13.0,
+   "grid": 12
+  },
+  {
+   "year": 2026,
+   "location": "Mexico City",
+   "code": "BEA",
+   "team": "Haas F1 Team",
+   "pace_pct": 1.515944508628474,
+   "finish": NaN,
+   "grid": 14
   }
  ]
 }

@@ -57,7 +57,7 @@ CIRCUIT_KEYS = {
     "spielberg": 19, "red bull ring": 19, "monaco": 22, "monte carlo": 22, "montreal": 23, "montréal": 23, "canada": 23,
     "monza": 39, "suzuka": 46, "japan": 46, "shanghai": 49, "china": 49, "zandvoort": 55, "singapore": 61, "marina bay": 61,
     "sakhir": 63, "bahrain": 63, "mexico": 65, "yas marina": 70, "abu dhabi": 70, "baku": 144, "azerbaijan": 144,
-    "jeddah": 149, "saudi": 149, "lusail": 150, "qatar": 150, "miami": 151, "las vegas": 152, "madring": 153, "madrid": 153,
+    "jeddah": 149, "saudi": 149, "lusail": 150, "losail": 150, "qatar": 150, "miami": 151, "las vegas": 152, "madring": 153, "madrid": 153,
 }
 
 

@@ -124,6 +124,15 @@ h3 a{display:none !important}
 .cond-big{font-family:var(--display);font-stretch:112%;font-variation-settings:'wdth' 112;font-weight:700;font-size:1.05rem}
 .cond-fx{font-size:.86rem;line-height:1.4;padding:.45rem 0;border-top:1px solid var(--line);color:var(--chalk)}
 .cond-fx b{display:block;font-weight:700;margin-bottom:1px}
+.ck{margin:.7rem 0 .4rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line)}
+.ck-h{font-family:'Titillium Web',sans-serif;font-weight:800;font-style:italic;text-transform:uppercase;font-size:.95rem;margin-bottom:.5rem}
+.ck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.55rem .9rem}
+.ck-row{display:flex;gap:.6rem;align-items:flex-start;opacity:.55}
+.ck-row.ck-on{opacity:1}
+.ck-sw{flex:0 0 46px;height:34px;border-radius:6px;border:1px solid rgba(255,255,255,.14)}
+.ck-row b{font-size:.86rem;display:block;line-height:1.25}
+.ck-m{font-size:.8rem;line-height:1.35;color:var(--chalk);opacity:.85}
+.ck-now{display:inline-block;margin-left:4px;padding:0 5px;border-radius:3px;background:var(--kerb);color:#15151E;font-size:.62rem;font-weight:800;letter-spacing:.06em}
 .rc-feed{max-height:330px;overflow-y:auto;border-radius:6px;background:var(--asphalt);padding:4px 4px 4px 0;scrollbar-width:thin;scrollbar-color:#3A3A48 transparent}
 .rc-row{border-left:3px solid var(--edge);padding:.42rem .65rem;margin:0 0 3px 0}
 .rc-row+.rc-row{border-top:1px solid var(--line)}
@@ -692,13 +701,53 @@ def track_map(snap, team, focus):
     st.caption(f"Leader at the top, everyone else placed by their time gap on a {lap:.0f}s lap. An estimate, not GPS: real car positions need F1TV (tap '🔒 Sign in with F1TV' at the top).")
 
 
-def weather_backdrop(snap):
-    from f1analytics.pitwall.conditions import analyse, theme_css, weather_kind
+def weather_backdrop(snap, focus=None):
+    from f1analytics.pitwall.conditions import analyse, weather_kind
+    from f1analytics.ui import themes
 
     kind, _ = weather_kind(analyse((snap or {}).get("weather")))
-    css = theme_css(kind)
-    if css:
-        st.markdown(css, unsafe_allow_html=True)
+    weather = {"wet": "rain", "hot": "hot"}.get(kind, "dry")
+    focus = focus or st.session_state.get("pw_driver")
+    d = next((x for x in (snap or {}).get("drivers", []) if x.get("code") == focus), {})
+    html, info = themes.page_theme(focus, d.get("team"), d.get("colour"), weather, themes.time_of_day(snap))
+    st.session_state["pw_scene"] = info
+    st.markdown(html, unsafe_allow_html=True)
+
+
+COLOUR_KEY = [
+    ("time", "day", "Blue sky, sun glow", "Afternoon session in daylight.", "linear-gradient(180deg,#4F79B8,#1B2333)"),
+    ("time", "dusk", "Purple to orange sky", "Golden hour: the sun is setting at the track.", "linear-gradient(180deg,#4A3A78,#B8604E 55%,#2A1A20)"),
+    ("time", "night", "Bright white wash, lights down the sides", "Night race under floodlights.", "linear-gradient(90deg,#F2F4FF 0 8%,#26304F 24%,#26304F 76%,#F2F4FF 92%)"),
+    ("weather", "dry", "Carbon weave, drifting dust", "Dry track, normal grip.", "repeating-linear-gradient(45deg,#2A2D36 0 3px,#1D1F26 3px 8px)"),
+    ("weather", "hot", "Orange haze rising", "Hot track: tyres overheat and wear faster.", "linear-gradient(0deg,#2A1A10,#B5642A)"),
+    ("weather", "rain", "Cool grey-blue, falling rain", "Wet track: intermediates or wets, less grip.", "repeating-linear-gradient(100deg,#9FB4D2 0 1px,#2A3446 1px 7px)"),
+    ("driver", "accent", "Accent colour", "Your driver's 2026 helmet, so teammates look different.", None),
+    ("driver", "ground", "Background tint", "Your driver's team colour mixed into the dark carbon.", None),
+]
+KEY_GROUP = {"time": "Time of day", "weather": "Weather", "driver": "Your driver"}
+
+
+def colour_key():
+    from f1analytics.ui import themes
+
+    sc = st.session_state.get("pw_scene") or {}
+    if sc:
+        label = {"dry": "Dry", "hot": "Hot track", "rain": "Wet"}[sc["weather"]] + " · " + themes.TIME_LABEL[sc["time"]]
+        st.caption(f"Page theme: {label}. It follows the session's live weather and local time, and your driver's helmet colours ({sc['helmet']['desc'] or 'team colour'}).")
+    hel = sc.get("helmet") or {}
+    lead, second = hel.get("lead", "#E10600"), hel.get("second", "#3A1016")
+    rows = []
+    for group, key, name, meaning, sw in COLOUR_KEY:
+        if key == "accent":
+            sw = f"linear-gradient(90deg,{lead} 0 60%,{second} 60%)"
+        elif key == "ground":
+            sw = f"linear-gradient(135deg,{sc.get('ground', '#3A1016')},#111216)"
+        now = sc.get(group) == key or group == "driver"
+        tag = "<span class='ck-now'>NOW</span>" if now and group != "driver" else ""
+        rows.append(f"<div class='ck-row{' ck-on' if now else ''}'><div class='ck-sw' style='background:{sw}'></div>"
+                    f"<div><div class='pw-k'>{KEY_GROUP[group]} {tag}</div><b>{name}</b><div class='ck-m'>{meaning}</div></div></div>")
+    st.markdown("<div class='ck'><div class='ck-h'>How to read the colours</div><div class='ck-grid'>" + "".join(rows) + "</div></div>",
+                unsafe_allow_html=True)
 
 
 def conditions_panel(snap):
@@ -722,6 +771,7 @@ def conditions_panel(snap):
                  f"<div class='cond-big'>{thin:.0f}% thinner air{alt}</div></div>")
     html += "".join(f"<div class='cond-fx'><b>{t}</b> {d}</div>" for t, d in c["effects"])
     st.markdown(f"<div class='cond'>{html}</div>", unsafe_allow_html=True)
+    colour_key()
 
 
 RC_EDGE = {"Green": "#00B050", "Yellow": "#FFD12E", "Double yellow": "#FFD12E", "SC board": "#FFD12E", "VSC board": "#FFD12E",
@@ -846,10 +896,10 @@ def car_panel(snap, focus, teammate):
 
 
 def render(snap, loss, feed_note):
-    weather_backdrop(snap)
     top_l, top_r = st.columns([3, 2], vertical_alignment="bottom", gap="medium")
     with top_r:
         team, focus = follow_picker(snap)
+    weather_backdrop(snap, focus)
     if team is None:
         st.info("Waiting for the driver list from the session…")
         return

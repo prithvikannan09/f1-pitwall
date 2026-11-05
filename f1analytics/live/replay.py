@@ -86,6 +86,7 @@ def _replay_keys(raw, now_abs):
     for key in ("session_key", "circuit_key"):
         v = _num(sess.get(key))
         out[key] = int(v) if v is not None else None
+    out["gmt_offset"] = sess.get("gmt_offset")
     return out
 
 
