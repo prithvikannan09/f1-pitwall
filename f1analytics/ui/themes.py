@@ -134,18 +134,18 @@ CSS = """
 .stApp>header,.stApp [data-testid="stAppViewContainer"]>*{position:relative;z-index:1}
 .pwx-sky,.pwx-weave,.pwx-dusk,.pwx-wash,.pwx-mist,.pwx-sheen,.pwx-haze{inset:0}
 .pwx-weave{background-image:repeating-linear-gradient(45deg,rgba(255,255,255,.022) 0 2px,transparent 2px 7px),repeating-linear-gradient(-45deg,rgba(255,255,255,.016) 0 2px,transparent 2px 7px)}
-.pwx-field{top:-6%;left:-12%;right:-12%;bottom:0;transform:rotate(8deg);transform-origin:50% 0;animation:pwx-gust 9s ease-in-out infinite}
+.pwx-field{top:-6%;left:-12%;right:-12%;bottom:0;transform:rotate(8deg);transform-origin:50% 0}
 .pwx-field.lit{filter:brightness(1.7)}
 .pwx-drop{position:absolute;top:-90px;border-radius:1px;background:linear-gradient(180deg,rgba(205,222,245,0),rgba(214,228,248,.85));animation:pwx-drop linear infinite}
 .pwx-mist{background:radial-gradient(ellipse 55% 35% at 25% 78%,rgba(150,172,205,.13),transparent 70%),radial-gradient(ellipse 45% 30% at 78% 62%,rgba(150,172,205,.10),transparent 70%);animation:pwx-drift 36s ease-in-out infinite alternate}
-.pwx-haze{bottom:auto;height:240px;background:linear-gradient(180deg,rgba(255,140,40,.16),transparent);animation:pwx-shim 3.2s ease-in-out infinite alternate;transform-origin:top}
+.pwx-haze{bottom:auto;height:240px;background:linear-gradient(180deg,rgba(255,140,40,.16),transparent)}
 .pwx-heat{bottom:-80px;border-radius:50%;background:radial-gradient(ellipse at center,rgba(255,150,60,.16),transparent 70%);filter:blur(8px);animation:pwx-rise ease-in infinite}
-.pwx-glare{top:-180px;right:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(255,196,110,.18),rgba(255,160,60,.05) 45%,transparent 70%);animation:pwx-glare 6s ease-in-out infinite alternate}
-.pwx-sheen{background:linear-gradient(105deg,transparent 38%,rgba(255,250,235,.03) 46%,rgba(255,250,235,.065) 50%,rgba(255,250,235,.03) 54%,transparent 62%);background-size:260% 100%;animation:pwx-sweep 12s ease-in-out infinite}
+.pwx-glare{top:-180px;right:-160px;width:560px;height:560px;border-radius:50%;background:radial-gradient(circle,rgba(255,196,110,.18),rgba(255,160,60,.05) 45%,transparent 70%)}
+.pwx-sheen{background:linear-gradient(105deg,transparent 38%,rgba(255,250,235,.03) 46%,rgba(255,250,235,.065) 50%,rgba(255,250,235,.03) 54%,transparent 62%);background-size:260% 100%;background-position:40% 0}
 .pwx-mote{border-radius:50%;background:rgba(255,238,205,.55);animation:pwx-mote linear infinite}
-.pwx-dusk{background:radial-gradient(ellipse 85% 50% at 12% 108%,rgba(255,138,64,.26),rgba(214,84,120,.1) 45%,transparent 72%);animation:pwx-breathe 10s ease-in-out infinite alternate}
+.pwx-dusk{background:radial-gradient(ellipse 85% 50% at 12% 108%,rgba(255,138,64,.26),rgba(214,84,120,.1) 45%,transparent 72%)}
 .pwx-wash{background:linear-gradient(180deg,rgba(228,236,255,.13),rgba(228,236,255,.05) 40%,rgba(228,236,255,.06) 80%,rgba(255,196,130,.1))}
-.pwx-rigv{top:-10px;bottom:-10px;width:24px;background-image:radial-gradient(circle,rgba(255,255,248,.95) 0 1.6px,rgba(255,252,236,.4) 3px,rgba(255,252,236,.12) 6px,transparent 9px);background-size:24px 30px;background-repeat:repeat-y;animation:pwx-twinkle 4s ease-in-out infinite alternate}
+.pwx-rigv{top:-10px;bottom:-10px;width:24px;background-image:radial-gradient(circle,rgba(255,255,248,.95) 0 1.6px,rgba(255,252,236,.4) 3px,rgba(255,252,236,.12) 6px,transparent 9px);background-size:24px 30px;background-repeat:repeat-y}
 .pwx-bloomv{top:0;bottom:0;width:140px}
 @keyframes pwx-drop{to{transform:translate3d(0,1600px,0)}}
 @keyframes pwx-gust{0%,100%{opacity:.7}38%{opacity:1}55%{opacity:.82}72%{opacity:.95}}
