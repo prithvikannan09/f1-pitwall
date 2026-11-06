@@ -143,6 +143,12 @@ h3 a{display:none !important}
 .bu-tw{font-size:.85rem;padding:.2rem 0}
 .bu-tw span{display:block;font-size:.75rem;opacity:.75}
 .bu-wet{margin:.4rem 0 .6rem;padding:.6rem .8rem;border-radius:6px;background:rgba(70,110,170,.22);border:1px solid rgba(160,190,230,.25);font-size:.88rem}
+[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] [role="radiogroup"]{gap:.35rem;flex-wrap:nowrap}
+[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{margin:0;padding:.3rem .8rem;border:1px solid var(--line);border-radius:999px;background:rgba(21,21,30,.6);white-space:nowrap}
+[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label:has(input:checked){border-color:var(--kerb);background:color-mix(in srgb,var(--kerb) 18%,rgba(21,21,30,.8))}
+[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label>div:first-child{display:none}
+[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stElementContainer"]:has(.pw-nav-mark){display:none}
+@media (max-width:640px){[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{padding:.25rem .6rem;font-size:.85rem}}
 .fc{margin:.8rem 0 .3rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line);max-width:640px}
 .fc-row{display:flex;gap:.7rem;align-items:flex-start;padding:.5rem 0;border-top:1px solid var(--line);opacity:.8}
 .fc-row:first-of-type{border-top:0}
@@ -1427,15 +1433,17 @@ def main(autorecord=False):
         ensure_recorder()
     st.session_state["pw_full_run"] = True
     loss, refresh = sidebar()
-    head_l, head_r = st.columns([5, 2], vertical_alignment="center")
-    with head_l:
-        st.title("F1 Pit Wall")
-    with head_r:
-        owner_signin()
     if "pw_mode" not in st.session_state:
         want = str(st.query_params.get("mode", "")).lower()
         st.session_state["pw_mode"] = {"replay": "Past races", "rivals": "Rivals & tracks"}.get(want, "Live")
-    view = st.radio("View", ["Live", "Past races", "Rivals & tracks"], horizontal=True, key="pw_mode", label_visibility="collapsed")
+    head_l, head_m, head_r = st.columns([2.3, 3.2, 1.6], vertical_alignment="center", gap="medium")
+    with head_l:
+        st.title("F1 Pit Wall")
+    with head_m:
+        st.markdown("<span class='pw-nav-mark'></span>", unsafe_allow_html=True)
+        view = st.radio("View", ["Live", "Past races", "Rivals & tracks"], horizontal=True, key="pw_mode", label_visibility="collapsed")
+    with head_r:
+        owner_signin()
     if view == "Rivals & tracks":
         from f1analytics.ui.rivals_page import page as rivals_page
 
