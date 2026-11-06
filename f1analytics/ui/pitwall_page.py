@@ -63,9 +63,9 @@ CSS = """
 .block-container{max-width:1920px;padding:3.6rem 2rem 2rem !important}
 .stApp h1,.stApp .pw-d,.stApp .pw-pos,.stApp .pw-code,.stApp .pw-call,.stApp .pw-call span,.stApp .pw-lap,.stApp .pw-flag,.stApp .pw-tower .code,.stApp .pw-tower .p,.stApp .pw-empty b{font-family:var(--display) !important;font-stretch:125%;font-variation-settings:'wdth' 125}
 .stApp h3{font-family:var(--display) !important;font-stretch:112%;font-variation-settings:'wdth' 112;text-transform:none}
-.stApp h1,.stApp h1 *{color:#E10600 !important}
+.stApp h1,.stApp h1 *{color:#FFFFFF !important;text-transform:uppercase}
 h1{font-weight:800 !important;font-style:italic;letter-spacing:-0.5px;font-size:2.1rem !important;padding:0 !important;margin:0 0 .6rem !important;display:flex;align-items:center;gap:.6rem}
-h1::before{content:"";width:44px;height:.62em;background:var(--kerb);transform:skewX(-20deg);display:inline-block}
+h1::before{content:"";width:44px;height:.62em;background:#E10600;transform:skewX(-20deg);display:inline-block}
 h3{font-weight:700 !important;font-size:1.05rem !important;letter-spacing:.2px;border-bottom:1px solid var(--line);padding:.2rem 0 .35rem !important;margin:1rem 0 .5rem !important}
 h3 a{display:none !important}
 .num{font-variant-numeric:tabular-nums}
@@ -150,7 +150,7 @@ h3 a{display:none !important}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label>div:first-child{display:none}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stElementContainer"]:has(.pw-nav-mark){display:none}
 @media (max-width:640px){[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{padding:.25rem .6rem;font-size:.85rem}}
-.fc{margin:.8rem 0 .3rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line);max-width:640px}
+.fc{margin:0 0 .3rem;max-width:760px}
 .fc-row{display:flex;gap:.7rem;align-items:flex-start;padding:.5rem 0;border-top:1px solid var(--line);opacity:.8}
 .fc-row:first-of-type{border-top:0}
 .fc-row.fc-next{opacity:1}
@@ -875,6 +875,7 @@ def top_countdown():
     wf = _weekend()
     if wf and wf.get("sessions"):
         countdown(wf["sessions"][0])
+        _forecast_card(wf)
 
 
 def _forecast_card(wf, nxt=None, show_countdown=False):
@@ -894,9 +895,10 @@ def _forecast_card(wf, nxt=None, show_countdown=False):
         rows.append(f"<div class='fc-row{' fc-next' if i == 0 else ''}'><div class='fc-i'>{icon}</div><div>"
                     f"<div class='pw-k'>{s['session']}{' · NEXT' if i == 0 else ''}</div>"
                     f"<b>{forecast.headline(fc)}</b><div class='fc-m'>{local} · {ist}</div>{extra}</div></div>")
-    st.markdown(f"<div class='fc'><div class='ck-h'>Schedule and forecast · {wf['meeting']}</div>{''.join(rows)}</div>", unsafe_allow_html=True)
-    st.caption(f"Forecast from Open-Meteo for the circuit, refreshed hourly. It is a forecast, not a measurement. "
-               f"Until the live feed starts, the page theme follows the {nxt['session']} forecast; once cars run it switches to the live track weather.")
+    with st.expander(f"📅 Weekend schedule and forecast · {wf['meeting']}", expanded=False):
+        st.markdown(f"<div class='fc'>{''.join(rows)}</div>", unsafe_allow_html=True)
+        st.caption(f"Forecast from Open-Meteo for the circuit, refreshed hourly. It is a forecast, not a measurement. "
+                   f"Until the live feed starts, the page theme follows the {nxt['session']} forecast; once cars run it switches to the live track weather.")
 
 
 def forecast_panel(full=True):
@@ -921,7 +923,6 @@ def forecast_panel(full=True):
     f = nxt["forecast"]
     weather = f["kind"] if f else "dry"
     set_scene((code, d.get("team"), d.get("colour"), weather, themes.time_of_day(forecast.scene_snap(wf, 0))))
-    _forecast_card(wf, nxt)
     colour_key()
     if os.environ.get("F1_BUILDUP", "1") != "0":
         from f1analytics.ui.buildup_panel import buildup_section
@@ -1492,8 +1493,6 @@ def run(mode, loss, refresh, rep):
         if age > 30 and status not in ("Finished", "Finalised", "Ends", "Inactive"):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
         render(snap, loss, note)
-        if status in ("Finished", "Finalised", "Ends", "Inactive") and os.environ.get("F1_FORECAST", "1") != "0":
-            forecast_panel(full=False)
 
     lap_s = 95.0
     try:
