@@ -26,6 +26,13 @@ def public_snapshot(snap):
     return out
 
 
+def fingerprint(snap):
+    import hashlib
+
+    body = {k: v for k, v in public_snapshot(snap).items() if k != "updated_utc"}
+    return hashlib.sha1(json.dumps(body, sort_keys=True, default=str).encode()).hexdigest()
+
+
 def _git(repo_dir, *args, data=None):
     r = subprocess.run(["git", *args], cwd=repo_dir, input=data, capture_output=True, check=True)
     return r.stdout.decode().strip()
@@ -52,15 +59,18 @@ def publish(repo_dir, live_dir=None, remote="origin", branch=BRANCH):
 
 def run_publisher(repo_dir, live_dir=None, every=PUSH_EVERY_S, stop=lambda: False):
     live_dir = Path(live_dir or LIVE_DIR)
-    last = None
+    last, sent = None, None
     while not stop():
         path = live_dir / CURRENT
         try:
             m = path.stat().st_mtime if path.exists() else None
             if m and m != last:
-                sha = publish(repo_dir, live_dir)
                 last = m
-                log.info("relayed %s", sha[:8])
+                body = fingerprint(json.loads(path.read_text()))
+                if body != sent:
+                    sha = publish(repo_dir, live_dir)
+                    sent = body
+                    log.info("relayed %s", sha[:8])
         except Exception as e:
             log.warning("relay push failed: %s", e)
         time.sleep(every)

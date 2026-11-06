@@ -69,3 +69,10 @@ def test_pull_keeps_newer_local_recording(tmp_path, monkeypatch):
     monkeypatch.setattr(relay.requests, "get", lambda url, timeout=10: _Resp(old))
     relay.pull_once(tmp_path)
     assert json.loads((tmp_path / "current.json").read_text())["updated_utc"].startswith("2026-11-06T18")
+
+
+def test_fingerprint_ignores_clock_only_changes():
+    a = relay.fingerprint(_snap(t="2026-11-06T16:00:00+00:00"))
+    b = relay.fingerprint(_snap(t="2026-11-06T16:00:09+00:00"))
+    c = relay.fingerprint(_snap(name="Practice 2"))
+    assert a == b != c

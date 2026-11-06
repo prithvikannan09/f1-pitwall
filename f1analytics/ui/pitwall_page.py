@@ -424,13 +424,18 @@ def header(snap, result, feed_note):
     s = snap["session"]
     status = str(result.get("track_status") if result else s.get("track_status") or "1")
     label, colour = STATUS_STYLE.get(status, (f"STATUS {status}", "#888"))
-    if result:
+    over = s.get("status") in ("Finished", "Finalised", "Ends")
+    if over:
+        label, colour = "SESSION OVER", "#3A3A48"
+    if over and not result:
+        progress = "Final <small>results</small>"
+    elif result:
         progress = f"Lap {s.get('lap') or 0} <small>/ {result['total_laps']}</small>"
     elif s.get("remaining"):
         progress = f"{(s.get('remaining') or '')[:8]} <small>left</small>"
     else:
         progress = "Practice"
-    live = "<span class='pw-live-dot'></span>" if feed_note.startswith("Live feed connected") else ""
+    live = "<span class='pw-live-dot'></span>" if feed_note.startswith("Live feed connected") and not over else ""
     st.markdown(
         f"<div class='pw-strip'><div class='pw-flag' style='background:{colour}'>{label}</div>"
         f"<div class='pw-lap num'>{progress}</div>"
