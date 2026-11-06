@@ -75,8 +75,12 @@ def test_weekend_falls_back_to_saved_schedule(monkeypatch):
     assert wk.iloc[0]["circuit_short_name"] == "Interlagos"
 
 
-def test_countdown_targets_session_start():
-    from f1analytics.ui.pitwall_page import countdown_html
-    h = countdown_html("Practice 2", "2026-11-06T19:00:00+00:00", "Fri 16:00 local", "Sat 12:30 AM IST", "#FFCC00")
-    assert "const T=1793991600000;" in h
+def test_countdown_counts_down_from_server_time():
+    from f1analytics.ui.pitwall_page import countdown_markup
+    h = countdown_markup("Practice 2", "2026-11-06T19:00:00+00:00", "Fri 16:00 local", "Sat 12:30 AM IST", "#FFCC00",
+                         now="2026-11-06T17:30:00+00:00")
+    assert "--cd-from:5400" in h and "cd-run 5400s" in h
     assert "FP2 starts in" in h and "Sat 12:30 AM IST" in h and "#FFCC00" in h
+    assert "<iframe" not in h and "<script" not in h
+    done = countdown_markup("Practice 2", "2026-11-06T19:00:00+00:00", "x", "y", now="2026-11-06T19:05:00+00:00")
+    assert "--cd-from:0" in done and "is under way" in done

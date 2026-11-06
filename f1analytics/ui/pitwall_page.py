@@ -795,44 +795,46 @@ SHORT = {"Practice 1": "FP1", "Practice 2": "FP2", "Practice 3": "FP3", "Qualify
          "Sprint": "the Sprint", "Sprint Qualifying": "Sprint Qualifying"}
 
 
-def countdown_html(name, start_iso, local, ist, accent="#E10600"):
-    target = int(pd.Timestamp(start_iso).timestamp() * 1000)
+CD_CSS = """<style>
+@property --cdt{syntax:'<integer>';initial-value:0;inherits:false}
+.cd{display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px;margin:.2rem 0 .8rem;padding:10px 14px;border-radius:8px;
+background:rgba(21,21,30,.82);border:1px solid var(--line);border-left:5px solid var(--cd-accent,#E10600)}
+.cd-l{flex:1 1 150px;min-width:0}
+.cd-k{font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
+.cd-t{font-weight:600;font-size:16px}
+.cd-w{font-size:12px;opacity:.75}
+.cd-n{font-family:var(--display);font-style:italic;font-weight:800;font-stretch:110%;font-size:38px;line-height:1;font-variant-numeric:tabular-nums;
+counter-reset:h calc(round(down, var(--cdt) / 3600)) m calc(mod(round(down, var(--cdt) / 60), 60)) s calc(mod(var(--cdt), 60))}
+.cd-n::after{content:counter(h, decimal-leading-zero) ":" counter(m, decimal-leading-zero) ":" counter(s, decimal-leading-zero)}
+.cd-t span{display:inline-block;overflow:hidden;white-space:nowrap;vertical-align:bottom;max-width:400px}
+.cd-t .cd-live{max-width:0}
+@keyframes cd-run{from{--cdt:var(--cd-from)}to{--cdt:0}}
+@keyframes cd-hide{to{max-width:0}}
+@keyframes cd-show{to{max-width:400px}}
+</style>"""
+
+
+def countdown_markup(name, start_iso, local, ist, accent="#E10600", now=None):
+    now = pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="UTC")
+    secs = max(0, int((pd.Timestamp(start_iso) - now).total_seconds()))
     label = html.escape(SHORT.get(name, name))
-    return f"""<link href="https://fonts.googleapis.com/css2?family=Saira:ital,wdth,wght@1,110,800&family=Titillium+Web:wght@400;600&display=swap" rel="stylesheet">
-<style>body{{margin:0;background:transparent}}</style>
-<div id="cd" style="font-family:'Titillium Web',sans-serif;color:#F3F3F5;background:rgba(21,21,30,.82);border:1px solid #2E2E3A;
-border-left:5px solid {accent};border-radius:8px;padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px">
- <div style="flex:1 1 150px;min-width:0">
-  <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75">Next up</div>
-  <div id="cd-t" style="font-weight:600;font-size:16px">{label} starts in</div>
-  <div style="font-size:12px;opacity:.75">{html.escape(local)} · {html.escape(ist)}</div>
- </div>
- <div id="cd-n" style="font-family:'Saira',sans-serif;font-style:italic;font-weight:800;font-stretch:110%;font-size:38px;line-height:1;
- letter-spacing:.02em;font-variant-numeric:tabular-nums">--:--:--</div>
-</div>
-<script>
-const T={target};
-const n=document.getElementById('cd-n'), t=document.getElementById('cd-t');
-const p=v=>String(v).padStart(2,'0');
-function tick(){{
-  let ms=T-Date.now();
-  if(ms<=0){{t.textContent='{label} is under way';n.textContent='LIVE';n.style.color='{accent}';return;}}
-  const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);
-  n.textContent=(d?d+'d ':'')+p(h)+':'+p(m)+':'+p(s);
-}}
-tick();setInterval(tick,1000);
-</script>"""
+    run = f"animation:cd-run {secs}s linear forwards" if secs else ""
+    hide = f"animation:cd-hide 0s {secs}s forwards"
+    show = f"animation:cd-show 0s {secs}s forwards" + (";max-width:400px" if not secs else "")
+    return (CD_CSS +
+            f"<div class='cd' style='--cd-accent:{accent}'><div class='cd-l'><div class='cd-k'>Next up</div>"
+            f"<div class='cd-t'><span style='{hide}'>{label} starts in</span><span class='cd-live' style='{show}'>{label} is under way</span></div>"
+            f"<div class='cd-w'>{html.escape(local)} · {html.escape(ist)}</div></div>"
+            f"<div class='cd-n' style='--cd-from:{secs};--cdt:{secs};{run}'></div></div>")
 
 
 def countdown(s):
-    import streamlit.components.v1 as components
-
-    local, ist = _when(s["start"], s["gmt_offset"])
     from f1analytics.ui import themes
 
+    local, ist = _when(s["start"], s["gmt_offset"])
     code = st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper()
     hel = themes.helmet(code) if code else {}
-    components.html(countdown_html(s["session"], s["start"], local, ist, hel.get("lead", "#E10600")), height=124)
+    st.markdown(countdown_markup(s["session"], s["start"], local, ist, hel.get("lead", "#E10600")), unsafe_allow_html=True)
 
 
 def _weekend():
