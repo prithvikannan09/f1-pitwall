@@ -64,3 +64,12 @@ buildup_section("São Paulo", "HAM", "rain")
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
     assert "HAM this weekend" in text and "Rain is forecast" in text
+
+
+def test_weekend_falls_back_to_saved_schedule(monkeypatch):
+    def locked(*a, **k):
+        return {"detail": "Live F1 session in progress"}
+    monkeypatch.setattr(forecast, "_get", locked)
+    wk = forecast.weekend("2026-11-06T16:40:00Z")
+    assert list(wk["session_name"])[:2] == ["Practice 2", "Practice 3"]
+    assert wk.iloc[0]["circuit_short_name"] == "Interlagos"

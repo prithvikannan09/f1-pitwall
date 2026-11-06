@@ -750,10 +750,10 @@ def weather_backdrop(snap, focus=None):
 def _weekend_forecast(hour_bucket):
     from f1analytics.pitwall import forecast
 
-    try:
-        return forecast.weekend_forecast()
-    except Exception:
-        return None
+    wf = forecast.weekend_forecast()
+    if not wf or not any(x["forecast"] for x in wf["sessions"]):
+        raise RuntimeError("forecast not ready")
+    return wf
 
 
 @st.cache_data(ttl=6 * 3600, show_spinner=False)
@@ -814,7 +814,10 @@ def forecast_panel(full=True):
     from f1analytics.pitwall import forecast
     from f1analytics.ui import themes
 
-    wf = _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
+    try:
+        wf = _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
+    except Exception:
+        wf = None
     if not wf or not wf.get("sessions"):
         return False
     if not full:

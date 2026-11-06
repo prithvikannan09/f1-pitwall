@@ -55,11 +55,24 @@ def _get(url, params, timeout=12):
     return r.json()
 
 
+def saved_sessions(year):
+    import json
+    from pathlib import Path
+
+    path = Path(__file__).resolve().parent.parent / "styles" / f"sessions_{year}.json"
+    return json.loads(path.read_text()) if path.exists() else []
+
+
 def weekend(now=None, year=None):
     now = pd.Timestamp(now or datetime.now(timezone.utc))
     if now.tzinfo is None:
         now = now.tz_localize("UTC")
-    rows = _get(f"{OPENF1}/sessions", {"year": year or now.year})
+    try:
+        rows = _get(f"{OPENF1}/sessions", {"year": year or now.year})
+        if not isinstance(rows, list) or not rows:
+            raise ValueError("no sessions")
+    except (requests.RequestException, ValueError):
+        rows = saved_sessions(year or now.year)
     df = pd.DataFrame(rows)
     if df.empty:
         return df
