@@ -742,9 +742,29 @@ def weather_backdrop(snap, focus=None):
     weather = {"wet": "rain", "hot": "hot"}.get(kind, "dry")
     focus = focus or st.session_state.get("pw_driver")
     d = next((x for x in (snap or {}).get("drivers", []) if x.get("code") == focus), {})
-    html, info = themes.page_theme(focus, d.get("team"), d.get("colour"), weather, themes.time_of_day(snap))
+    set_scene((focus, d.get("team"), d.get("colour"), weather, themes.time_of_day(snap)))
+
+
+def set_scene(args):
+    from f1analytics.ui import themes
+
+    args = tuple(args)
+    if st.session_state.get("pw_scene_args") == args:
+        return
+    _, info = themes.page_theme(*args)
+    st.session_state["pw_scene_args"] = args
     st.session_state["pw_scene"] = info
-    st.markdown(html, unsafe_allow_html=True)
+    st.rerun(scope="app")
+
+
+def paint_scene():
+    from f1analytics.ui import themes
+
+    args = st.session_state.get("pw_scene_args")
+    if args:
+        html, info = themes.page_theme(*args)
+        st.session_state["pw_scene"] = info
+        st.markdown(html, unsafe_allow_html=True)
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -893,9 +913,7 @@ def forecast_panel(full=True):
     nxt = wf["sessions"][0]
     f = nxt["forecast"]
     weather = f["kind"] if f else "dry"
-    html, info = themes.page_theme(code, d.get("team"), d.get("colour"), weather, themes.time_of_day(forecast.scene_snap(wf, 0)))
-    st.session_state["pw_scene"] = info
-    st.markdown(html, unsafe_allow_html=True)
+    set_scene((code, d.get("team"), d.get("colour"), weather, themes.time_of_day(forecast.scene_snap(wf, 0))))
     _forecast_card(wf, nxt)
     colour_key()
     if os.environ.get("F1_BUILDUP", "1") != "0":
@@ -1507,6 +1525,7 @@ def run(mode, loss, refresh, rep):
     def below_live():
         below_fold()
 
+    paint_scene()
     if mode == "Live":
         snap0, _ = read_current()
         status0 = ((snap0 or {}).get("session") or {}).get("status")
