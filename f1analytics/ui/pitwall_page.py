@@ -350,17 +350,19 @@ def add_replay_gps(snap):
 
 
 def _record_forever():
-    while True:
-        try:
-            record(LIVE_DIR, raw_log=False)
-        except Exception:
-            time.sleep(10)
+    from f1analytics.live.relay import record_with_lock
+
+    record_with_lock(LIVE_DIR)
 
 
 @st.cache_resource
 def ensure_recorder():
     t = threading.Thread(target=_record_forever, name="f1-live-recorder", daemon=True)
     t.start()
+    if os.environ.get("F1_RELAY_READ", "1") != "0":
+        from f1analytics.live.relay import run_reader
+
+        threading.Thread(target=run_reader, name="f1-relay-reader", daemon=True).start()
     return t
 
 
@@ -774,27 +776,19 @@ def _when(iso, gmt_offset):
 FC_ICON = {"rain": "🌧️", "hot": "🔥", "dry": "☁️"}
 
 
-def forecast_panel():
-    from f1analytics.pitwall import forecast
-    from f1analytics.ui import themes
+def _ago(age):
+    age = max(0, age or 0)
+    if age < 90:
+        return f"{age:.0f}s ago"
+    if age < 5400:
+        return f"{age / 60:.0f} min ago"
+    return f"{age / 3600:.1f} h ago"
 
-    wf = _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
-    if not wf or not wf.get("sessions"):
-        return False
-    grid = _grid()
-    codes = sorted(grid) or sorted(themes.HELMETS)
-    want = st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper()
-    if st.session_state.get("pw_fc_driver") not in codes:
-        st.session_state["pw_fc_driver"] = want if want in codes else ("HAM" if "HAM" in codes else codes[0])
-    code = st.selectbox("Your driver", codes, key="pw_fc_driver",
-                        format_func=lambda c: f"{c} · {grid.get(c, {}).get('name', c)}")
-    d = grid.get(code, {})
-    nxt = wf["sessions"][0]
-    f = nxt["forecast"]
-    weather = f["kind"] if f else "dry"
-    html, info = themes.page_theme(code, d.get("team"), d.get("colour"), weather, themes.time_of_day(forecast.scene_snap(wf, 0)))
-    st.session_state["pw_scene"] = info
-    st.markdown(html, unsafe_allow_html=True)
+
+def _forecast_card(wf, nxt=None):
+    from f1analytics.pitwall import forecast
+
+    nxt = nxt or wf["sessions"][0]
     rows = []
     for i, s in enumerate(wf["sessions"]):
         local, ist = _when(s["start"], s["gmt_offset"])
@@ -809,6 +803,33 @@ def forecast_panel():
     st.markdown(f"<div class='fc'><div class='ck-h'>Weekend forecast · {wf['meeting']}</div>{''.join(rows)}</div>", unsafe_allow_html=True)
     st.caption(f"Forecast from Open-Meteo for the circuit, refreshed hourly. It is a forecast, not a measurement. "
                f"Until the live feed starts, the page theme follows the {nxt['session']} forecast; once cars run it switches to the live track weather.")
+
+
+def forecast_panel(full=True):
+    from f1analytics.pitwall import forecast
+    from f1analytics.ui import themes
+
+    wf = _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
+    if not wf or not wf.get("sessions"):
+        return False
+    if not full:
+        _forecast_card(wf)
+        return True
+    grid = _grid()
+    codes = sorted(grid) or sorted(themes.HELMETS)
+    want = st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper()
+    if st.session_state.get("pw_fc_driver") not in codes:
+        st.session_state["pw_fc_driver"] = want if want in codes else ("HAM" if "HAM" in codes else codes[0])
+    code = st.selectbox("Your driver", codes, key="pw_fc_driver",
+                        format_func=lambda c: f"{c} · {grid.get(c, {}).get('name', c)}")
+    d = grid.get(code, {})
+    nxt = wf["sessions"][0]
+    f = nxt["forecast"]
+    weather = f["kind"] if f else "dry"
+    html, info = themes.page_theme(code, d.get("team"), d.get("colour"), weather, themes.time_of_day(forecast.scene_snap(wf, 0)))
+    st.session_state["pw_scene"] = info
+    st.markdown(html, unsafe_allow_html=True)
+    _forecast_card(wf, nxt)
     colour_key()
     if os.environ.get("F1_BUILDUP", "1") != "0":
         from f1analytics.ui.buildup_panel import buildup_section
@@ -1371,10 +1392,13 @@ def run(mode, loss, refresh, rep):
         snap = with_user_feed(strip_f1tv(snap))
         feed = snap.get("feed") or {}
         status = (snap.get("session") or {}).get("status")
-        note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'} · {f1tv_badge(snap)} · updated {age:.0f}s ago · session {status or '?'}"
+        via = " · relayed from the pit wall" if feed.get("relay") else ""
+        note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'}{via} · {f1tv_badge(snap)} · updated {_ago(age)} · session {status or '?'}"
         if age > 30 and status not in ("Finished", "Finalised", "Ends", "Inactive"):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
         render(snap, loss, note)
+        if status in ("Finished", "Finalised", "Ends", "Inactive") and os.environ.get("F1_FORECAST", "1") != "0":
+            forecast_panel(full=False)
 
     lap_s = 95.0
     try:

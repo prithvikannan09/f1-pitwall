@@ -117,6 +117,12 @@ def main(argv=None):
             hist = racecraft.build_history(tuple(range(2023, year + 1)))
             print(f"Built track history: {len(hist['rows'])} driver-races since 2023.")
         return 0
+    if argv and argv[0] == "relay":
+        from f1analytics import config
+        from f1analytics.live import relay
+
+        relay.main(config.ROOT)
+        return 0
     if argv and argv[0] == "rivals":
         from f1analytics.pitwall import rivalry
 
