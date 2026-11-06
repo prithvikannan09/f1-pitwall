@@ -63,6 +63,7 @@ CSS = """
 .block-container{max-width:1920px;padding:3.6rem 2rem 2rem !important}
 .stApp h1,.stApp .pw-d,.stApp .pw-pos,.stApp .pw-code,.stApp .pw-call,.stApp .pw-call span,.stApp .pw-lap,.stApp .pw-flag,.stApp .pw-tower .code,.stApp .pw-tower .p,.stApp .pw-empty b{font-family:var(--display) !important;font-stretch:125%;font-variation-settings:'wdth' 125}
 .stApp h3{font-family:var(--display) !important;font-stretch:112%;font-variation-settings:'wdth' 112;text-transform:none}
+.stApp h1,.stApp h1 *{color:#E10600 !important}
 h1{font-weight:800 !important;font-style:italic;letter-spacing:-0.5px;font-size:2.1rem !important;padding:0 !important;margin:0 0 .6rem !important;display:flex;align-items:center;gap:.6rem}
 h1::before{content:"";width:44px;height:.62em;background:var(--kerb);transform:skewX(-20deg);display:inline-block}
 h3{font-weight:700 !important;font-size:1.05rem !important;letter-spacing:.2px;border-bottom:1px solid var(--line);padding:.2rem 0 .35rem !important;margin:1rem 0 .5rem !important}
@@ -987,7 +988,6 @@ def conditions_panel(snap):
                  f"<div class='cond-big'>{thin:.0f}% thinner air{alt}</div></div>")
     html += "".join(f"<div class='cond-fx'><b>{t}</b> {d}</div>" for t, d in c["effects"])
     st.markdown(f"<div class='cond'>{html}</div>", unsafe_allow_html=True)
-    colour_key()
 
 
 RC_EDGE = {"Green": "#00B050", "Yellow": "#FFD12E", "Double yellow": "#FFD12E", "SC board": "#FFD12E", "VSC board": "#FFD12E",
@@ -1148,6 +1148,7 @@ def render(snap, loss, feed_note):
             else:
                 with st.expander(f"Teammate: P{r['car']['position']} {r['car']['code']} · {r['call']}", expanded=False):
                     driver_card(r)
+        colour_key()
     with mid:
         st.subheader("Timing")
         tower(snap, team, focus)
@@ -1215,6 +1216,7 @@ def render_practice(snap, team, focus, feed_note):
                     st.markdown(body, unsafe_allow_html=True)
         if not summary["cars"]:
             st.info(f"No {team} times yet.")
+        colour_key()
     with mid:
         st.subheader("Timing (best laps)")
         tower(snap, team, focus)
