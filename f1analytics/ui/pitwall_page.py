@@ -828,7 +828,10 @@ def countdown(s):
     import streamlit.components.v1 as components
 
     local, ist = _when(s["start"], s["gmt_offset"])
-    hel = (st.session_state.get("pw_scene") or {}).get("helmet") or {}
+    from f1analytics.ui import themes
+
+    code = st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper()
+    hel = themes.helmet(code) if code else {}
     components.html(countdown_html(s["session"], s["start"], local, ist, hel.get("lead", "#E10600")), height=124)
 
 
@@ -1431,9 +1434,6 @@ def run(mode, loss, refresh, rep):
     @st.fragment(run_every=refresh)
     def live_view():
         snap, age = read_current()
-        status = ((snap or {}).get("session") or {}).get("status")
-        if (snap is None or status in ("Finished", "Finalised", "Ends", "Inactive")) and os.environ.get("F1_FORECAST", "1") != "0":
-            top_countdown()
         if snap is None:
             st.markdown(
                 "<div class='pw-empty'><b>Waiting for the live feed</b>"
@@ -1506,6 +1506,10 @@ def run(mode, loss, refresh, rep):
         below_fold()
 
     if mode == "Live":
+        snap0, _ = read_current()
+        status0 = ((snap0 or {}).get("session") or {}).get("status")
+        if (snap0 is None or status0 in ("Finished", "Finalised", "Ends", "Inactive")) and os.environ.get("F1_FORECAST", "1") != "0":
+            top_countdown()
         live_view()
         below_live()
     else:
