@@ -1,3 +1,4 @@
+import html
 import os
 import warnings
 from pathlib import Path
@@ -790,10 +791,66 @@ def _ago(age):
     return f"{age / 3600:.1f} h ago"
 
 
-def _forecast_card(wf, nxt=None):
+SHORT = {"Practice 1": "FP1", "Practice 2": "FP2", "Practice 3": "FP3", "Qualifying": "Qualifying", "Race": "the race",
+         "Sprint": "the Sprint", "Sprint Qualifying": "Sprint Qualifying"}
+
+
+def countdown_html(name, start_iso, local, ist, accent="#E10600"):
+    target = int(pd.Timestamp(start_iso).timestamp() * 1000)
+    label = html.escape(SHORT.get(name, name))
+    return f"""<link href="https://fonts.googleapis.com/css2?family=Saira:ital,wdth,wght@1,110,800&family=Titillium+Web:wght@400;600&display=swap" rel="stylesheet">
+<style>body{{margin:0;background:transparent}}</style>
+<div id="cd" style="font-family:'Titillium Web',sans-serif;color:#F3F3F5;background:rgba(21,21,30,.82);border:1px solid #2E2E3A;
+border-left:5px solid {accent};border-radius:8px;padding:10px 14px;display:flex;flex-wrap:wrap;align-items:center;gap:6px 18px">
+ <div style="flex:1 1 150px;min-width:0">
+  <div style="font-size:11px;letter-spacing:.08em;text-transform:uppercase;opacity:.75">Next up</div>
+  <div id="cd-t" style="font-weight:600;font-size:16px">{label} starts in</div>
+  <div style="font-size:12px;opacity:.75">{html.escape(local)} · {html.escape(ist)}</div>
+ </div>
+ <div id="cd-n" style="font-family:'Saira',sans-serif;font-style:italic;font-weight:800;font-stretch:110%;font-size:38px;line-height:1;
+ letter-spacing:.02em;font-variant-numeric:tabular-nums">--:--:--</div>
+</div>
+<script>
+const T={target};
+const n=document.getElementById('cd-n'), t=document.getElementById('cd-t');
+const p=v=>String(v).padStart(2,'0');
+function tick(){{
+  let ms=T-Date.now();
+  if(ms<=0){{t.textContent='{label} is under way';n.textContent='LIVE';n.style.color='{accent}';return;}}
+  const d=Math.floor(ms/864e5),h=Math.floor(ms%864e5/36e5),m=Math.floor(ms%36e5/6e4),s=Math.floor(ms%6e4/1e3);
+  n.textContent=(d?d+'d ':'')+p(h)+':'+p(m)+':'+p(s);
+}}
+tick();setInterval(tick,1000);
+</script>"""
+
+
+def countdown(s):
+    import streamlit.components.v1 as components
+
+    local, ist = _when(s["start"], s["gmt_offset"])
+    hel = (st.session_state.get("pw_scene") or {}).get("helmet") or {}
+    components.html(countdown_html(s["session"], s["start"], local, ist, hel.get("lead", "#E10600")), height=124)
+
+
+def _weekend():
+    try:
+        return _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
+    except Exception:
+        return None
+
+
+def top_countdown():
+    wf = _weekend()
+    if wf and wf.get("sessions"):
+        countdown(wf["sessions"][0])
+
+
+def _forecast_card(wf, nxt=None, show_countdown=False):
     from f1analytics.pitwall import forecast
 
     nxt = nxt or wf["sessions"][0]
+    if show_countdown:
+        countdown(nxt)
     rows = []
     for i, s in enumerate(wf["sessions"]):
         local, ist = _when(s["start"], s["gmt_offset"])
@@ -805,7 +862,7 @@ def _forecast_card(wf, nxt=None):
         rows.append(f"<div class='fc-row{' fc-next' if i == 0 else ''}'><div class='fc-i'>{icon}</div><div>"
                     f"<div class='pw-k'>{s['session']}{' · NEXT' if i == 0 else ''}</div>"
                     f"<b>{forecast.headline(fc)}</b><div class='fc-m'>{local} · {ist}</div>{extra}</div></div>")
-    st.markdown(f"<div class='fc'><div class='ck-h'>Weekend forecast · {wf['meeting']}</div>{''.join(rows)}</div>", unsafe_allow_html=True)
+    st.markdown(f"<div class='fc'><div class='ck-h'>Schedule and forecast · {wf['meeting']}</div>{''.join(rows)}</div>", unsafe_allow_html=True)
     st.caption(f"Forecast from Open-Meteo for the circuit, refreshed hourly. It is a forecast, not a measurement. "
                f"Until the live feed starts, the page theme follows the {nxt['session']} forecast; once cars run it switches to the live track weather.")
 
@@ -814,10 +871,7 @@ def forecast_panel(full=True):
     from f1analytics.pitwall import forecast
     from f1analytics.ui import themes
 
-    try:
-        wf = _weekend_forecast(pd.Timestamp.now(tz="UTC").floor("h").isoformat())
-    except Exception:
-        wf = None
+    wf = _weekend()
     if not wf or not wf.get("sessions"):
         return False
     if not full:
@@ -1377,6 +1431,9 @@ def run(mode, loss, refresh, rep):
     @st.fragment(run_every=refresh)
     def live_view():
         snap, age = read_current()
+        status = ((snap or {}).get("session") or {}).get("status")
+        if (snap is None or status in ("Finished", "Finalised", "Ends", "Inactive")) and os.environ.get("F1_FORECAST", "1") != "0":
+            top_countdown()
         if snap is None:
             st.markdown(
                 "<div class='pw-empty'><b>Waiting for the live feed</b>"

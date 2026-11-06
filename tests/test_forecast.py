@@ -73,3 +73,10 @@ def test_weekend_falls_back_to_saved_schedule(monkeypatch):
     wk = forecast.weekend("2026-11-06T16:40:00Z")
     assert list(wk["session_name"])[:2] == ["Practice 2", "Practice 3"]
     assert wk.iloc[0]["circuit_short_name"] == "Interlagos"
+
+
+def test_countdown_targets_session_start():
+    from f1analytics.ui.pitwall_page import countdown_html
+    h = countdown_html("Practice 2", "2026-11-06T19:00:00+00:00", "Fri 16:00 local", "Sat 12:30 AM IST", "#FFCC00")
+    assert "const T=1793991600000;" in h
+    assert "FP2 starts in" in h and "Sat 12:30 AM IST" in h and "#FFCC00" in h
