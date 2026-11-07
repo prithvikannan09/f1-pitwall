@@ -1,20 +1,60 @@
 {
   "meeting": "São Paulo",
-  "as_of": "Sat 7 Nov 2026, 9:45 PM IST",
-  "status_note": "Reported by the media; the stewards' formal decisions were still pending.",
+  "as_of": "Sun 8 Nov 2026, 12:15 AM IST",
+  "status_note": "Ferrari has confirmed Hamilton starts from the back; the others are as reported, pending the stewards' formal decisions.",
   "penalties": [
-    {"code": "VER", "drop": "Back of grid", "reason": "Fifth engine, turbo and exhaust of the season (30 places in total)"},
-    {"code": "PER", "drop": "Back of grid", "reason": "Fifth engine and turbo of the season"},
-    {"code": "HAM", "drop": "10 places", "reason": "Fifth engine (ICE) of the season, one over the limit of four"},
-    {"code": "LEC", "drop": "10 places", "reason": "Fifth engine (ICE) of the season, one over the limit of four"}
+    {
+      "code": "VER",
+      "drop": "Back of grid",
+      "reason": "Fifth engine, turbo and exhaust of the season (30 places in total)"
+    },
+    {
+      "code": "PER",
+      "drop": "Back of grid",
+      "reason": "Fifth engine and turbo of the season"
+    },
+    {
+      "code": "HAM",
+      "drop": "Back of grid",
+      "reason": "Whole new power unit after the FP3 smoke, on top of the 10-place penalty for his fifth engine"
+    },
+    {
+      "code": "LEC",
+      "drop": "10 places",
+      "reason": "Fifth engine (ICE) of the season, one over the limit of four"
+    }
   ],
   "incidents": [
-    {"code": "HAM", "session": "FP3", "text": "Smoke in the cockpit about 35 minutes in. Smoke came from around the rear of the car with a burning-oil smell; he pitted, got out and missed the qualifying practice runs (7 laps, P12). Cause not confirmed yet."}
+    {
+      "code": "HAM",
+      "session": "FP3",
+      "text": "Vibrations, then a loss of power and smoke in the cockpit about 35 minutes in, with a burning-oil smell from the rear. He pitted and missed the qualifying practice runs (7 laps, P12). Ferrari then fitted a whole new power unit, so he starts the race from the back. Cause not confirmed."
+    }
   ],
   "sources": [
-    ["RacingNews365: Hamilton issues pile up with smoky Ferrari", "https://racingnews365.com/lewis-hamilton-issues-pile-up-for-sao-paulo-gp-with-smoky-ferrari"],
-    ["ScuderiaFans: Hamilton and Leclerc face Brazil GP grid drops", "https://scuderiafans.com/ferrari-hit-by-double-engine-penalty-blow-as-lewis-hamilton-and-charles-leclerc-face-brazil-gp-grid-drops/"],
-    ["RaceFans: Verstappen to start at back of grid", "https://www.racefans.net/2026/11/07/verstappen-to-start-at-back-of-grid-with-power-unit-penalty-in-brazil/"],
-    ["Motorsport.com via Yahoo: Hamilton, Leclerc and Verstappen penalties", "https://sports.yahoo.com/articles/lewis-hamilton-charles-leclerc-max-150402919.html"]
+    [
+      "Formula1.com: Hamilton set to start at back of the grid",
+      "https://www.formula1.com/en/latest/article/hamilton-set-to-start-at-back-of-the-grid-after-further-penalty-ahead-of-sao-paulo-grand-prix.5SFs44M6cNSDvUBCWE9FWZ"
+    ],
+    [
+      "The Race: Hamilton gets back-of-the-grid penalty",
+      "https://www.the-race.com/formula-1/lewis-hamilton-gets-back-of-the-grid-penalty-for-brazilian-gp/"
+    ],
+    [
+      "RacingNews365: Hamilton issues pile up with smoky Ferrari",
+      "https://racingnews365.com/lewis-hamilton-issues-pile-up-for-sao-paulo-gp-with-smoky-ferrari"
+    ],
+    [
+      "ScuderiaFans: Hamilton and Leclerc face Brazil GP grid drops",
+      "https://scuderiafans.com/ferrari-hit-by-double-engine-penalty-blow-as-lewis-hamilton-and-charles-leclerc-face-brazil-gp-grid-drops/"
+    ],
+    [
+      "RaceFans: Verstappen to start at back of grid",
+      "https://www.racefans.net/2026/11/07/verstappen-to-start-at-back-of-grid-with-power-unit-penalty-in-brazil/"
+    ],
+    [
+      "Motorsport.com via Yahoo: Hamilton, Leclerc and Verstappen penalties",
+      "https://sports.yahoo.com/articles/lewis-hamilton-charles-leclerc-max-150402919.html"
+    ]
   ]
 }

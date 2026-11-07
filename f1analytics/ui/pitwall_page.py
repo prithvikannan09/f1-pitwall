@@ -1206,7 +1206,12 @@ def render(snap, loss, feed_note):
 
 def render_practice(snap, team, focus, feed_note):
     summary = practice_summary(snap, team, focus or "")
-    gl.plain("This is practice, not a race. Teams test car setups and tyres, so the order here does not count. Watch the long runs: they are the best clue to Sunday's race pace.")
+    name = str((snap.get("session") or {}).get("name") or "")
+    if "Qualifying" in name:
+        gl.plain("This is qualifying: each driver's fastest lap sets their place on the race grid. It runs in three parts (Q1, Q2, Q3) and the slowest cars drop out after each. "
+                 "Grid penalties are applied afterwards, so a driver with a penalty can qualify high and still start further back.")
+    else:
+        gl.plain("This is practice, not a race. Teams test car setups and tyres, so the order here does not count. Watch the long runs: they are the best clue to Sunday's race pace.")
     left, mid, right = st.columns([5, 4, 3], gap="medium")
     with left:
         if os.environ.get("F1_BUILDUP", "1") != "0":

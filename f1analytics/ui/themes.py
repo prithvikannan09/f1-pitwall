@@ -129,7 +129,7 @@ def _bits(cls, n, seed, fn):
 
 
 CSS = """
-.pwx{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden}
+.pwx{position:fixed;inset:0;pointer-events:none;z-index:-1;overflow:hidden;contain:strict}
 .pwx>*{position:absolute;pointer-events:none}
 .stApp>header,.stApp [data-testid="stAppViewContainer"]>*{position:relative;z-index:1}
 .pwx-sky,.pwx-weave,.pwx-dusk,.pwx-wash,.pwx-mist,.pwx-sheen,.pwx-haze{inset:0}
