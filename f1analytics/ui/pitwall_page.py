@@ -155,6 +155,11 @@ h3 a{display:none !important}
 .bu-tyres>div{background:var(--asphalt);border-radius:6px;padding:.6rem .8rem}
 .bu-tw{font-size:.85rem;padding:.2rem 0}
 .bu-tw span{display:block;font-size:.75rem;opacity:.75}
+.bu-pens{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.5rem;margin:.3rem 0 .5rem}
+.bu-pen{background:rgba(255,255,255,.04);border:1px solid var(--line);border-radius:6px;padding:.45rem .6rem}
+.bu-pen.bu-me{border-color:var(--kerb)}
+.bu-drop{float:right;font-size:.72rem;padding:1px 6px;border-radius:3px;background:#E10600;color:#fff}
+.bu-tag{display:inline-block;margin-top:2px;font-size:.62rem;padding:1px 5px;border-radius:3px;background:#E10600;color:#fff}
 .bu-wet{margin:.4rem 0 .6rem;padding:.6rem .8rem;border-radius:6px;background:rgba(70,110,170,.22);border:1px solid rgba(160,190,230,.25);font-size:.88rem}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] [role="radiogroup"]{gap:.35rem;flex-wrap:nowrap}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{margin:0;padding:.3rem .8rem;border:1px solid var(--line);border-radius:999px;background:rgba(21,21,30,.6);white-space:nowrap}

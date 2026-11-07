@@ -84,3 +84,11 @@ def test_countdown_counts_down_from_server_time():
     assert "<iframe" not in h and "<script" not in h
     done = countdown_markup("Practice 2", "2026-11-06T19:00:00+00:00", "x", "y", now="2026-11-06T19:05:00+00:00")
     assert "--cd-from:0" in done and "is under way" in done
+
+
+def test_weekend_notes_for_sao_paulo():
+    from f1analytics.ui.buildup_panel import weekend_notes
+    n = weekend_notes("São Paulo")
+    assert n and {p["code"] for p in n["penalties"]} >= {"HAM", "LEC", "VER"}
+    assert all(u.startswith("https://") for _, u in n["sources"])
+    assert weekend_notes("Las Vegas") is None

@@ -6,6 +6,33 @@ import streamlit as st
 from f1analytics.pitwall import preview as pv
 
 TOP_N = 8
+NOTES = pv.OLD_RESULTS_FILE.parent / "weekend_notes.json"
+
+
+def weekend_notes(location):
+    import json
+
+    try:
+        n = json.loads(NOTES.read_text())
+    except (OSError, ValueError):
+        return None
+    loc = str(location or "").lower()
+    return n if n.get("meeting", "").lower() in loc or loc in n.get("meeting", "").lower() else None
+
+
+def notes_card(n, focus=None):
+    if not n:
+        return
+    pen = "".join(f"<div class='bu-pen{' bu-me' if p['code'] == focus else ''}'><b>{html.escape(p['code'])}</b>"
+                  f"<span class='bu-drop'>{html.escape(p['drop'])}</span><div class='bu-t'>{html.escape(p['reason'])}</div></div>"
+                  for p in n.get("penalties", []))
+    inc = "".join(f"<div class='bu-l'>⚠️ <b>{html.escape(i['code'])} · {html.escape(i['session'])}:</b> {html.escape(i['text'])}</div>"
+                  for i in n.get("incidents", []))
+    src = " · ".join(f"<a href='{html.escape(u)}' target='_blank'>{html.escape(t)}</a>" for t, u in n.get("sources", []))
+    st.markdown(f"<div class='bu-card bu-notes'><div class='ck-h'>Grid penalties and car issues</div>"
+                f"<div class='bu-pens'>{pen}</div>{inc}"
+                f"<div class='bu-t' style='margin-top:.5rem'>{html.escape(n.get('status_note', ''))} Updated {html.escape(n.get('as_of', ''))}. "
+                f"Sources: {src}</div></div>", unsafe_allow_html=True)
 
 
 @st.cache_data(ttl=6 * 3600, show_spinner=False)
@@ -45,6 +72,9 @@ def buildup_section(location, focus=None, race_kind=None, title=True):
     if race_kind == "rain":
         st.markdown("<div class='bu-wet'>🌧️ <b>Rain is forecast for the race.</b> All of this pace data is from dry running, so it counts for less: "
                     "wet-weather skill, tyre warm-up and luck with Safety Cars matter more on a wet Sunday.</div>", unsafe_allow_html=True)
+    notes = weekend_notes(location)
+    notes_card(notes, focus)
+    drops = {p["code"]: p["drop"] for p in (notes or {}).get("penalties", [])}
     rows = []
     for code, r in ranked.head(TOP_N).iterrows():
         pace = r.get("pace_pct_last")
@@ -53,7 +83,8 @@ def buildup_section(location, focus=None, race_kind=None, title=True):
         wear_s = "—" if wear is None or pd.isna(wear) else ("level" if abs(wear) < 0.0005 else f"{wear:+.3f}s")
         me = " bu-me" if code == focus else ""
         rows.append(f"<tr class='bu-row{me}'><td class='bu-p'>{_range(r)}</td><td><b>{html.escape(code)}</b>"
-                    f"<div class='bu-t'>{html.escape(str(b['teams'].get(code) or ''))}</div></td>"
+                    f"<div class='bu-t'>{html.escape(str(b['teams'].get(code) or ''))}</div>"
+                    f"{'<div class=bu-tag>Grid: ' + html.escape(drops[code]) + '</div>' if code in drops else ''}</td>"
                     f"<td>{pace_s}</td><td>P{r['form']:.1f}</td><td>{wear_s}</td><td class='bu-h'>{_track_line(r['track'])}</td></tr>")
     st.markdown("<div class='bu-wrap'><table class='bu'><thead><tr><th>Pick</th><th>Driver</th><th>Pace, last 5</th><th>Form</th>"
                 "<th>Tyre wear</th><th>Here before</th></tr></thead><tbody>" + "".join(rows) + "</tbody></table></div>",

@@ -1,0 +1,20 @@
+{
+  "meeting": "São Paulo",
+  "as_of": "Sat 7 Nov 2026, 9:45 PM IST",
+  "status_note": "Reported by the media; the stewards' formal decisions were still pending.",
+  "penalties": [
+    {"code": "VER", "drop": "Back of grid", "reason": "Fifth engine, turbo and exhaust of the season (30 places in total)"},
+    {"code": "PER", "drop": "Back of grid", "reason": "Fifth engine and turbo of the season"},
+    {"code": "HAM", "drop": "10 places", "reason": "Fifth engine (ICE) of the season, one over the limit of four"},
+    {"code": "LEC", "drop": "10 places", "reason": "Fifth engine (ICE) of the season, one over the limit of four"}
+  ],
+  "incidents": [
+    {"code": "HAM", "session": "FP3", "text": "Smoke in the cockpit about 35 minutes in. Smoke came from around the rear of the car with a burning-oil smell; he pitted, got out and missed the qualifying practice runs (7 laps, P12). Cause not confirmed yet."}
+  ],
+  "sources": [
+    ["RacingNews365: Hamilton issues pile up with smoky Ferrari", "https://racingnews365.com/lewis-hamilton-issues-pile-up-for-sao-paulo-gp-with-smoky-ferrari"],
+    ["ScuderiaFans: Hamilton and Leclerc face Brazil GP grid drops", "https://scuderiafans.com/ferrari-hit-by-double-engine-penalty-blow-as-lewis-hamilton-and-charles-leclerc-face-brazil-gp-grid-drops/"],
+    ["RaceFans: Verstappen to start at back of grid", "https://www.racefans.net/2026/11/07/verstappen-to-start-at-back-of-grid-with-power-unit-penalty-in-brazil/"],
+    ["Motorsport.com via Yahoo: Hamilton, Leclerc and Verstappen penalties", "https://sports.yahoo.com/articles/lewis-hamilton-charles-leclerc-max-150402919.html"]
+  ]
+}
