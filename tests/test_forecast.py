@@ -92,3 +92,16 @@ def test_weekend_notes_for_sao_paulo():
     assert n and {p["code"] for p in n["penalties"]} >= {"HAM", "LEC", "VER"}
     assert all(u.startswith("https://") for _, u in n["sources"])
     assert weekend_notes("Las Vegas") is None
+
+
+def test_focus_alert_mentions_smoke_and_penalty():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_string("""
+from f1analytics.ui.buildup_panel import focus_alert, top_notes
+focus_alert("São Paulo Grand Prix", "HAM")
+top_notes("São Paulo", "HAM")
+""").run(timeout=60)
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "Smoke in the cockpit" in text and "10 places" in text and "Back of grid" in text
+    assert any("Why do engine changes" in e.label for e in at.expander)

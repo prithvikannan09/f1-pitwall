@@ -160,6 +160,8 @@ h3 a{display:none !important}
 .bu-pen.bu-me{border-color:var(--kerb)}
 .bu-drop{float:right;font-size:.72rem;padding:1px 6px;border-radius:3px;background:#E10600;color:#fff}
 .bu-tag{display:inline-block;margin-top:2px;font-size:.62rem;padding:1px 5px;border-radius:3px;background:#E10600;color:#fff}
+.bu-alert{margin:0 0 .6rem;padding:.6rem .8rem;border-radius:6px;background:rgba(225,6,0,.16);border:1px solid rgba(225,6,0,.55);font-size:.8rem;line-height:1.5}
+.bu-alert div+div{margin-top:.35rem}
 .bu-wet{margin:.4rem 0 .6rem;padding:.6rem .8rem;border-radius:6px;background:rgba(70,110,170,.22);border:1px solid rgba(160,190,230,.25);font-size:.88rem}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] [role="radiogroup"]{gap:.35rem;flex-wrap:nowrap}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{margin:0;padding:.3rem .8rem;border:1px solid var(--line);border-radius:999px;background:rgba(21,21,30,.6);white-space:nowrap}
@@ -893,6 +895,9 @@ def top_countdown():
     if wf and wf.get("sessions"):
         countdown(wf["sessions"][0])
         _forecast_card(wf)
+        from f1analytics.ui.buildup_panel import top_notes
+
+        top_notes(wf["meeting"], st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper())
 
 
 def _forecast_card(wf, nxt=None, show_countdown=False):
@@ -1156,6 +1161,10 @@ def render(snap, loss, feed_note):
     ordered = sorted(result["cars"], key=lambda r: r["car"]["code"] != focus)
     left, mid, right = st.columns([5, 4, 3], gap="medium")
     with left:
+        if os.environ.get("F1_BUILDUP", "1") != "0":
+            from f1analytics.ui.buildup_panel import focus_alert
+
+            focus_alert((snap.get("session") or {}).get("meeting"), focus)
         for i, r in enumerate(ordered):
             if i == 0:
                 driver_card(r, focus=True)
@@ -1198,6 +1207,10 @@ def render_practice(snap, team, focus, feed_note):
     gl.plain("This is practice, not a race. Teams test car setups and tyres, so the order here does not count. Watch the long runs: they are the best clue to Sunday's race pace.")
     left, mid, right = st.columns([5, 4, 3], gap="medium")
     with left:
+        if os.environ.get("F1_BUILDUP", "1") != "0":
+            from f1analytics.ui.buildup_panel import focus_alert
+
+            focus_alert((snap.get("session") or {}).get("meeting"), focus)
         for c in summary["cars"]:
             d = c["car"]
             is_focus = d["code"] == focus

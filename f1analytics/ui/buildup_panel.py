@@ -20,6 +20,26 @@ def weekend_notes(location):
     return n if n.get("meeting", "").lower() in loc or loc in n.get("meeting", "").lower() else None
 
 
+RULES = """
+**How engine grid penalties work** (FIA Sporting Regulations, power unit allocation):
+- Each driver gets a fixed number of each power-unit part for the whole season: the engine (ICE), turbo, MGU-K, battery, control electronics and exhaust. For the engine the limit is **four**.
+- Fitting **one more than the limit** of any part costs **10 grid places** the first time; every extra part after that costs **5 more places**.
+- If the total is more than **15 places**, the driver simply **starts from the back** of the grid.
+- Teams usually take these penalties at tracks where overtaking is easier. Interlagos is one, with the long straight from the last corner down to Turn 1, and a likely wet race this weekend mixes the order anyway.
+- Penalties apply to the **race grid**, not to qualifying times, so these drivers still set laps in Qualifying.
+"""
+
+
+def focus_alert(location, focus):
+    n = weekend_notes(location)
+    if not n or not focus:
+        return
+    bits = [f"⚠️ <b>{html.escape(i['session'])}:</b> {html.escape(i['text'])}" for i in n.get("incidents", []) if i["code"] == focus]
+    bits += [f"🔻 <b>Grid penalty for the race: {html.escape(p['drop'])}</b> · {html.escape(p['reason'])}" for p in n.get("penalties", []) if p["code"] == focus]
+    if bits:
+        st.markdown("<div class='bu-alert'>" + "".join(f"<div>{b}</div>" for b in bits) + "</div>", unsafe_allow_html=True)
+
+
 def notes_card(n, focus=None):
     if not n:
         return
@@ -33,6 +53,12 @@ def notes_card(n, focus=None):
                 f"<div class='bu-pens'>{pen}</div>{inc}"
                 f"<div class='bu-t' style='margin-top:.5rem'>{html.escape(n.get('status_note', ''))} Updated {html.escape(n.get('as_of', ''))}. "
                 f"Sources: {src}</div></div>", unsafe_allow_html=True)
+    with st.expander("Why do engine changes mean grid penalties?"):
+        st.markdown(RULES)
+
+
+def top_notes(location, focus=None):
+    notes_card(weekend_notes(location), focus)
 
 
 @st.cache_data(ttl=6 * 3600, show_spinner=False)
@@ -73,7 +99,6 @@ def buildup_section(location, focus=None, race_kind=None, title=True):
         st.markdown("<div class='bu-wet'>🌧️ <b>Rain is forecast for the race.</b> All of this pace data is from dry running, so it counts for less: "
                     "wet-weather skill, tyre warm-up and luck with Safety Cars matter more on a wet Sunday.</div>", unsafe_allow_html=True)
     notes = weekend_notes(location)
-    notes_card(notes, focus)
     drops = {p["code"]: p["drop"] for p in (notes or {}).get("penalties", [])}
     rows = []
     for code, r in ranked.head(TOP_N).iterrows():
