@@ -40,7 +40,7 @@ def tyre_dot(compound):
 
 
 def _font(fig):
-    fig.update_layout(font=dict(family="Titillium Web, sans-serif", color="#F3F3F5"), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
+    fig.update_layout(font=dict(family="Michroma, sans-serif", color="#F3F3F5"), paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)")
     return fig
 STATUS_STYLE = {
     "1": ("GREEN FLAG", "#00B050"),
@@ -55,7 +55,10 @@ CSS = """
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Saira:ital,wdth,wght@0,50..125,100..900;1,50..125,100..900&family=Titillium+Web:wght@300;400;600;700&family=Russo+One&family=Michroma&display=swap');
 :root{--display:'Michroma',sans-serif;--carbon:#15151E;--asphalt:#1F1F2B;--line:#2E2E3A;--chalk:#F3F3F5;--tarmac:#9A9AA8;--kerb:#E10600;--flag:#FFD12E;--go:#00B050}
-.stApp,.stApp :is(div,p,label,input,button,li,td,th,h1,h2,h3,h4,textarea,select,small,b,strong,a,summary,table){font-family:'Titillium Web',system-ui,sans-serif !important}
+@font-face{font-family:'PWSym';src:local('Arial'),local('Helvetica'),local('Roboto'),local('Segoe UI');unicode-range:U+00B0,U+0025,U+2030}
+.stApp,.stApp :is(div,p,span,label,input,button,li,td,th,h1,h2,h3,h4,textarea,select,small,b,strong,a,summary,table,code){font-family:'PWSym','Michroma',sans-serif !important;font-weight:400 !important}
+.stApp :is(p,li,td,label,small,.stCaption,[data-testid="stCaptionContainer"]){letter-spacing:0;line-height:1.55}
+.stApp :is(p,li){font-size:.86rem}
 .stApp [data-testid="stIconMaterial"],.stApp .material-symbols-rounded{font-family:'Material Symbols Rounded' !important}
 .stApp{background:var(--carbon);color:var(--chalk)}
 [data-testid="stToolbar"],[data-testid="stDecoration"]{display:none}
@@ -69,12 +72,11 @@ h1::before{content:"";width:44px;height:.62em;background:#E10600;transform:skewX
 h3{font-weight:700 !important;font-size:1.05rem !important;letter-spacing:.2px;border-bottom:1px solid var(--line);padding:.2rem 0 .35rem !important;margin:1rem 0 .5rem !important}
 h3 a{display:none !important}
 .stApp h1,.stApp h1 *{font-family:'Russo One',sans-serif !important;font-weight:400 !important;font-style:italic !important;font-stretch:normal !important;font-variation-settings:normal !important;letter-spacing:.5px}
-.stApp :is(h2,h3,h4,.pw-d,.pw-pos,.pw-code,.pw-call,.pw-call span,.pw-lap,.pw-flag,.pw-tower .code,.pw-tower .p,.pw-empty b,.cd-n,.ck-h,.bu-p,.pw-k,.pw-v,.cd-k,.cd-t,.num,summary p,[data-testid="stRadio"] label p,[data-testid="stMetricValue"] div,[data-testid="stButton"] button p,[data-testid="stTable"] th,[data-testid="stSelectbox"] label p){font-family:'Michroma',sans-serif !important;font-weight:400 !important;font-style:normal !important;font-stretch:normal !important;font-variation-settings:normal !important}
+.stApp :is(h2,h3,h4,.pw-d,.pw-pos,.pw-code,.pw-call,.pw-call span,.pw-lap,.pw-flag,.pw-tower .code,.pw-tower .p,.pw-empty b,.cd-n,.ck-h,.bu-p,.pw-k,.pw-v,.cd-k,.cd-t,.num,summary p,[data-testid="stRadio"] label p,[data-testid="stMetricValue"] div,[data-testid="stButton"] button p,[data-testid="stTable"] th,[data-testid="stSelectbox"] label p){font-family:'PWSym','Michroma',sans-serif !important;font-weight:400 !important;font-style:normal !important;font-stretch:normal !important;font-variation-settings:normal !important}
 .stApp :is(h3,.ck-h){letter-spacing:.02em}
 .stApp :is(summary p,[data-testid="stRadio"] label p,[data-testid="stSelectbox"] label p,.cd-t){font-size:.8rem !important}
 .stApp .pw-k{font-size:.62rem !important;letter-spacing:.06em}
 .stApp .cd-n{font-size:32px !important;letter-spacing:.02em}
-.stApp .cond-grid .pw-v,.stApp .cond-big{font-family:'Titillium Web',sans-serif !important;font-weight:700 !important}
 @media (max-width:640px){[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] [role="radiogroup"]{flex-wrap:wrap}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label p{font-size:.66rem !important}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{padding:.22rem .5rem !important}}
@@ -168,7 +170,7 @@ h3 a{display:none !important}
 .fc-row b{font-size:.92rem;display:block;line-height:1.3}
 .fc-m{font-size:.8rem;opacity:.8;line-height:1.35}
 .ck{margin:.7rem 0 .4rem;padding:.75rem .8rem;border-radius:6px;background:var(--asphalt);border:1px solid var(--line)}
-.ck-h{font-family:'Titillium Web',sans-serif;font-weight:800;font-style:italic;text-transform:uppercase;font-size:.95rem;margin-bottom:.5rem}
+.ck-h{font-family:'Michroma',sans-serif;font-weight:400;text-transform:uppercase;font-size:.95rem;margin-bottom:.5rem}
 .ck-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:.55rem .9rem}
 .ck-row{display:flex;gap:.6rem;align-items:flex-start;opacity:.55}
 .ck-row.ck-on{opacity:1}

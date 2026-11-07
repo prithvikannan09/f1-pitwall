@@ -5,12 +5,12 @@ import streamlit.components.v1 as components
 SPEEDS = [1, 2, 5, 10]
 
 TEMPLATE = """
-<div id="wrap" style="position:relative;width:100%;height:__H__px;background:transparent;font-family:'Titillium Web',system-ui,sans-serif">
+<div id="wrap" style="position:relative;width:100%;height:__H__px;background:transparent;font-family:'Michroma',system-ui,sans-serif">
   <canvas id="c" style="width:100%;height:100%;display:block"></canvas>
   <div id="hud" style="position:absolute;left:8px;top:6px;color:#9A9AA8;font-size:12px"></div>
   <div style="position:absolute;right:6px;top:4px;display:flex;gap:4px" id="btns"></div>
 </div>
-<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:wght@400;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Michroma&display=swap" rel="stylesheet">
 <script>
 const D = __DATA__;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d'), hud = document.getElementById('hud');
@@ -18,7 +18,7 @@ let speed = D.speed, t0 = performance.now(), paused = false, pauseAt = 0;
 const reduce = window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 const btns = document.getElementById('btns');
 function mkBtn(label, on) { const b = document.createElement('button'); b.textContent = label;
-  b.style.cssText = 'background:#1F1F2B;color:#F3F3F5;border:1px solid #2E2E3A;border-radius:4px;font:700 11px Titillium Web,sans-serif;padding:2px 7px;cursor:pointer';
+  b.style.cssText = 'background:#1F1F2B;color:#F3F3F5;border:1px solid #2E2E3A;border-radius:4px;font:400 11px Michroma,sans-serif;padding:2px 7px;cursor:pointer';
   b.onclick = on; btns.appendChild(b); return b; }
 const pb = mkBtn('❚❚', () => { if (paused) { t0 = performance.now() - pauseAt * 1000 / speed; paused = false; pb.textContent = '❚❚'; } else { pauseAt = now(); paused = true; pb.textContent = '▶'; } });
 D.speeds.forEach(s => { const b = mkBtn(s + '×', () => { const cur = now(); speed = s; t0 = performance.now() - cur * 1000 / speed; mark(); }); b.dataset.s = s; });
@@ -58,7 +58,7 @@ function draw() {
     const [x, y] = at(c, t), [a, b] = P(x, y);
     ctx.beginPath(); ctx.arc(a, b, c.size, 0, 2 * Math.PI); ctx.fillStyle = c.colour; ctx.fill();
     ctx.lineWidth = c.focus ? 2.5 : 1.2; ctx.strokeStyle = c.focus ? '#FFFFFF' : '#15151E'; ctx.stroke();
-    if (c.label) { ctx.font = (c.focus ? '700 13px' : '700 11px') + ' Titillium Web, sans-serif'; ctx.fillStyle = '#F3F3F5'; ctx.textAlign = 'center'; ctx.fillText(c.code, a, b - c.size - 4); }
+    if (c.label) { ctx.font = (c.focus ? '400 12px' : '400 10px') + ' Michroma, sans-serif'; ctx.fillStyle = '#F3F3F5'; ctx.textAlign = 'center'; ctx.fillText(c.code, a, b - c.size - 4); }
   }
   const m = Math.floor(t / 60), s = Math.floor(t % 60);
   hud.textContent = D.title + ' · ' + m + ':' + String(s).padStart(2, '0') + ' / ' + Math.floor(D.duration / 60) + ':' + String(Math.floor(D.duration % 60)).padStart(2, '0');
@@ -125,18 +125,18 @@ def project_traces(outline_x, outline_y, traces, step=None):
 RACE_SPEEDS = [1, 5, 10, 20, 50]
 
 RACE_TEMPLATE = """
-<div style="width:100%;font-family:'Titillium Web',system-ui,sans-serif;color:#F3F3F5">
+<div style="width:100%;font-family:'Michroma',system-ui,sans-serif;color:#F3F3F5">
   <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:4px">
     <button id="pp" class="b">❚❚</button>
     <span id="speeds" style="display:flex;gap:4px"></span>
     <span id="hud" style="margin-left:auto;color:#9A9AA8;font-size:12px"></span>
   </div>
   <div style="position:relative;width:100%;height:__H__px"><canvas id="c" style="width:100%;height:100%;display:block"></canvas>
-    <div id="lap" style="position:absolute;left:6px;top:4px;font:800 italic 18px 'Titillium Web',sans-serif"></div></div>
+    <div id="lap" style="position:absolute;left:6px;top:4px;font:400 16px 'Michroma',sans-serif"></div></div>
   <input id="scrub" type="range" min="0" max="1000" value="0" style="width:100%;accent-color:#E10600">
 </div>
-<style>.b{background:#1F1F2B;color:#F3F3F5;border:1px solid #2E2E3A;border-radius:4px;font:700 11px 'Titillium Web',sans-serif;padding:3px 8px;cursor:pointer}.b.on{background:#E10600;border-color:#E10600}</style>
-<link href="https://fonts.googleapis.com/css2?family=Titillium+Web:ital,wght@0,400;0,700;1,800&display=swap" rel="stylesheet">
+<style>.b{background:#1F1F2B;color:#F3F3F5;border:1px solid #2E2E3A;border-radius:4px;font:400 10px 'Michroma',sans-serif;padding:3px 8px;cursor:pointer}.b.on{background:#E10600;border-color:#E10600}</style>
+<link href="https://fonts.googleapis.com/css2?family=Michroma&display=swap" rel="stylesheet">
 <script>
 const D = __DATA__;
 const cv = document.getElementById('c'), ctx = cv.getContext('2d');
@@ -184,7 +184,7 @@ function frame(nowMs) {
   pos.slice().sort((a, b) => a.c.size - b.c.size).forEach(p => { const [x, y] = onTrack(p.d), [a, b] = P(x, y);
     ctx.beginPath(); ctx.arc(a, b, p.c.size, 0, 2 * Math.PI); ctx.fillStyle = p.c.colour; ctx.fill();
     ctx.lineWidth = p.c.focus ? 2.5 : 1.2; ctx.strokeStyle = p.c.focus ? '#FFFFFF' : '#15151E'; ctx.stroke();
-    if (p.c.focus || p.c.mine || rank[p.c.code] <= 3) { ctx.font = (p.c.focus ? '700 13px' : '700 11px') + " 'Titillium Web',sans-serif"; ctx.fillStyle = '#F3F3F5'; ctx.textAlign = 'center';
+    if (p.c.focus || p.c.mine || rank[p.c.code] <= 3) { ctx.font = (p.c.focus ? '700 13px' : '700 11px') + " 'Michroma',sans-serif"; ctx.fillStyle = '#F3F3F5'; ctx.textAlign = 'center';
       ctx.fillText((p.c.focus ? 'P' + rank[p.c.code] + ' ' : '') + p.c.code, a, b - p.c.size - 4); } });
   lapEl.textContent = simT < D.start0 ? 'Grid' : (leadLap >= D.laps && pos.length && pos[0].d >= D.laps * L ? 'Finish' : 'Lap ' + leadLap + ' / ' + D.laps);
   hud.textContent = 'Race time ' + fmt(simT - D.start0);

@@ -10,7 +10,7 @@ from f1analytics.ui import glossary as gl
 TEAM_COLOURS = {"ferrari": "#E80020", "red bull": "#3671C6", "mercedes": "#27F4D2", "mclaren": "#FF8000", "aston": "#229971", "alpine": "#0093CC",
                 "williams": "#64C4FF", "haas": "#B6BABD", "sauber": "#52E252", "kick": "#52E252", "audi": "#F50537", "racing bulls": "#6692FF",
                 "rb ": "#6692FF", "alphatauri": "#5E8FAA", "alfa": "#C92D4B", "cadillac": "#AAAAAD"}
-FONT = dict(family="Titillium Web, sans-serif", color="#F3F3F5")
+FONT = dict(family="Michroma, sans-serif", color="#F3F3F5")
 
 CSS = """
 <style>

@@ -9,7 +9,7 @@ from f1analytics.pitwall import review as rv
 from f1analytics.ui import glossary as gl
 
 TYRE_COLOUR = {"SOFT": "#DA291C", "MEDIUM": "#FFD12E", "HARD": "#F0F0EC", "INTERMEDIATE": "#43B02A", "WET": "#0067AD"}
-FONT = dict(family="Titillium Web, sans-serif", color="#F3F3F5")
+FONT = dict(family="Michroma, sans-serif", color="#F3F3F5")
 
 CSS = """
 <style>
