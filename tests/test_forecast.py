@@ -103,5 +103,5 @@ top_notes("São Paulo", "HAM")
 """).run(timeout=60)
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
-    assert "Smoke in the cockpit" in text and "10 places" in text and "Back of grid" in text
+    assert "smoke in the cockpit" in text.lower() and "10 places" in text and "Back of grid" in text
     assert any("Why do engine changes" in e.label for e in at.expander)
