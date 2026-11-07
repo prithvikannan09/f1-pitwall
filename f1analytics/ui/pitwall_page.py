@@ -71,7 +71,7 @@ h1{font-weight:800 !important;font-style:italic;letter-spacing:-0.5px;font-size:
 h1::before{content:"";width:44px;height:.62em;background:#E10600;transform:skewX(-20deg);display:inline-block}
 h3{font-weight:700 !important;font-size:1.05rem !important;letter-spacing:.2px;border-bottom:1px solid var(--line);padding:.2rem 0 .35rem !important;margin:1rem 0 .5rem !important}
 h3 a{display:none !important}
-.stApp h1,.stApp h1 *{font-family:'Russo One',sans-serif !important;font-weight:400 !important;font-style:italic !important;font-stretch:normal !important;font-variation-settings:normal !important;letter-spacing:.5px}
+.stApp h1,.stApp h1 *{font-family:'Michroma',sans-serif !important;font-weight:400 !important;font-style:normal !important;font-stretch:normal !important;font-variation-settings:normal !important;letter-spacing:.5px}
 .stApp :is(h2,h3,h4,.pw-d,.pw-pos,.pw-code,.pw-call,.pw-call span,.pw-lap,.pw-flag,.pw-tower .code,.pw-tower .p,.pw-empty b,.cd-n,.ck-h,.bu-p,.pw-k,.pw-v,.cd-k,.cd-t,.num,summary p,[data-testid="stRadio"] label p,[data-testid="stMetricValue"] div,[data-testid="stButton"] button p,[data-testid="stTable"] th,[data-testid="stSelectbox"] label p){font-family:'PWSym','Michroma',sans-serif !important;font-weight:400 !important;font-style:normal !important;font-stretch:normal !important;font-variation-settings:normal !important}
 .stApp :is(h3,.ck-h){letter-spacing:.02em}
 .stApp :is(summary p,[data-testid="stRadio"] label p,[data-testid="stSelectbox"] label p,.cd-t){font-size:.8rem !important}
