@@ -16,6 +16,7 @@ BRANCH = os.environ.get("F1_RELAY_BRANCH", "live-feed")
 FILES = (CURRENT, "laps.json")
 PUSH_EVERY_S = 10.0
 PULL_EVERY_S = 8.0
+HEARTBEAT_S = 25.0
 PRIVATE_KEYS = ("positions", "positions_utc", "car")
 log = logging.getLogger("f1analytics.relay")
 
@@ -59,7 +60,7 @@ def publish(repo_dir, live_dir=None, remote="origin", branch=BRANCH):
 
 def run_publisher(repo_dir, live_dir=None, every=PUSH_EVERY_S, stop=lambda: False):
     live_dir = Path(live_dir or LIVE_DIR)
-    last, sent = None, None
+    last, sent, sent_at = None, None, 0.0
     while not stop():
         path = live_dir / CURRENT
         try:
@@ -67,9 +68,9 @@ def run_publisher(repo_dir, live_dir=None, every=PUSH_EVERY_S, stop=lambda: Fals
             if m and m != last:
                 last = m
                 body = fingerprint(json.loads(path.read_text()))
-                if body != sent:
+                if body != sent or time.time() - sent_at >= HEARTBEAT_S:
                     sha = publish(repo_dir, live_dir)
-                    sent = body
+                    sent, sent_at = body, time.time()
                     log.info("relayed %s", sha[:8])
         except Exception as e:
             log.warning("relay push failed: %s", e)

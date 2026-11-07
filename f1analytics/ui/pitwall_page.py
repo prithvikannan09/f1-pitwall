@@ -1529,7 +1529,7 @@ def run(mode, loss, refresh, rep):
         status = (snap.get("session") or {}).get("status")
         via = " · relayed from the pit wall" if feed.get("relay") else ""
         note = f"Live feed {'connected' if feed.get('connected') else 'reconnecting…'}{via} · {f1tv_badge(snap)} · updated {_ago(age)} · session {status or '?'}"
-        if age > 30 and status not in ("Finished", "Finalised", "Ends", "Inactive"):
+        if age > (60 if feed.get("relay") else 30) and status not in ("Finished", "Finalised", "Ends", "Inactive"):
             st.warning(f"No update for {age:.0f}s: the feed is reconnecting or no session is running.")
         render(snap, loss, note)
 
@@ -1579,6 +1579,11 @@ def run(mode, loss, refresh, rep):
         status0 = ((snap0 or {}).get("session") or {}).get("status")
         if (snap0 is None or status0 in ("Finished", "Finalised", "Ends", "Inactive")) and os.environ.get("F1_FORECAST", "1") != "0":
             top_countdown()
+        elif snap0 is not None and os.environ.get("F1_BUILDUP", "1") != "0":
+            from f1analytics.ui.buildup_panel import top_notes
+
+            top_notes((snap0.get("session") or {}).get("meeting"),
+                      st.session_state.get("pw_driver") or str(st.query_params.get("driver", "")).upper())
         live_view()
         below_live()
     else:
