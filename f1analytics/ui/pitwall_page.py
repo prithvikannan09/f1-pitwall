@@ -454,6 +454,8 @@ def header(snap, result, feed_note):
     over = s.get("status") in ("Finished", "Finalised", "Ends")
     if over:
         label, colour = "SESSION OVER", "#3A3A48"
+    elif s.get("status") == "Aborted":
+        label, colour = "RED FLAG · STOPPED", "#E10600"
     if over and not result:
         progress = "Final <small>results</small>"
     elif result:
@@ -1386,7 +1388,8 @@ def with_user_feed(snap):
 
 SIGNIN_NOTE = ("Use your own F1TV Access or Pro login to see live car positions (GPS) and car data. "
                "Your password is sent once to F1's own login to sign you in, then thrown away: it is never saved, logged or shown. "
-               "Only a sign-in token stays in this browser tab, and only you see your F1TV data. Signing out or closing the tab ends it. "
+               "After sign-in you stay signed in on this browser for up to 24 hours: the browser keeps only a random key, and the F1 sign-in token is held on the app's server, never your password. "
+               "Only you see your F1TV data. Signing out ends it straight away. "
                "This uses F1's login the same way the open-source FastF1 library does; it isn't an official F1 app.")
 
 
@@ -1394,12 +1397,16 @@ def owner_signin():
     import hmac
 
     from f1analytics.live.userfeed import sign_in
+    from f1analytics.ui import remember
 
+    remember.restore()
+    remember.flush_cookie()
     if f1tv_token() or st.session_state.get("pw_owner"):
         with st.popover("🔓 F1TV on", width="stretch"):
-            st.caption("Live car positions and car data are on in this browser tab.")
+            st.caption("Live car positions and car data are on. You stay signed in on this browser for up to 24 hours, even if you refresh.")
             if st.button("Sign out", key="pw_signout"):
                 sign_out()
+                remember.forget()
                 st.rerun()
         return
     with st.popover("🔒 Sign in with F1TV", width="stretch"):
@@ -1421,6 +1428,7 @@ def owner_signin():
             if token:
                 st.session_state["f1tv_token"], st.session_state["f1tv_exp"] = token, exp
                 st.session_state["pw_tries"] = 0
+                remember.remember({"token": token, "exp": exp})
                 st.rerun()
             else:
                 st.session_state["pw_tries"] = tries + 1
@@ -1435,6 +1443,7 @@ def owner_signin():
                 if given and hmac.compare_digest(given.encode(), key.encode()):
                     st.session_state["pw_owner"] = True
                     st.session_state["pw_tries"] = 0
+                    remember.remember({"owner": True})
                     st.rerun()
                 else:
                     st.session_state["pw_tries"] = tries + 1

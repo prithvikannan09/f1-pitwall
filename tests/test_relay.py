@@ -76,3 +76,15 @@ def test_fingerprint_ignores_clock_only_changes():
     b = relay.fingerprint(_snap(t="2026-11-06T16:00:09+00:00"))
     c = relay.fingerprint(_snap(name="Practice 2"))
     assert a == b != c
+
+
+def test_header_shows_red_flag_when_session_aborted():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_string("""
+from f1analytics.ui.pitwall_page import header
+header({"session": {"name": "Qualifying", "meeting": "São Paulo Grand Prix", "status": "Aborted",
+                    "track_status": "1", "remaining": "00:15:37"}, "feed": {}}, None, "Live feed connected")
+""").run(timeout=60)
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "RED FLAG" in text and "GREEN FLAG" not in text
