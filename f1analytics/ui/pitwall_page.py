@@ -456,7 +456,12 @@ def header(snap, result, feed_note):
         label, colour = "SESSION OVER", "#3A3A48"
     elif s.get("status") == "Aborted":
         label, colour = "RED FLAG · STOPPED", "#E10600"
-    if over and not result:
+    pre = s.get("status") in ("Inactive", None, "") and not over
+    if pre:
+        label, colour = ("PRE-RACE · LOCAL YELLOW", "#8A6D00") if status in ("2", "4", "6", "7") else ("PRE-RACE", "#3A3A48")
+    if pre:
+        progress = "Not started <small>yet</small>"
+    elif over and not result:
         progress = "Final <small>results</small>"
     elif result:
         progress = f"Lap {s.get('lap') or 0} <small>/ {result['total_laps']}</small>"

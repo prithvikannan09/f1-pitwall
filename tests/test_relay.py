@@ -101,3 +101,15 @@ def test_pit_loss_survives_duplicate_lap_rows():
     rows.append(dict(rows[4]))
     est, n = pit_loss_estimate(pd.DataFrame(rows), 22.0)
     assert n >= 0
+
+
+def test_header_pre_race_not_yellow_flag():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_string("""
+from f1analytics.ui.pitwall_page import header
+header({"session": {"name": "Race", "meeting": "São Paulo Grand Prix", "status": "Inactive",
+                    "track_status": "2", "lap": 1, "total_laps": 71, "remaining": "02:00:00"}, "feed": {}}, None, "Live feed connected")
+""").run(timeout=60)
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "PRE-RACE" in text and "Not started" in text
