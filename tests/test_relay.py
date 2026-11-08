@@ -88,3 +88,16 @@ header({"session": {"name": "Qualifying", "meeting": "São Paulo Grand Prix", "s
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
     assert "RED FLAG" in text and "GREEN FLAG" not in text
+
+
+def test_pit_loss_survives_duplicate_lap_rows():
+    import pandas as pd
+    from f1analytics.pitwall.engine import pit_loss_estimate
+    rows = []
+    for lap in range(1, 8):
+        rows.append({"DriverNumber": "44", "LapNumber": lap, "LapTime": pd.Timedelta(seconds=72), "IsAccurate": True,
+                     "PitInTime": pd.Timedelta(seconds=1) if lap == 4 else pd.NaT,
+                     "PitOutTime": pd.Timedelta(seconds=2) if lap == 5 else pd.NaT, "TrackStatus": "1"})
+    rows.append(dict(rows[4]))
+    est, n = pit_loss_estimate(pd.DataFrame(rows), 22.0)
+    assert n >= 0

@@ -137,7 +137,8 @@ def pit_loss_estimate(laps_df, default):
     for num, rows in df.groupby("DriverNumber"):
         if num not in ref.index:
             continue
-        rows = rows.set_index("LapNumber")
+        rows = rows.dropna(subset=["LapNumber"]).set_index("LapNumber")
+        rows = rows[~rows.index.duplicated(keep="last")]
         for lap in rows.index[rows["PitInTime"].notna()]:
             if lap + 1 not in rows.index or pd.isna(rows.at[lap + 1, "PitOutTime"]):
                 continue

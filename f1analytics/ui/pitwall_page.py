@@ -1154,7 +1154,16 @@ def render(snap, loss, feed_note):
             header(snap, None, feed_note)
         render_practice(snap, team, focus, feed_note)
         return
-    result = analyse(snap, team=team, pit_loss=loss)
+    try:
+        result = analyse(snap, team=team, pit_loss=loss)
+    except Exception:
+        import logging
+
+        logging.getLogger("f1analytics").exception("analyse failed")
+        with top_l:
+            header(snap, None, feed_note)
+        st.warning("The strategy calculator hit a snag on this update; timing will refresh in a few seconds.")
+        return
     with top_l:
         status = header(snap, result, feed_note)
     sc_banner(result)
