@@ -113,3 +113,14 @@ header({"session": {"name": "Race", "meeting": "São Paulo Grand Prix", "status"
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
     assert "PRE-RACE" in text and "Not started" in text
+
+
+def test_header_formation_lap():
+    from streamlit.testing.v1 import AppTest
+    at = AppTest.from_string("""
+from f1analytics.ui.pitwall_page import header
+header({"session": {"name": "Race", "meeting": "São Paulo Grand Prix", "status": "Inactive",
+                    "track_status": "1", "lap": 1, "total_laps": 71, "remaining": "01:59:41"}, "feed": {}}, None, "Live feed connected")
+""").run(timeout=60)
+    assert not at.exception
+    assert "FORMATION LAP" in " ".join(m.value for m in at.markdown)

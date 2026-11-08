@@ -1,25 +1,34 @@
 from f1analytics.ui import remember
 
+K = b"test-secret"
 
-def test_save_load_expiry_and_drop():
-    sid, max_age = remember.save({"token": "t", "exp": 10_000_000_000}, now=1000)
+
+def test_seal_roundtrip_survives_restart_and_expires():
+    value, max_age = remember.seal({"token": "abc", "exp": 10_000_000_000}, now=1000, secret=K)
     assert max_age == remember.TTL_S
-    assert remember.load(sid, now=1000 + 3600)["token"] == "t"
-    assert remember.load(sid, now=1000 + remember.TTL_S + 1) is None
-    sid2, _ = remember.save({"owner": True}, now=1000)
-    remember.drop(sid2)
-    assert remember.load(sid2, now=1001) is None
+    got = remember.unseal(value, now=1000 + 3600, secret=K)
+    assert got["token"] == "abc"
+    assert remember.unseal(value, now=1000 + remember.TTL_S + 1, secret=K) is None
 
 
-def test_keep_never_outlives_f1_token():
-    sid, max_age = remember.save({"token": "t", "exp": 1000 + 600}, now=1000)
+def test_never_outlives_f1_token():
+    value, max_age = remember.seal({"token": "t", "exp": 1600}, now=1000, secret=K)
     assert max_age == 600
-    assert remember.load(sid, now=1000 + 601) is None
+    assert remember.unseal(value, now=1601, secret=K) is None
 
 
-def test_unknown_or_missing_key():
-    assert remember.load(None) is None
-    assert remember.load("not-a-real-key") is None
+def test_tampered_or_foreign_cookie_rejected():
+    value, _ = remember.seal({"owner": True}, now=1000, secret=K)
+    assert remember.unseal(value, now=1001, secret=b"other-secret") is None
+    flipped = value[:-3] + ("A" if value[-3] != "A" else "B") + value[-2:]
+    assert remember.unseal(flipped, now=1001, secret=K) is None
+    assert remember.unseal("garbage", secret=K) is None
+    assert remember.unseal(None, secret=K) is None
+
+
+def test_token_not_readable_in_cookie():
+    value, _ = remember.seal({"token": "SECRET-F1TV-TOKEN"}, now=1000, secret=K)
+    assert "SECRET" not in value
 
 
 def test_cookie_script_is_scoped_and_expires():

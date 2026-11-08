@@ -332,6 +332,7 @@ def build_snapshot(state, laps, source="live"):
             "track_status": str(track.get("Status", "1")),
             "track_message": track.get("Message"),
             "remaining": clock.get("Remaining"),
+            "clock_running": bool(clock.get("Extrapolating")),
         },
         "weather": {k: _f(v) for k, v in wx.items() if not k.startswith("_")},
         "drivers": drivers,

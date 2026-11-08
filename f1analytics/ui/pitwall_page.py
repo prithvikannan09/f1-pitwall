@@ -457,9 +457,14 @@ def header(snap, result, feed_note):
     elif s.get("status") == "Aborted":
         label, colour = "RED FLAG · STOPPED", "#E10600"
     pre = s.get("status") in ("Inactive", None, "") and not over
-    if pre:
+    rem = str(s.get("remaining") or "")
+    formation = pre and str(s.get("name") or "") in ("Race", "Sprint") and (
+        s.get("clock_running") or (len(rem) == 8 and not rem.endswith(":00:00")))
+    if formation:
+        label, colour = "FORMATION LAP", "#1E7A3C"
+        progress = "Formation <small>lap</small>"
+    elif pre:
         label, colour = ("PRE-RACE · LOCAL YELLOW", "#8A6D00") if status in ("2", "4", "6", "7") else ("PRE-RACE", "#3A3A48")
-    if pre:
         progress = "Not started <small>yet</small>"
     elif over and not result:
         progress = "Final <small>results</small>"
@@ -1408,7 +1413,7 @@ def with_user_feed(snap):
 
 SIGNIN_NOTE = ("Use your own F1TV Access or Pro login to see live car positions (GPS) and car data. "
                "Your password is sent once to F1's own login to sign you in, then thrown away: it is never saved, logged or shown. "
-               "After sign-in you stay signed in on this browser for up to 24 hours: the browser keeps only a random key, and the F1 sign-in token is held on the app's server, never your password. "
+               "After sign-in you stay signed in on this browser for up to 24 hours: the browser keeps an encrypted sign-in key that only this app can read, never your password. "
                "Only you see your F1TV data. Signing out ends it straight away. "
                "This uses F1's login the same way the open-source FastF1 library does; it isn't an official F1 app.")
 

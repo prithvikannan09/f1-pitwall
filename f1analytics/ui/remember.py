@@ -1,54 +1,87 @@
+import base64
+import hashlib
+import hmac
+import json
+import os
 import secrets
-import threading
 import time
+from pathlib import Path
 
 import streamlit as st
 
 COOKIE = "pw_keep"
 TTL_S = 24 * 3600
+KEY_FILE = Path(os.environ.get("PITWALL_COOKIE_KEY_FILE", Path.home() / ".cache" / "pitwall_cookie_key"))
+
+
+def _secret():
+    k = os.environ.get("PITWALL_COOKIE_KEY") or os.environ.get("PITWALL_KEY")
+    if k:
+        return k.encode()
+    try:
+        if KEY_FILE.exists():
+            return KEY_FILE.read_bytes()
+        KEY_FILE.parent.mkdir(parents=True, exist_ok=True)
+        k = secrets.token_bytes(32)
+        KEY_FILE.write_bytes(k)
+        return k
+    except OSError:
+        return _process_secret()
 
 
 @st.cache_resource
-def _store():
-    return {"lock": threading.Lock(), "items": {}}
+def _process_secret():
+    return secrets.token_bytes(32)
 
 
-def save(data, ttl=TTL_S, now=None):
+def _keys(secret=None):
+    s = secret or _secret()
+    return hashlib.sha256(b"pw-enc|" + s).digest(), hashlib.sha256(b"pw-mac|" + s).digest()
+
+
+def _stream(key, nonce, n):
+    out = b""
+    i = 0
+    while len(out) < n:
+        out += hashlib.sha256(key + nonce + i.to_bytes(4, "big")).digest()
+        i += 1
+    return out[:n]
+
+
+def seal(data, ttl=TTL_S, now=None, secret=None):
     now = now or time.time()
-    keep_until = min(now + ttl, data.get("exp") or now + ttl)
-    sid = secrets.token_urlsafe(32)
-    s = _store()
-    with s["lock"]:
-        for k in [k for k, (until, _) in s["items"].items() if until <= now]:
-            s["items"].pop(k, None)
-        s["items"][sid] = (keep_until, dict(data))
-    return sid, int(keep_until - now)
+    until = min(now + ttl, data.get("exp") or now + ttl)
+    body = json.dumps(dict(data, until=until), separators=(",", ":")).encode()
+    ek, mk = _keys(secret)
+    nonce = secrets.token_bytes(16)
+    ct = bytes(a ^ b for a, b in zip(body, _stream(ek, nonce, len(body))))
+    mac = hmac.new(mk, nonce + ct, hashlib.sha256).digest()
+    return base64.urlsafe_b64encode(nonce + ct + mac).decode().rstrip("="), int(until - now)
 
 
-def load(sid, now=None):
-    if not sid:
+def unseal(value, now=None, secret=None):
+    if not value:
         return None
-    now = now or time.time()
-    s = _store()
-    with s["lock"]:
-        item = s["items"].get(sid)
-        if not item:
-            return None
-        until, data = item
-        if until <= now:
-            s["items"].pop(sid, None)
-            return None
-        return dict(data)
+    try:
+        raw = base64.urlsafe_b64decode(value + "=" * (-len(value) % 4))
+    except (ValueError, TypeError):
+        return None
+    if len(raw) < 48:
+        return None
+    nonce, ct, mac = raw[:16], raw[16:-32], raw[-32:]
+    ek, mk = _keys(secret)
+    if not hmac.compare_digest(mac, hmac.new(mk, nonce + ct, hashlib.sha256).digest()):
+        return None
+    try:
+        data = json.loads(bytes(a ^ b for a, b in zip(ct, _stream(ek, nonce, len(ct)))))
+    except ValueError:
+        return None
+    if (data.get("until") or 0) <= (now or time.time()):
+        return None
+    return data
 
 
-def drop(sid):
-    if sid:
-        s = _store()
-        with s["lock"]:
-            s["items"].pop(sid, None)
-
-
-def cookie_sid():
+def cookie_value():
     try:
         return st.context.cookies.get(COOKIE)
     except Exception:
@@ -59,23 +92,20 @@ def restore():
     if st.session_state.get("pw_restored"):
         return
     st.session_state["pw_restored"] = True
-    data = load(cookie_sid())
+    data = unseal(cookie_value())
     if not data:
         return
     if data.get("token"):
-        st.session_state["f1tv_token"], st.session_state["f1tv_exp"] = data["token"], data.get("exp") or 0
+        st.session_state["f1tv_token"], st.session_state["f1tv_exp"] = data["token"], data.get("exp") or data["until"]
     if data.get("owner"):
         st.session_state["pw_owner"] = True
 
 
 def remember(data):
-    drop(cookie_sid())
-    sid, max_age = save(data)
-    st.session_state["pw_cookie"] = (sid, max_age)
+    st.session_state["pw_cookie"] = seal(data)
 
 
 def forget():
-    drop(cookie_sid())
     st.session_state["pw_cookie"] = ("", 0)
 
 
