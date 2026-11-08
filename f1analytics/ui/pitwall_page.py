@@ -866,6 +866,7 @@ def countdown_markup(name, start_iso, local, ist, accent="#E10600", now=None):
     now = pd.Timestamp(now) if now is not None else pd.Timestamp.now(tz="UTC")
     secs = max(0, int((pd.Timestamp(start_iso) - now).total_seconds()))
     label = html.escape(SHORT.get(name, name))
+    label = label[:1].upper() + label[1:]
     run = f"animation:cd-run {secs}s linear forwards" if secs else ""
     hide = f"animation:cd-hide 0s {secs}s forwards"
     show = f"animation:cd-show 0s {secs}s forwards" + (";max-width:400px" if not secs else "")
