@@ -109,6 +109,7 @@ def test_pit_wall_shows_gps_map_and_car_data(tmp_path, monkeypatch):
     monkeypatch.setattr(rec, "LIVE_DIR", tmp_path)
     page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
     at = AppTest.from_file(page, default_timeout=120)
+    at.query_params["mode"] = "live"
     at.run()
     assert not at.exception, [e.value for e in at.exception]
     heads = [h.value for h in at.subheader]
@@ -128,6 +129,7 @@ def test_public_link_hides_f1tv_data(tmp_path, monkeypatch):
     monkeypatch.setenv("PITWALL_KEY", "s3cret-key")
     page = str(Path(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
     at = AppTest.from_file(page, default_timeout=120)
+    at.query_params["mode"] = "live"
     at.run()
     assert "Track map (live GPS)" not in [h.value for h in at.subheader]
     at.query_params["key"] = "s3cret-key"
@@ -162,6 +164,7 @@ def test_own_copy_guide_for_visitors(monkeypatch):
     monkeypatch.setenv("F1_PASSWORD", "b")
     page = str(_P(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
     at = AppTest.from_file(page, default_timeout=120)
+    at.query_params["mode"] = "live"
     at.run()
     assert any("Prefer your own copy" in e.label for e in at.expander)
     assert at.text_input(key="f1tv_email").label == "F1TV email" and at.text_input(key="f1tv_pw").label == "F1TV password"
@@ -204,6 +207,7 @@ def test_visitor_f1tv_sign_in_uses_their_own_feed(tmp_path, monkeypatch):
     monkeypatch.setattr(pw, "user_feeds", lambda: reg)
     page = str(_P(__file__).resolve().parent.parent / "pages" / "1_Pit_Wall.py")
     at = AppTest.from_file(page, default_timeout=120)
+    at.query_params["mode"] = "live"
     at.run()
     assert "Track map (live GPS)" not in [h.value for h in at.subheader]
     at.text_input(key="f1tv_email").input("fan@example.com")

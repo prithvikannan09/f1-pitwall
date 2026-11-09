@@ -170,6 +170,20 @@ h3 a{display:none !important}
 [data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stElementContainer"]:has(.pw-nav-mark){display:none}
 @media (max-width:640px){[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stRadio"] label{padding:.25rem .6rem;font-size:.85rem}}
 .fc{margin:0 0 .3rem;max-width:760px}
+[data-testid="stSidebarNav"]{display:none}
+[data-testid="stSidebar"]{background:rgba(14,14,22,.92)}
+.sb-brand{display:flex;align-items:center;gap:.55rem;font-size:1rem;margin:.2rem 0 1.1rem}
+.sb-brand i{display:inline-block;width:26px;height:14px;background:#E10600;transform:skewX(-20deg)}
+.sb-k{font-size:.6rem;letter-spacing:.1em;text-transform:uppercase;opacity:.55;margin-bottom:.3rem}
+[data-testid="stSidebar"] [data-testid="stRadio"] [role="radiogroup"]{gap:.1rem}
+[data-testid="stSidebar"] [data-testid="stRadio"] label{width:100%;margin:0;padding:.5rem .65rem;border-radius:8px;border:1px solid transparent}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:hover{background:rgba(255,255,255,.05)}
+[data-testid="stSidebar"] [data-testid="stRadio"] label:has(input:checked){background:rgba(255,255,255,.07);border-color:var(--line)}
+[data-testid="stSidebar"] [role="radiogroup"] label>div:not(:last-child),[data-testid="stSidebar"] [role="radiogroup"] label>input+div{display:none !important}
+.stApp h1{white-space:nowrap}
+[data-testid="stSidebar"] [data-testid="stRadio"] label p{font-size:.8rem !important}
+[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stSelectbox"]{max-width:260px}
+@media (min-width:900px){[data-testid="stColumn"]:has(.pw-nav-mark) [data-testid="stSelectbox"]{display:none}}
 .fc-row{display:flex;gap:.7rem;align-items:flex-start;padding:.5rem 0;border-top:1px solid var(--line);opacity:.8}
 .fc-row:first-of-type{border-top:0}
 .fc-row.fc-next{opacity:1}
@@ -393,11 +407,35 @@ def ensure_recorder():
     return t
 
 
+MENU = [("Home", "🏠"), ("Live", "🔴"), ("Schedule", "📅"), ("Results", "🏁"), ("Standings", "🏆"),
+        ("Past races", "⏪"), ("Rivals & tracks", "⚔️"), ("Tech upgrades", "🔧"), ("Destructors", "💥")]
+MENU_NAMES = [m for m, _ in MENU]
+MENU_ICON = dict(MENU)
+MODE_PARAM = {"home": "Home", "live": "Live", "schedule": "Schedule", "results": "Results", "standings": "Standings",
+              "replay": "Past races", "past": "Past races", "rivals": "Rivals & tracks", "upgrades": "Tech upgrades",
+              "destructors": "Destructors"}
+
+
+def _sync_menu(src, dst):
+    st.session_state[dst] = st.session_state[src]
+
+
+def nav():
+    if st.session_state.get("pw_mode") not in MENU_NAMES:
+        want = str(st.query_params.get("mode", "")).lower()
+        st.session_state["pw_mode"] = MODE_PARAM.get(want, "Home")
+    st.session_state["pw_mode_m"] = st.session_state["pw_mode"]
+    st.sidebar.markdown("<div class='sb-brand'><i></i>F1 PIT WALL</div><div class='sb-k'>Menu</div>", unsafe_allow_html=True)
+    st.sidebar.radio("Menu", MENU_NAMES, key="pw_mode", format_func=lambda m: f"{MENU_ICON[m]}  {m}", label_visibility="collapsed",
+                     on_change=_sync_menu, args=("pw_mode", "pw_mode_m"))
+    return st.session_state["pw_mode"]
+
+
 def sidebar():
-    st.sidebar.header("Settings")
-    loss = st.sidebar.number_input("Pit-stop time loss override (s)", min_value=0.0, max_value=40.0, value=0.0, step=0.5,
-                                   help="0 = automatic: measured from this race's stops once 3+ have happened, otherwise a track default (est.).")
-    refresh = st.sidebar.slider("Refresh every (s)", 2, 15, 3)
+    with st.sidebar.expander("⚙️ Settings"):
+        loss = st.number_input("Pit-stop time loss override (s)", min_value=0.0, max_value=40.0, value=0.0, step=0.5,
+                               help="0 = automatic: measured from this race's stops once 3+ have happened, otherwise a track default (est.).")
+        refresh = st.slider("Refresh every (s)", 2, 15, 3)
     gl.sidebar_toggle()
     return (loss or None), refresh
 
@@ -1491,7 +1529,7 @@ def f1tv_badge(snap):
 
 
 def main(autorecord=False):
-    st.set_page_config(page_title="F1 Pit Wall", page_icon="🏁", layout="wide", initial_sidebar_state="collapsed")
+    st.set_page_config(page_title="F1 Pit Wall", page_icon="🏁", layout="wide", initial_sidebar_state="auto")
     st.markdown(CSS, unsafe_allow_html=True)
     from f1analytics.live.auth import load_streamlit_secrets
 
@@ -1499,18 +1537,25 @@ def main(autorecord=False):
     if autorecord:
         ensure_recorder()
     st.session_state["pw_full_run"] = True
+    view = nav()
     loss, refresh = sidebar()
-    if "pw_mode" not in st.session_state:
-        want = str(st.query_params.get("mode", "")).lower()
-        st.session_state["pw_mode"] = {"replay": "Past races", "rivals": "Rivals & tracks"}.get(want, "Live")
     head_l, head_m, head_r = st.columns([2.3, 3.2, 1.6], vertical_alignment="center", gap="medium")
     with head_l:
         st.title("F1 Pit Wall")
     with head_m:
         st.markdown("<span class='pw-nav-mark'></span>", unsafe_allow_html=True)
-        view = st.radio("View", ["Live", "Past races", "Rivals & tracks"], horizontal=True, key="pw_mode", label_visibility="collapsed")
+        st.selectbox("Menu", MENU_NAMES, key="pw_mode_m", format_func=lambda m: f"{MENU_ICON[m]}  {m}", label_visibility="collapsed",
+                     on_change=_sync_menu, args=("pw_mode_m", "pw_mode"))
     with head_r:
         owner_signin()
+    if view in ("Home", "Schedule", "Results", "Standings", "Tech upgrades", "Destructors"):
+        from f1analytics.ui import extras_pages, season_pages
+
+        paint_scene()
+        {"Home": season_pages.home, "Schedule": season_pages.schedule_page, "Results": season_pages.results_page,
+         "Standings": season_pages.standings_page, "Tech upgrades": extras_pages.upgrades_page,
+         "Destructors": extras_pages.destructors_page}[view]()
+        return
     if view == "Rivals & tracks":
         from f1analytics.ui.rivals_page import page as rivals_page
 

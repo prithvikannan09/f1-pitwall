@@ -1,0 +1,290 @@
+{
+ "as_of": "9 Nov 2026 (after the São Paulo GP)",
+ "upgrades": {
+  "teams": [
+   "McLaren",
+   "Red Bull",
+   "Ferrari",
+   "Cadillac",
+   "Racing Bulls",
+   "Audi",
+   "Mercedes",
+   "Haas",
+   "Aston Martin",
+   "Alpine",
+   "Williams"
+  ],
+  "rounds": [
+   {
+    "label": "Australia to Dutch GP",
+    "counts": {
+     "Ferrari": 40,
+     "McLaren": 38,
+     "Red Bull": 38,
+     "Aston Martin": 34,
+     "Cadillac": 34,
+     "Racing Bulls": 30,
+     "Alpine": 29,
+     "Haas": 28,
+     "Audi": 25,
+     "Mercedes": 24,
+     "Williams": 24
+    },
+    "src": "grandepremio"
+   },
+   {
+    "label": "Italy (Monza)",
+    "counts": {
+     "McLaren": 2,
+     "Mercedes": 2,
+     "Red Bull": 4,
+     "Ferrari": 4,
+     "Williams": 3,
+     "Racing Bulls": 2,
+     "Aston Martin": 2,
+     "Haas": 9,
+     "Alpine": 2,
+     "Cadillac": 2,
+     "Audi": 0
+    },
+    "src": "racer-approx"
+   },
+   {
+    "label": "Madrid",
+    "counts": {
+     "Mercedes": 3,
+     "Ferrari": 1,
+     "McLaren": 1,
+     "Red Bull": 2,
+     "Alpine": 1,
+     "Cadillac": 2
+    },
+    "src": "roundtable"
+   },
+   {
+    "label": "Azerbaijan (Baku)",
+    "counts": {
+     "Audi": 14,
+     "McLaren": 8,
+     "Red Bull": 5,
+     "Williams": 5,
+     "Racing Bulls": 3,
+     "Cadillac": 3
+    },
+    "src": "coffeecorner"
+   },
+   {
+    "label": "Bahrain GP at Sepang",
+    "counts": {
+     "Mercedes": 7,
+     "Racing Bulls": 2,
+     "Ferrari": 1,
+     "McLaren": 1,
+     "Red Bull": 1,
+     "Alpine": 1,
+     "Haas": 1
+    },
+    "src": "roundtable-reported"
+   },
+   {
+    "label": "Singapore",
+    "counts": {
+     "Mercedes": 2,
+     "Red Bull": 2,
+     "McLaren": 1
+    },
+    "src": "coffeecorner"
+   },
+   {
+    "label": "United States (Austin)",
+    "counts": {
+     "Ferrari": 4,
+     "Racing Bulls": 4,
+     "McLaren": 3,
+     "Audi": 3,
+     "Red Bull": 2,
+     "Alpine": 2,
+     "Cadillac": 2
+    },
+    "src": "coffeecorner"
+   },
+   {
+    "label": "Mexico City",
+    "counts": {
+     "Red Bull": 2,
+     "Ferrari": 2,
+     "Racing Bulls": 2,
+     "McLaren": 1,
+     "Audi": 1,
+     "Alpine": 1
+    },
+    "src": "coffeecorner"
+   },
+   {
+    "label": "São Paulo",
+    "counts": {
+     "McLaren": 4
+    },
+    "src": "coffeecorner"
+   }
+  ]
+ },
+ "upgrade_sources": {
+  "grandepremio": [
+   "Grande Prêmio: F1 2026 upgrades ranking (Australia to Dutch GP)",
+   "https://grandepremio.com/en/f1/f1-2026-upgrades-ranking-ferrari-leads-while-mercedes-falls-to-last/"
+  ],
+  "racer-approx": [
+   "RACER: Technical updates, 2026 Italian GP (count tallied from the article, approximate)",
+   "https://racer.com/2026/09/04/technical-updates-2026-italian-grand-prix"
+  ],
+  "roundtable": [
+   "Roundtable: Madrid upgrade packages (FIA data via Motorsport Week)",
+   "https://roundtable.io/sports/f1/news/f1-spanish-grand-prix-every-team-s-reported-madrid-upgrade-package"
+  ],
+  "roundtable-reported": [
+   "Roundtable: Bahrain GP at Sepang reported upgrades",
+   "https://roundtable.io/sports/f1/news/bahrain-grand-prix-reported-f1-upgrades-for-every-team-at-sepang"
+  ],
+  "coffeecorner": [
+   "Coffee Corner Motorsport: race-by-race FIA upgrade lists",
+   "https://coffeecornermotorsport.com/f1-sao-paulo-grand-prix-2026-upgrades/"
+  ]
+ },
+ "destructors": {
+  "drivers": [
+   {
+    "driver": "Bearman",
+    "team": "Haas",
+    "usd": 2443000
+   },
+   {
+    "driver": "Gasly",
+    "team": "Alpine",
+    "usd": 2041000
+   },
+   {
+    "driver": "Leclerc",
+    "team": "Ferrari",
+    "usd": 2038000
+   },
+   {
+    "driver": "Albon",
+    "team": "Williams",
+    "usd": 1956000
+   },
+   {
+    "driver": "Piastri",
+    "team": "McLaren",
+    "usd": 1686000
+   },
+   {
+    "driver": "Lindblad",
+    "team": "Racing Bulls",
+    "usd": 1681000
+   },
+   {
+    "driver": "Verstappen",
+    "team": "Red Bull",
+    "usd": 1669000
+   },
+   {
+    "driver": "Hadjar",
+    "team": "Red Bull",
+    "usd": 1631000
+   },
+   {
+    "driver": "Antonelli",
+    "team": "Mercedes",
+    "usd": 1382000
+   },
+   {
+    "driver": "Perez",
+    "team": "Cadillac",
+    "usd": 1310000
+   },
+   {
+    "driver": "Bottas",
+    "team": "Cadillac",
+    "usd": 1176000
+   },
+   {
+    "driver": "Colapinto",
+    "team": "Alpine",
+    "usd": 1122000
+   },
+   {
+    "driver": "Russell",
+    "team": "Mercedes",
+    "usd": 1025000
+   },
+   {
+    "driver": "Sainz",
+    "team": "Williams",
+    "usd": 910000
+   },
+   {
+    "driver": "Alonso",
+    "team": "Aston Martin",
+    "usd": 835000
+   },
+   {
+    "driver": "Bortoleto",
+    "team": "Audi",
+    "usd": 761000
+   },
+   {
+    "driver": "Hamilton",
+    "team": "Ferrari",
+    "usd": 626000
+   },
+   {
+    "driver": "Lawson",
+    "team": "Racing Bulls",
+    "usd": 625000
+   },
+   {
+    "driver": "Ocon",
+    "team": "Haas",
+    "usd": 620000
+   },
+   {
+    "driver": "Stroll",
+    "team": "Aston Martin",
+    "usd": 600000
+   },
+   {
+    "driver": "Hulkenberg",
+    "team": "Audi",
+    "usd": 450000
+   },
+   {
+    "driver": "Câmara",
+    "team": "Haas",
+    "usd": 425000
+   },
+   {
+    "driver": "Norris",
+    "team": "McLaren",
+    "usd": 396000
+   },
+   {
+    "driver": "Tsunoda",
+    "team": "Racing Bulls",
+    "usd": 60000
+   },
+   {
+    "driver": "Hirakawa",
+    "team": "Haas",
+    "usd": 0
+   }
+  ],
+  "sources": [
+   [
+    "Formula 1 Dashboard: 2026 Destructors Championship (estimates based on work by Reddit user u/Dense-Strategy-867)",
+    "https://app.formula1dashboard.com/destructors-championship/"
+   ]
+  ],
+  "method": "Estimates, not official: each crash is priced by the parts seen damaged (for example about $150,000 per front wing)."
+ }
+}
