@@ -260,6 +260,8 @@ def review_section(rep, focus_code=None):
     st.markdown(CSS, unsafe_allow_html=True)
     st.subheader("Race review")
     raw, sk = load(rep)
+    if not raw.get("session"):
+        raw = dict(raw, session=(getattr(rep, "raw", None) or {}).get("session") or {})
     laps = rv.lap_table(raw)
     if laps.empty:
         st.caption("No lap data for this race yet.")
@@ -286,7 +288,19 @@ def review_section(rep, focus_code=None):
     for n in nums:
         if colour.get(n, "").lower() == colour.get(focus, "").lower() and n != focus:
             colour = {**colour, n: "#9A9AA8"}
-    t1, t2, t3, t4, t5 = st.tabs(["Pace & tyres", "Pit strategy", "Track sectors", "Positions", "Tyre sets"])
+    t0, t1, t2, t3, t4, t5 = st.tabs(["Head to head", "Pace & tyres", "Pit strategy", "Track sectors", "Positions", "Tyre sets"])
+    with t0:
+        from f1analytics.ui.duel_panel import duel_tab
+
+        others = [n for n in present if n != focus]
+        default_b = nums[1] if len(nums) > 1 else (others[0] if others else focus)
+        try:
+            duel_tab(raw, laps, sk, code, colour, present, focus, default_b)
+        except Exception:
+            import logging
+
+            logging.getLogger("f1analytics").exception("head to head failed")
+            st.warning("The head-to-head view hit a snag for this race. The other tabs still work.")
     with t1:
         pace_tab(laps, focus, nums, code, colour)
     with t2:
