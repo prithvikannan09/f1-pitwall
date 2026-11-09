@@ -67,3 +67,15 @@ ep.destructors_page()
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
     assert "476 new parts" in text and "Destructors" in text and "Ferrari are P5" in text
+
+
+def test_upgrade_parts_listed_from_monza():
+    from streamlit.testing.v1 import AppTest
+    from f1analytics.ui import extras_pages as ep
+    d = ep.load()
+    labelled = [r["label"] for r in d["upgrades"]["rounds"] if r.get("items")]
+    assert labelled[0] == "Italy (Monza)" and labelled[-1] == "São Paulo"
+    at = AppTest.from_string("from f1analytics.ui import extras_pages as ep\nep.upgrades_page()").run(timeout=60)
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "Beam wing: new" in text and "What each team brought" in text

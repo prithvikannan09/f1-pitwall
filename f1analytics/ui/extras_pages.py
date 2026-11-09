@@ -85,10 +85,53 @@ def upgrades_page():
     st.markdown(f"<div class='hc hc-tab' style='overflow-x:auto'><div class='hc-h'>Race by race</div><table class='st up'><tr><th>Team</th>{head}<th>Total</th></tr>{body}</table></div>",
                 unsafe_allow_html=True)
     st.caption("* Monza: counted from RACER's write-up of the upgrades (approximate). Sepang: reported upgrades, not checked against the FIA list.")
+    parts_section(d, grid, tot)
     with st.expander("How upgrades work under the FIA rules"):
         st.markdown(RULES)
     src = d["upgrade_sources"]
     st.caption("Sources: " + " · ".join(f"[{t}]({u})" for t, u in src.values()))
+
+
+def parts_section(d, grid, tot):
+    st.markdown("<div class='hc-h' style='margin-top:.6rem'>What each team brought</div>", unsafe_allow_html=True)
+    rounds = [r for r in d["upgrades"]["rounds"] if r.get("items")]
+    c1, c2 = st.columns(2)
+    team = c1.selectbox("Team", ["All teams"] + list(tot.index), key="up_team")
+    labels = ["All races"] + [r["label"] for r in rounds][::-1]
+    race = c2.selectbox("Race", labels, key="up_race")
+    shown = 0
+    for r in rounds[::-1]:
+        if race != "All races" and r["label"] != race:
+            continue
+        blocks = ""
+        for t in tot.index:
+            if team != "All teams" and t != team:
+                continue
+            parts = r["items"].get(t) or []
+            if not parts:
+                continue
+            lis = "".join(f"<li>{html.escape(p)}</li>" for p in parts)
+            blocks += (f"<div class='upc' style='border-left-color:{_team_colour(t, grid)}'><div class='upc-t'>{html.escape(t)} "
+                       f"<span class='hc-dim'>{r['counts'].get(t, len(parts))} declared</span></div><ul>{lis}</ul></div>")
+        if not blocks:
+            continue
+        shown += 1
+        flag = " · approximate" if "approx" in r["src"] else (" · reported, not checked against the FIA list" if "reported" in r["src"] else "")
+        st.markdown(f"<div class='hc hc-tab'><div class='hc-k'>{html.escape(r['label'])}{flag}</div><div class='upc-grid'>{blocks}</div></div>",
+                    unsafe_allow_html=True)
+    if not shown:
+        st.caption("No declared upgrades for that choice.")
+    st.caption("Part-by-part lists start at Monza; for Australia to the Dutch GP only the totals per team were available. "
+               "A team with nothing listed declared no new parts that weekend.")
+    st.markdown(UP_CSS, unsafe_allow_html=True)
+
+
+UP_CSS = """<style>
+.upc-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:.6rem}
+.upc{background:rgba(255,255,255,.03);border-left:4px solid;border-radius:6px;padding:.5rem .7rem}
+.upc-t{font-size:.8rem;margin-bottom:.2rem}
+.upc ul{margin:.1rem 0 0 1rem;padding:0;font-size:.72rem;line-height:1.5}
+</style>"""
 
 
 def destructors_page():

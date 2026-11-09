@@ -47,7 +47,53 @@
      "Cadillac": 2,
      "Audi": 0
     },
-    "src": "racer-approx"
+    "src": "racer-approx",
+    "items": {
+     "McLaren": [
+      "Rear wing: new low-drag wing",
+      "Floor furniture: updated"
+     ],
+     "Mercedes": [
+      "Rear wing: winglet devices removed for less drag",
+      "Mirror stays: rear stays trimmed"
+     ],
+     "Red Bull": [
+      "Front wing endplate: revised",
+      "Floor bib edge: revised",
+      "Rear suspension bodywork: revised",
+      "Exhaust tailpipe bracket: revised"
+     ],
+     "Ferrari": [
+      "Floor board: revised",
+      "Mirror stay: revised",
+      "Rear brake ducts: revised",
+      "Tailpipe installation: revised"
+     ],
+     "Williams": [
+      "Halo: vertical fence added",
+      "Front wing assembly: revised",
+      "Floor board: trimmed"
+     ],
+     "Racing Bulls": [
+      "Rear wing assembly: low-drag version",
+      "Exhaust tailpipe: new position and bracket"
+     ],
+     "Aston Martin": [
+      "Front suspension fairings: revised",
+      "Floor ahead of the rear tyre: revised"
+     ],
+     "Haas": [
+      "Major package: new floor, floor edges, diffuser, sidepods, rear bodywork, roll hoop, engine cover, rear corner fairings and drum deflectors"
+     ],
+     "Alpine": [
+      "Front wing endplate: revised",
+      "Straight-line mode fairing: removed"
+     ],
+     "Cadillac": [
+      "Forward floor board stay: revised",
+      "Diffuser vane: revised"
+     ]
+    }
    },
    {
     "label": "Madrid",
@@ -59,7 +105,31 @@
      "Alpine": 1,
      "Cadillac": 2
     },
-    "src": "roundtable"
+    "src": "roundtable",
+    "items": {
+     "Mercedes": [
+      "Front lip: reshaped to smooth airflow (performance)",
+      "Exhaust winglet: added for drag range (circuit specific)",
+      "Rear wing centre winglet: shorter span to change drag (circuit specific)"
+     ],
+     "Ferrari": [
+      "Rear top wishbone fairing: reshaped for load (performance)"
+     ],
+     "McLaren": [
+      "Rear wing add-ons: small parts to manage airflow (performance)"
+     ],
+     "Red Bull": [
+      "Rear wheel bodywork: new part (reliability)",
+      "Floor-to-chassis joint: changed (reliability)"
+     ],
+     "Alpine": [
+      "Forward floor board: extra piece for load (performance)"
+     ],
+     "Cadillac": [
+      "Rear wing flap winglet: updated for load (performance)",
+      "Diffuser sidewall: vane added for load (performance)"
+     ]
+    }
    },
    {
     "label": "Azerbaijan (Baku)",
@@ -71,7 +141,49 @@
      "Racing Bulls": 3,
      "Cadillac": 3
     },
-    "src": "coffeecorner"
+    "src": "coffeecorner",
+    "items": {
+     "Audi": [
+      "Front wing, endplate and nose: all new",
+      "Front suspension fairings: revised",
+      "Floor body and floor leading edge devices: new",
+      "Diffuser: new",
+      "Bodywork, halo fairing and engine cover: revised, with new cooling options",
+      "Rear suspension covers and rear brake duct parts: revised",
+      "Rear wing, beam wing and rear wing endplate: revised"
+     ],
+     "McLaren": [
+      "Sidepod inlet, engine cover and coke line: reshaped",
+      "Alternative sidepod shape: optional",
+      "Cooling louvres: new layout (circuit specific)",
+      "Floor edge and diffuser: revised",
+      "Rear suspension fairings: revised",
+      "Rear wing flap: opens further in straight-line mode"
+     ],
+     "Red Bull": [
+      "Floor body and diffuser: new geometry (performance)",
+      "Sidepod-to-floor split line: new (performance)",
+      "Cooling louvres: revised (reliability)",
+      "Mirror assembly and halo turning vane: revised (flow)"
+     ],
+     "Williams": [
+      "Floor: new leading edge devices, body and corner",
+      "Tail: revised to suit the floor",
+      "Rear suspension cladding: reoriented",
+      "Rear brake duct parts: retuned",
+      "Front brake duct flow devices: reprofiled"
+     ],
+     "Racing Bulls": [
+      "Front wing: new (flow)",
+      "Front brake duct and lip: new (flow)",
+      "Front suspension legs: reprofiled (flow)"
+     ],
+     "Cadillac": [
+      "Front brake ducts: new inlet and exit (cooling)",
+      "Front suspension fairings: updated",
+      "Diffuser winglet edge: reprofiled for load"
+     ]
+    }
    },
    {
     "label": "Bahrain GP at Sepang",
@@ -84,7 +196,37 @@
      "Alpine": 1,
      "Haas": 1
     },
-    "src": "roundtable-reported"
+    "src": "roundtable-reported",
+    "items": {
+     "Mercedes": [
+      "Front wing elements: reshaped, new slotted upper element",
+      "Down-washing elements: reshaped and added",
+      "Floor corner: slots added",
+      "Diffuser roof, sidewall and winglet: reshaped",
+      "Suspension fairings: reshaped",
+      "Rear winglet: new span and position",
+      "Rear bodywork ramp: smaller volume, bigger ramp"
+     ],
+     "Ferrari": [
+      "Diffuser outboard winglet: new element"
+     ],
+     "McLaren": [
+      "High-cooling bodywork for the heat (circuit specific)"
+     ],
+     "Red Bull": [
+      "Floor board: revised"
+     ],
+     "Racing Bulls": [
+      "Front flap: new, for balance (circuit specific)",
+      "Rear wing small parts: revised"
+     ],
+     "Alpine": [
+      "Front brake drum exit: revised for cooling"
+     ],
+     "Haas": [
+      "Rear impact structure: new shape for load"
+     ]
+    }
    },
    {
     "label": "Singapore",
@@ -93,7 +235,20 @@
      "Red Bull": 2,
      "McLaren": 1
     },
-    "src": "coffeecorner"
+    "src": "coffeecorner",
+    "items": {
+     "Mercedes": [
+      "Front wing: new, with a two-element straight-line mode",
+      "Endplate and footplate: adjusted to the new wing"
+     ],
+     "Red Bull": [
+      "Front wing: new endplate and flaps (performance)",
+      "Rear brake exit duct: enlarged for cooling (reliability)"
+     ],
+     "McLaren": [
+      "High-cooling front brake duct (circuit specific)"
+     ]
+    }
    },
    {
     "label": "United States (Austin)",
@@ -106,7 +261,43 @@
      "Alpine": 2,
      "Cadillac": 2
     },
-    "src": "coffeecorner"
+    "src": "coffeecorner",
+    "items": {
+     "Ferrari": [
+      "Floor body: new front edge and board braces",
+      "Floor board: reshaped",
+      "Sidepod inlet: more lower volume, new undercut",
+      "Diffuser: revised volume and fences"
+     ],
+     "McLaren": [
+      "Front corner: new scoop, parts and suspension fairings",
+      "Rear corner: new parts for load",
+      "Diffuser: new geometry"
+     ],
+     "Red Bull": [
+      "Front wing tyre-temperature vane: optional, for evaluation",
+      "Front corner gaiter: stronger rubber boot (reliability)"
+     ],
+     "Racing Bulls": [
+      "Front wing endplate: new",
+      "Floor: new leading edge devices, board and edge",
+      "Rear wing flaps: new camber and chord",
+      "Engine cover: reshaped"
+     ],
+     "Audi": [
+      "Front brake duct: new",
+      "Front floor board: new",
+      "Mirror stay: changed to suit"
+     ],
+     "Alpine": [
+      "Rear floor corner: redesigned for load",
+      "Rear wing flaps 2 and 3: reprofiled"
+     ],
+     "Cadillac": [
+      "Forward floor fences: revised",
+      "Sidepod louvres: more cooling (cooling range)"
+     ]
+    }
    },
    {
     "label": "Mexico City",
@@ -118,14 +309,45 @@
      "Audi": 1,
      "Alpine": 1
     },
-    "src": "coffeecorner"
+    "src": "coffeecorner",
+    "items": {
+     "Red Bull": [
+      "Engine cover louvres: extended (reliability)",
+      "Sidepod: new shape and floor split line (performance)"
+     ],
+     "McLaren": [
+      "Cooling louvres: extended for the altitude (circuit specific)"
+     ],
+     "Ferrari": [
+      "Engine cover rear exit: enlarged (circuit specific)",
+      "Sidepod louvres: extra panels (circuit specific)"
+     ],
+     "Racing Bulls": [
+      "Engine cover rear exit: enlarged (circuit specific)",
+      "Forward louvre panel: optional, for hot running (circuit specific)"
+     ],
+     "Audi": [
+      "Rear brake duct deflector: revised for load (performance)"
+     ],
+     "Alpine": [
+      "Exhaust tailpipe vane: reprofiled (reliability)"
+     ]
+    }
    },
    {
     "label": "São Paulo",
     "counts": {
      "McLaren": 4
     },
-    "src": "coffeecorner"
+    "src": "coffeecorner",
+    "items": {
+     "McLaren": [
+      "Front wing: new",
+      "Rear wing: new",
+      "Beam wing: new",
+      "Floor furniture: changed (all performance)"
+     ]
+    }
    }
   ]
  },
@@ -135,7 +357,7 @@
    "https://grandepremio.com/en/f1/f1-2026-upgrades-ranking-ferrari-leads-while-mercedes-falls-to-last/"
   ],
   "racer-approx": [
-   "RACER: Technical updates, 2026 Italian GP (count tallied from the article, approximate)",
+   "RACER: Technical updates, 2026 Italian GP (parts and count from the article, approximate)",
    "https://racer.com/2026/09/04/technical-updates-2026-italian-grand-prix"
   ],
   "roundtable": [
