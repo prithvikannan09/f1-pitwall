@@ -10,6 +10,7 @@ import streamlit as st
 import threading
 import time
 
+from f1analytics import config
 from f1analytics.live.recorder import LIVE_DIR, read_current, read_feed, record
 from f1analytics.live.replay import RaceReplay, SessionReplay, load_fixture, load_openf1_race
 from f1analytics.pitwall.car import mode_hints, practice_summary, speed_profile
@@ -1252,7 +1253,7 @@ def render(snap, loss, feed_note):
     with st.expander("How the calls are made"):
         st.markdown(
             f"- **Tyre model:** lap time = α + β·tyre age per compound, fitted live on clean laps (no pit, Safety Car or lap 1) after fuel correction "
-            f"(0.033 s/kg × 105 kg start fuel, est.). Until a compound has ~60 clean laps it is blended with defaults "
+            f"({config.FUEL_SEC_PER_KG} s/kg × {config.START_FUEL_KG:.0f} kg start fuel, est.). Until a compound has ~60 clean laps it is blended with defaults "
             f"(soft 0.09, medium 0.06, hard 0.04 s/lap, est.).\n"
             f"- **Box call:** every 0-, 1- and 2-stop plan for the rest of the race is timed (stint cost L·α + β·(L·age + L(L−1)/2) + {result['pit_loss']:.1f}s per stop, "
             f"two dry compounds required). 'Box this lap' means stopping now is within {1.0:.0f}s of the best plan.\n"

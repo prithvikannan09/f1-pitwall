@@ -58,7 +58,7 @@ TERMS = {
     "Brake": "Whether the driver is braking right now.",
     "RPM": "Engine revolutions per minute: how fast the engine is spinning. F1 engines rev to about 12,000–13,000.",
     "Gear": "F1 cars have 8 forward gears.",
-    "Fuel correction": "Cars start with about 105 kg of fuel and get lighter (and faster) as it burns. We remove that effect so we can see the tyre wear alone.",
+    "Fuel correction": "Cars start with about 70 kg of fuel in 2026 and get lighter (and faster) as it burns. We remove that effect so we can see the tyre wear alone.",
     "Clean lap": "A normal racing lap, with no pit stop, Safety Car or first-lap chaos, so it is fair to compare.",
     "Out-lap / In-lap": "The lap leaving the pits on new tyres (out-lap) and the lap driving into the pits (in-lap).",
     "Practice (FP1, FP2, FP3)": "Free practice: sessions before qualifying where teams test setups and tyres. Times do not count for the race.",
