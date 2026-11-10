@@ -441,6 +441,27 @@ def _double_stack(reports):
         r["double_stack"] = note
 
 
+WET_TYRES = ("INTERMEDIATE", "WET")
+
+
+def wet_start(snapshot, forecast=None):
+    cars = [str(d.get("compound") or "").upper() for d in (snapshot or {}).get("drivers", [])]
+    known = [c for c in cars if c and c != "UNKNOWN"]
+    wet = [c for c in known if c in WET_TYRES]
+    if known and len(wet) * 2 >= len(known):
+        tyre = "WET" if wet.count("WET") * 2 > len(wet) else "INTERMEDIATE"
+        return {"compound": tyre, "why": f"{len(wet)} of {len(known)} cars are on wet-weather tyres"}
+    try:
+        raining = float(((snapshot or {}).get("weather") or {}).get("Rainfall") or 0) > 0
+    except (TypeError, ValueError):
+        raining = False
+    if raining:
+        return {"compound": "INTERMEDIATE", "why": "it is raining at the track"}
+    if forecast and forecast.get("kind") == "rain":
+        return {"compound": "INTERMEDIATE", "why": f"the forecast for the race is wet ({forecast.get('rain_prob', 0):.0f}% chance of rain)"}
+    return None
+
+
 def start_tyre_options(snapshot, pit_loss=None):
     from f1analytics.pitwall.tracks import race_laps_for
 

@@ -288,7 +288,17 @@ def review_section(rep, focus_code=None):
     for n in nums:
         if colour.get(n, "").lower() == colour.get(focus, "").lower() and n != focus:
             colour = {**colour, n: "#9A9AA8"}
-    t0, t1, t2, t3, t4, t5 = st.tabs(["Head to head", "Pace & tyres", "Pit strategy", "Track sectors", "Positions", "Tyre sets"])
+    t0, t6, t1, t2, t3, t4, t5 = st.tabs(["Head to head", "What if", "Pace & tyres", "Pit strategy", "Track sectors", "Positions", "Tyre sets"])
+    with t6:
+        from f1analytics.ui.whatif_panel import whatif_tab
+
+        try:
+            whatif_tab(raw, laps, sk, code, colour, present, focus)
+        except Exception:
+            import logging
+
+            logging.getLogger("f1analytics").exception("what if failed")
+            st.warning("The what-if view hit a snag for this race. The other tabs still work.")
     with t0:
         from f1analytics.ui.duel_panel import duel_tab
 

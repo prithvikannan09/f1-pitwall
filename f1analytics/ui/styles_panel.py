@@ -1,7 +1,7 @@
 import streamlit as st
 
 from f1analytics.pitwall import racecraft as rc
-from f1analytics.pitwall.engine import start_tyre_options
+from f1analytics.pitwall.engine import start_tyre_options, wet_start
 from f1analytics.ui import glossary as gl
 
 BARS = [
@@ -174,6 +174,24 @@ def styles_section(snap, focus):
         )
 
 
+def _race_forecast(snap):
+    import os
+
+    if (snap or {}).get("source") == "replay" or os.environ.get("F1_FORECAST", "1") == "0":
+        return None
+    s = (snap or {}).get("session") or {}
+    if str(s.get("type") or "").lower() in ("race", "sprint") and s.get("lap") not in (None, 0):
+        return None
+    try:
+        from f1analytics.ui.pitwall_page import _weekend
+
+        wf = _weekend()
+        race = next((x for x in (wf or {}).get("sessions", []) if x["session"] == "Race"), None)
+        return (race or {}).get("forecast")
+    except Exception:
+        return None
+
+
 def start_tyres_section(snap):
     data = season()
     stats = (data or {}).get("start_tyres") or {}
@@ -185,7 +203,15 @@ def start_tyres_section(snap):
         return
     from f1analytics.ui.pitwall_page import tyre_dot
 
+    wet = wet_start(snap, _race_forecast(snap))
     st.subheader("Best tyre to start on")
+    if wet:
+        name = "Intermediates" if wet["compound"] == "INTERMEDIATE" else "Full wets"
+        st.markdown(
+            f"<div class='sty-tyre best'>{tyre_dot(wet['compound'])}<div><b>{name}</b>"
+            f"<div class='pw-sub'>Wet track: {wet['why']}. Slick tyres have no grip on a wet track, so nobody can start on them.</div></div>"
+            f"<div class='pw-v'>wet start</div></div>", unsafe_allow_html=True)
+        st.caption("If the track dries, these are the dry-tyre plans to switch to:")
     best = res["options"][0]["total"]
     for o in res["options"]:
         plan = " → ".join([o["compound"].title()] + [f"{c.title()} (lap {l})" for c, l in zip(o["next"], o["pit_laps"])])
@@ -194,7 +220,7 @@ def start_tyres_section(snap):
         g = round(s["lap1_gain"], 1) if s else 0
         hist = (f" · lap 1 this season: {'no change on average' if g == 0 else f'{g:+.1f} places on average'} ({s['starts']} starts)") if s else ""
         st.markdown(
-            f"<div class='sty-tyre {'best' if o['total'] - best < 0.05 else ''}'>{tyre_dot(o['compound'])}"
+            f"<div class='sty-tyre {'best' if o['total'] - best < 0.05 and not wet else ''}'>{tyre_dot(o['compound'])}"
             f"<div><b>{plan}</b><div class='pw-sub'>{o['stops']} stop{'s' if o['stops'] != 1 else ''}{hist}</div></div><div class='pw-v'>{gap}</div></div>",
             unsafe_allow_html=True,
         )
