@@ -212,6 +212,66 @@ def traces_chart(cmp, ca, cb, col_a, col_b, seg):
     return _chart(fig, 560)
 
 
+def wear_chart(wa, wb, ca, cb, col_a, col_b, la, lb):
+    fig = go.Figure()
+    for w, who, colr, lap in ((wa, ca, col_a, la), (wb, cb, col_b, lb)):
+        if not w or w["points"].empty:
+            continue
+        p = w["points"]
+        tyre = duel.COMPOUND_COLOUR.get(w["compound"], "#9A9AA8")
+        fig.add_trace(go.Scatter(x=p["age"], y=p["time"], mode="lines+markers", name=f"{who} · {w['compound'].title()}",
+                                 line=dict(color=colr, width=1.2), marker=dict(color=tyre, size=7, line=dict(color=colr, width=1.5)),
+                                 customdata=p["lap"], hovertemplate=f"{who} lap %{{customdata}} · tyre %{{x}} laps old · %{{y:.3f}}s<extra></extra>"))
+        if w["wear"] is not None and len(p) >= 2:
+            mid_age, mid_t = p["age"].median(), p["time"].median()
+            xs = [p["age"].min(), p["age"].max()]
+            fig.add_trace(go.Scatter(x=xs, y=[mid_t + w["wear"] * (x - mid_age) for x in xs], mode="lines", showlegend=False,
+                                     line=dict(color=colr, width=2, dash="dash"), hoverinfo="skip"))
+        sel = p[p["lap"] == int(lap)]
+        if len(sel):
+            fig.add_trace(go.Scatter(x=sel["age"], y=sel["time"], mode="markers+text", showlegend=False, text=[f"lap {int(lap)}"],
+                                     textposition="top center", textfont=dict(size=10, color="#FFFFFF"),
+                                     marker=dict(symbol="star", size=16, color=colr, line=dict(color="#FFFFFF", width=1.5)), hoverinfo="skip"))
+    fig.update_layout(title="Tyre wear on these stints", xaxis_title="Tyre age (laps)", yaxis_title="Lap time, fuel effect removed (s)",
+                      legend=dict(orientation="h", y=1.12, x=1, xanchor="right"))
+    return _chart(fig, 320)
+
+
+def wear_section(raw, laps, a, b, ca, cb, col_a, col_b, la, lb):
+    total = int(laps["lap_number"].max())
+    try:
+        wa, wb = duel.wear_on_lap(laps, raw, a, la, total), duel.wear_on_lap(laps, raw, b, lb, total)
+    except Exception:
+        return
+    if not wa and not wb:
+        return
+    st.markdown("##### Tyre degradation on these laps")
+    cols = st.columns(3)
+    for col, w, who, colr in ((cols[0], wa, ca, col_a), (cols[1], wb, cb, col_b)):
+        if not w:
+            col.markdown(f"<div class='duel-card' style='border-left-color:{colr}'><div class='duel-k'>{who}</div>No tyre data.</div>", unsafe_allow_html=True)
+            continue
+        dot = f"<i style='display:inline-block;width:.65rem;height:.65rem;border-radius:50%;background:{duel.COMPOUND_COLOUR.get(w['compound'], '#9A9AA8')};margin-right:.3rem'></i>"
+        if w["wear"] is None:
+            body = "Stint too short or too disrupted to measure wear."
+        else:
+            body = f"Wear: <b>{w['wear']:+.3f}s per lap</b><br>Cost on this lap: <b>{w['cost']:+.2f}s</b> vs a new set"
+        col.markdown(f"<div class='duel-card' style='border-left-color:{colr}'><div class='duel-k'>{who} · {dot}{w['compound'].title()} · {w['age']} laps old</div>"
+                     f"<div style='font-size:.8rem;line-height:1.6'>{body}</div><div class='duel-dim' style='font-size:.68rem'>Stint: laps {w['start']} to {w['end']}</div></div>",
+                     unsafe_allow_html=True)
+    if wa and wb and wa["cost"] is not None and wb["cost"] is not None:
+        edge = wa["cost"] - wb["cost"]
+        who = cb if edge > 0 else ca
+        txt = "Level" if abs(edge) < 0.02 else f"{who} +{abs(edge):.2f}s"
+        cols[2].markdown(f"<div class='duel-card' style='border-left-color:#9A9AA8'><div class='duel-k'>Tyre edge on this lap</div>"
+                         f"<div class='duel-v'>{txt}</div><div class='duel-dim' style='font-size:.68rem'>How much of the gap is down to tyre wear, not driving. Estimate.</div></div>",
+                         unsafe_allow_html=True)
+    st.plotly_chart(wear_chart(wa, wb, ca, cb, col_a, col_b, la, lb), use_container_width=True, config={"displayModeBar": False})
+    st.caption("Each dot is one lap of the stint, coloured by tyre; the star is the lap compared above. The dashed line is the wear trend: "
+               "the steeper it climbs, the faster the tyres are going off. Cars get lighter as fuel burns, which hides wear, so that effect is taken out first. "
+               "Cost on this lap = wear per lap × laps into the stint. Safety Car and pit laps are left out. Estimates from lap times (OpenF1).")
+
+
 def telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b):
     st.markdown("#### One lap, corner by corner")
     common = sorted(set(laps.loc[laps["driver_number"] == a, "lap_number"]) & set(laps.loc[laps["driver_number"] == b, "lap_number"]))
@@ -282,6 +342,7 @@ def telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b):
     if "x" in cmp:
         st.plotly_chart(track_map(cmp, seg, ca, cb, col_a, col_b, corners), use_container_width=True, config={"displayModeBar": False})
     st.plotly_chart(traces_chart(cmp, ca, cb, col_a, col_b, seg), use_container_width=True, config={"displayModeBar": False})
+    wear_section(raw, laps, a, b, ca, cb, col_a, col_b, la, lb)
     gaps = [c for c, k in ((ca, "gap_a"), (cb, "gap_b")) if seg[k].any()]
     st.caption("How it's worked out: both laps are placed on the track using the cars' GPS positions, then lined up so they start together. "
                "The time gap is tracked metre by metre and pinned to the official sector times, so the corners add up exactly to the real lap difference. "

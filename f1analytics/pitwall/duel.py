@@ -312,6 +312,36 @@ def stint_wear(laps, num, stint, total_laps, min_laps=4):
             "wear": None if slope is None else slope + fuel_per_lap(total_laps)}
 
 
+def stint_of(stints, lap):
+    for s in stints:
+        if s["start"] <= lap <= (s["end"] if s["end"] is not None else 10 ** 6):
+            return s
+    return None
+
+
+def wear_on_lap(laps, raw, num, lap, total_laps):
+    stint = stint_of(stints_for(raw, num), int(lap))
+    if stint is None:
+        return None
+    w = stint_wear(laps, num, stint, total_laps)
+    end = stint["end"] or int(laps["lap_number"].max())
+    x = laps[(laps["driver_number"] == num) & laps["lap_number"].between(stint["start"], end)].dropna(subset=["lap_duration"])
+    keep = pd.Series(True, index=x.index)
+    for c in ("pit_in", "pit_out", "neutral"):
+        if c in x:
+            keep &= ~x[c].astype(bool)
+    keep |= x["lap_number"] == int(lap)
+    x = x[keep]
+    into = int(lap) - stint["start"]
+    fpl = fuel_per_lap(total_laps)
+    pts = pd.DataFrame({"lap": x["lap_number"].astype(int), "age": stint["age0"] + x["lap_number"].astype(int) - stint["start"],
+                        "time": x["lap_duration"].astype(float) + fpl * (x["lap_number"].astype(int) - stint["start"])})
+    if w["pace"] is not None:
+        pts = pts[((pts["time"] - w["pace"]).abs() < 6) | (pts["lap"] == int(lap))]
+    return {"compound": stint["compound"], "age": stint["age0"] + into, "into": into, "start": stint["start"], "end": end,
+            "wear": w["wear"], "cost": None if w["wear"] is None else w["wear"] * into, "points": pts.reset_index(drop=True)}
+
+
 def speed_traps(raw_laps, num):
     if raw_laps is None or len(raw_laps) == 0:
         return pd.DataFrame()

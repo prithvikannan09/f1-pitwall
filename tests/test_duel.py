@@ -66,3 +66,24 @@ def test_gap_breakdown_buckets_sum_to_final_gap():
     g = duel.gap_breakdown(pd.DataFrame(rows), 44, 3)
     assert abs(g["buckets"]["sum"].sum() - g["final_gap"]) < 1e-6
     assert abs(g["final_gap"] - (-5.0)) < 1e-6
+
+
+def test_wear_on_lap_finds_stint_and_cost():
+    import pandas as pd
+    from f1analytics.pitwall import duel
+    from f1analytics import config
+
+    total = 20
+    fpl = duel.fuel_per_lap(total)
+    rows = [{"driver_number": 44, "lap_number": n, "lap_duration": 80.0 + (0.1 - fpl) * (n - 1) if n <= 10 else 78.0 + (0.05 - fpl) * (n - 11),
+             "clean": n not in (1, 10, 11), "pit_in": n == 10, "pit_out": n == 11, "neutral": False} for n in range(1, 21)]
+    laps = pd.DataFrame(rows)
+    raw = {"stints": pd.DataFrame([{"driver_number": 44, "stint_number": 1, "compound": "SOFT", "lap_start": 1, "lap_end": 10, "tyre_age_at_start": 2},
+                                   {"driver_number": 44, "stint_number": 2, "compound": "MEDIUM", "lap_start": 11, "lap_end": 20, "tyre_age_at_start": 0}])}
+    w = duel.wear_on_lap(laps, raw, 44, 8, total)
+    assert w["compound"] == "SOFT" and w["age"] == 9 and w["into"] == 7
+    assert abs(w["wear"] - 0.1) < 1e-6 and abs(w["cost"] - 0.7) < 1e-6
+    assert 8 in set(w["points"]["lap"]) and 10 not in set(w["points"]["lap"])
+    w2 = duel.wear_on_lap(laps, raw, 44, 15, total)
+    assert w2["compound"] == "MEDIUM" and abs(w2["wear"] - 0.05) < 1e-6
+    assert duel.wear_on_lap(laps, raw, 44, 99, total) is None
