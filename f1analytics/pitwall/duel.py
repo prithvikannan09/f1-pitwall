@@ -269,3 +269,54 @@ def stint_pace(laps, a, b):
                          "diff": float(pb.median() - pa.median()), "n": int(min(len(pa), len(pb))),
                          "tyre_a": ca.iloc[0] if len(ca) else None, "tyre_b": cb.iloc[0] if len(cb) else None})
     return pd.DataFrame(rows)
+
+
+COMPOUND_COLOUR = {"SOFT": "#E10600", "MEDIUM": "#FFD12E", "HARD": "#F0F0F0", "INTERMEDIATE": "#43B02A", "WET": "#0067FF"}
+COMPOUND_SHORT = {"SOFT": "S", "MEDIUM": "M", "HARD": "H", "INTERMEDIATE": "I", "WET": "W"}
+
+
+def stints_for(raw, num):
+    st = raw.get("stints")
+    if st is None or len(st) == 0:
+        return []
+    x = st[st["driver_number"] == num].sort_values("stint_number")
+    out = []
+    for _, r in x.iterrows():
+        if pd.isna(r.get("lap_start")):
+            continue
+        out.append({"n": int(r["stint_number"]), "compound": str(r.get("compound") or "UNKNOWN").upper(),
+                    "start": int(r["lap_start"]), "end": int(r["lap_end"]) if pd.notna(r.get("lap_end")) else None,
+                    "age0": int(r["tyre_age_at_start"]) if pd.notna(r.get("tyre_age_at_start")) else 0})
+    return out
+
+
+def fuel_per_lap(total_laps):
+    from f1analytics import config
+
+    return config.FUEL_SEC_PER_KG * config.START_FUEL_KG / max(int(total_laps or 0), 1)
+
+
+def stint_wear(laps, num, stint, total_laps, min_laps=4):
+    end = stint["end"] or int(laps["lap_number"].max())
+    base = laps[(laps["driver_number"] == num) & laps["lap_number"].between(stint["start"] + 1, end)].dropna(subset=["lap_duration"])
+    x = base[base["clean"]]
+    if len(x) < min_laps:
+        keep = ~base.get("pit_in", False).astype(bool) & ~base.get("pit_out", False).astype(bool) & ~base.get("neutral", False).astype(bool)
+        x = base[keep]
+    if len(x) < min_laps:
+        return {"laps": end - stint["start"] + 1, "clean": len(x), "pace": float(x["lap_duration"].median()) if len(x) else None, "wear": None}
+    med = x["lap_duration"].median()
+    x = x[(x["lap_duration"] - med).abs() < 2.5]
+    slope = float(np.polyfit(x["lap_number"].astype(float), x["lap_duration"].astype(float), 1)[0]) if len(x) >= min_laps else None
+    return {"laps": end - stint["start"] + 1, "clean": len(x), "pace": float(x["lap_duration"].median()),
+            "wear": None if slope is None else slope + fuel_per_lap(total_laps)}
+
+
+def speed_traps(raw_laps, num):
+    if raw_laps is None or len(raw_laps) == 0:
+        return pd.DataFrame()
+    cols = [c for c in ("st_speed", "i1_speed", "i2_speed") if c in raw_laps]
+    x = raw_laps[raw_laps["driver_number"] == num][["lap_number"] + cols].copy()
+    for c in cols:
+        x[c] = pd.to_numeric(x[c], errors="coerce")
+    return x.sort_values("lap_number")

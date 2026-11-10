@@ -96,15 +96,78 @@ def gap_section(laps, a, b, ca, cb, col_a, col_b):
     fig.add_hline(y=0, line_color="#55556A", line_dash="dot")
     fig.update_layout(xaxis_title="Lap", yaxis_title=f"{cb} ahead by (s)", showlegend=False)
     st.plotly_chart(_chart(fig, 240), use_container_width=True, config={"displayModeBar": False})
-    sp = duel.stint_pace(laps, a, b)
-    if not sp.empty:
-        rows = "".join(
-            f"<tr><td>Laps {r['laps']}</td><td>{_fmt(r['a'])} <span class='duel-dim'>{(r['tyre_a'] or '')[:1]}</span></td>"
-            f"<td>{_fmt(r['b'])} <span class='duel-dim'>{(r['tyre_b'] or '')[:1]}</span></td>"
-            f"<td><b>{cb if r['diff'] < 0 else ca}</b> {abs(r['diff']):.3f}s/lap</td></tr>" for _, r in sp.iterrows())
-        st.markdown(f"<table class='duel-t'><tr><th>Green-flag run</th><th>{ca} typical lap</th><th>{cb} typical lap</th><th>Faster</th></tr>{rows}</table>",
-                    unsafe_allow_html=True)
-        st.caption("Typical lap = median of clean laps (no pit, Safety Car or first lap). Letter = tyre (S/M/H/I/W).")
+
+
+def _strip(stints, total, colour_line):
+    segs = ""
+    for st_ in stints:
+        end = st_["end"] or total
+        w = (end - st_["start"] + 1) / max(total, 1) * 100
+        c = duel.COMPOUND_COLOUR.get(st_["compound"], "#9A9AA8")
+        txt = "#15151E" if st_["compound"] in ("MEDIUM", "HARD") else "#FFFFFF"
+        segs += (f"<div class='ty-seg' style='width:{w:.2f}%;background:{c};color:{txt}' title='{st_['compound'].title()} laps {st_['start']}–{end}'>"
+                 f"{duel.COMPOUND_SHORT.get(st_['compound'], '?')} {st_['start']}–{end}</div>")
+    return f"<div class='ty-bar' style='border-left:4px solid {colour_line}'>{segs}</div>"
+
+
+def tyre_section(raw, laps, a, b, ca, cb, col_a, col_b):
+    st.markdown("#### Tyres and wear")
+    total = int(laps["lap_number"].max()) if len(laps) else 0
+    sa, sb = duel.stints_for(raw, a), duel.stints_for(raw, b)
+    if not sa or not sb:
+        st.caption("No tyre data for one of the drivers.")
+        return
+    st.markdown(f"<div class='ty-row'><span class='ty-name'>{ca}</span>{_strip(sa, total, col_a)}</div>"
+                f"<div class='ty-row'><span class='ty-name'>{cb}</span>{_strip(sb, total, col_b)}</div>", unsafe_allow_html=True)
+    rows = ""
+    for code, num, stints in ((ca, a, sa), (cb, b, sb)):
+        for i, st_ in enumerate(stints, 1):
+            w = duel.stint_wear(laps, num, st_, total)
+            wear = "–" if w["wear"] is None else f"{w['wear']:+.3f}s"
+            pace = "–" if w["pace"] is None else _fmt(w["pace"])
+            note = ""
+            if w["wear"] is not None:
+                note = "got faster (track improving)" if w["wear"] < -0.02 else ("held on well" if w["wear"] < 0.08 else "dropped off")
+            dot = f"<i class='ty-dot' style='background:{duel.COMPOUND_COLOUR.get(st_['compound'], '#9A9AA8')}'></i>"
+            used = f" (used, {st_['age0']} laps old)" if st_["age0"] else ""
+            rows += (f"<tr><td>{code}</td><td>{i}</td><td>{dot}{st_['compound'].title()}{used}</td><td>{st_['start']}–{st_['end'] or total}</td>"
+                     f"<td>{pace}</td><td>{wear}</td><td class='duel-dim'>{note}</td></tr>")
+    st.markdown(f"<table class='duel-t'><tr><th>Driver</th><th>Stint</th><th>Tyre</th><th>Laps</th><th>Typical lap</th><th>Wear per lap</th><th></th></tr>{rows}</table>",
+                unsafe_allow_html=True)
+    fpl = duel.fuel_per_lap(total)
+    st.caption(f"Wear per lap = how much slower each lap got on that set, after removing the fuel effect (cars get about {fpl:.3f}s a lap faster as fuel burns; "
+               "assumption from the app's fuel model). Minus means the laps got quicker, usually because the track was drying or rubbering in. "
+               "Typical lap = median of that stint's laps, leaving out pit laps and Safety Car laps.")
+    fig = go.Figure()
+    for code, num, colr in ((ca, a, col_a), (cb, b, col_b)):
+        x = laps[(laps["driver_number"] == num) & ~laps["pit_in"].astype(bool) & ~laps["pit_out"].astype(bool)].dropna(subset=["lap_duration"])
+        med = x["lap_duration"].median()
+        x = x[x["lap_duration"] < med * 1.25]
+        fig.add_trace(go.Scatter(x=x["lap_number"], y=x["lap_duration"], mode="lines+markers", name=code, line=dict(color=colr, width=1.6),
+                                 marker=dict(size=6, color=[duel.COMPOUND_COLOUR.get(str(c).upper(), "#9A9AA8") for c in x["compound"]],
+                                             line=dict(color=colr, width=1)),
+                                 hovertemplate=f"{code} lap %{{x}}: %{{y:.3f}}s<extra></extra>"))
+    fig.update_layout(xaxis_title="Lap", yaxis_title="Lap time (s)")
+    st.plotly_chart(_chart(fig, 300), use_container_width=True, config={"displayModeBar": False})
+    st.caption("Dot colour = tyre: red soft, yellow medium, white hard, green intermediate, blue wet. Pit laps and very slow laps are left out.")
+    traps_a, traps_b = duel.speed_traps(raw.get("laps"), a), duel.speed_traps(raw.get("laps"), b)
+    if len(traps_a) and len(traps_b) and "st_speed" in traps_a:
+        st.markdown("#### Speeds through the race")
+        names = {"st_speed": "Speed trap (fastest point)", "i1_speed": "Intermediate 1", "i2_speed": "Intermediate 2"}
+        cols = [c for c in names if c in traps_a]
+        m = st.columns(len(cols))
+        for col, c in zip(m, cols):
+            va, vb = traps_a[c].median(), traps_b[c].median()
+            ma, mb = traps_a[c].max(), traps_b[c].max()
+            col.markdown(f"<div class='duel-k'>{names[c]}</div><div class='duel-v'>{ca} {va:.0f} · {cb} {vb:.0f}</div>"
+                         f"<div class='duel-dim' style='font-size:.7rem'>Typical km/h · best {ca} {ma:.0f}, {cb} {mb:.0f}</div>", unsafe_allow_html=True)
+        fig = go.Figure()
+        for code, t, colr in ((ca, traps_a, col_a), (cb, traps_b, col_b)):
+            fig.add_trace(go.Scatter(x=t["lap_number"], y=t["st_speed"], mode="lines", name=code, line=dict(color=colr, width=1.6),
+                                     hovertemplate=f"{code} lap %{{x}}: %{{y:.0f}} km/h<extra></extra>"))
+        fig.update_layout(xaxis_title="Lap", yaxis_title="Speed trap (km/h)")
+        st.plotly_chart(_chart(fig, 260), use_container_width=True, config={"displayModeBar": False})
+        st.caption("Speeds are measured at fixed points on track every lap (OpenF1). Dips usually mean a tow lost, traffic, lifting to save energy, or wet running.")
 
 
 def track_map(cmp, seg, ca, cb, col_a, col_b, corners):
@@ -152,11 +215,11 @@ def traces_chart(cmp, ca, cb, col_a, col_b, seg):
 def telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b):
     st.markdown("#### One lap, corner by corner")
     common = sorted(set(laps.loc[laps["driver_number"] == a, "lap_number"]) & set(laps.loc[laps["driver_number"] == b, "lap_number"]))
-    mode = st.radio("Which laps", ["Each driver's fastest lap", "The same lap"], horizontal=True, key=f"duel_mode_{sk}")
-    if mode == "The same lap" and common:
-        clean = sorted(set(laps.loc[laps["clean"] & (laps["driver_number"] == a), "lap_number"]) &
-                       set(laps.loc[laps["clean"] & (laps["driver_number"] == b), "lap_number"])) or common
-        la = lb = st.select_slider("Lap", options=clean, value=clean[len(clean) // 2], key=f"duel_lap_{sk}")
+    mode = st.radio("Which laps", ["Each driver's fastest lap", "Pick a lap"], horizontal=True, key=f"duel_mode_{sk}")
+    timed = sorted(set(laps.loc[(laps["driver_number"] == a) & laps["lap_duration"].notna(), "lap_number"]) &
+                   set(laps.loc[(laps["driver_number"] == b) & laps["lap_duration"].notna(), "lap_number"]))
+    if mode == "Pick a lap" and timed:
+        la = lb = st.select_slider("Lap", options=timed, value=timed[len(timed) // 2], key=f"duel_lap_{sk}")
     else:
         la, lb = _fastest(laps, a), _fastest(laps, b)
     ra, rb = (_lap_row(laps, a, la) if la else None), (_lap_row(laps, b, lb) if lb else None)
@@ -184,9 +247,26 @@ def telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b):
     seg = duel.segment_table(cmp, corners)
     d = float(rb["lap_duration"] - ra["lap_duration"])
     faster, slower = (cb, ca) if d < 0 else (ca, cb)
+    def tyre_of(r):
+        comp = str(r.get("compound") or "").title()
+        age = r.get("tyre_age")
+        return f"{comp}, {int(age)} laps old" if comp and pd.notna(age) else (comp or "tyre unknown")
+
+    def flags(r):
+        out = []
+        if bool(r.get("pit_in")):
+            out.append("pit in")
+        if bool(r.get("pit_out")):
+            out.append("pit out")
+        if bool(r.get("neutral")):
+            out.append("Safety Car")
+        return f" · {', '.join(out)}" if out else ""
+
     m = st.columns(3)
-    m[0].markdown(f"<div class='duel-k'>{ca} · lap {la}</div><div class='duel-v'>{_fmt(ra['lap_duration'])}</div>", unsafe_allow_html=True)
-    m[1].markdown(f"<div class='duel-k'>{cb} · lap {lb}</div><div class='duel-v'>{_fmt(rb['lap_duration'])}</div>", unsafe_allow_html=True)
+    m[0].markdown(f"<div class='duel-k'>{ca} · lap {la}</div><div class='duel-v'>{_fmt(ra['lap_duration'])}</div>"
+                  f"<div class='duel-dim' style='font-size:.7rem'>{tyre_of(ra)}{flags(ra)}</div>", unsafe_allow_html=True)
+    m[1].markdown(f"<div class='duel-k'>{cb} · lap {lb}</div><div class='duel-v'>{_fmt(rb['lap_duration'])}</div>"
+                  f"<div class='duel-dim' style='font-size:.7rem'>{tyre_of(rb)}{flags(rb)}</div>", unsafe_allow_html=True)
     m[2].markdown(f"<div class='duel-k'>Difference</div><div class='duel-v'>{faster} {abs(d):.3f}s</div>", unsafe_allow_html=True)
     if seg.empty:
         st.caption("Couldn't split this lap into corners.")
@@ -225,6 +305,7 @@ def duel_tab(raw, laps, sk, code, colour, present, default_a, default_b):
         col_b = "#9A9AA8"
     st.markdown("#### The whole race")
     gap_section(laps, a, b, ca, cb, col_a, col_b)
+    tyre_section(raw, laps, a, b, ca, cb, col_a, col_b)
     telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b)
 
 
@@ -239,4 +320,9 @@ CSS = """<style>
 .duel-card{background:var(--asphalt);border-left:4px solid;border-radius:6px;padding:.6rem .8rem;margin:.4rem 0;min-height:100%}
 .duel-k{font-size:.64rem;letter-spacing:.06em;text-transform:uppercase;opacity:.75}
 .duel-v{font-size:1.25rem;margin-top:.1rem}
+.ty-row{display:flex;align-items:center;gap:.6rem;margin:.3rem 0}
+.ty-name{width:3rem;font-size:.8rem}
+.ty-bar{flex:1;display:flex;height:26px;border-radius:4px;overflow:hidden;background:rgba(255,255,255,.05)}
+.ty-seg{display:flex;align-items:center;justify-content:center;font-size:.62rem;white-space:nowrap;overflow:hidden;border-right:2px solid #15151E}
+.ty-dot{display:inline-block;width:9px;height:9px;border-radius:50%;margin-right:.4rem;vertical-align:0}
 </style>"""

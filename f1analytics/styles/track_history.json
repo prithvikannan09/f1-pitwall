@@ -1,5 +1,5 @@
 {
- "built": "2026-11-05T17:39:57.477559+00:00",
+ "built": "2026-11-10T05:07:28.703220+00:00",
  "years": [
   2023,
   2024,
@@ -15225,6 +15225,195 @@
    "pace_pct": 1.515944508628474,
    "finish": NaN,
    "grid": 14
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "NOR",
+   "team": "McLaren",
+   "pace_pct": 0.0,
+   "finish": 1.0,
+   "grid": 1
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "VER",
+   "team": "Red Bull Racing",
+   "pace_pct": 0.2970158522188305,
+   "finish": 2.0,
+   "grid": 21
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "BOR",
+   "team": "Audi",
+   "pace_pct": 2.6261421718153994,
+   "finish": 16.0,
+   "grid": 19
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "HAD",
+   "team": "Red Bull Racing",
+   "pace_pct": 0.6390702943203576,
+   "finish": 3.0,
+   "grid": 5
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "GAS",
+   "team": "Alpine",
+   "pace_pct": 1.739444933499844,
+   "finish": 14.0,
+   "grid": 15
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "PER",
+   "team": "Cadillac",
+   "pace_pct": 4.11804546167967,
+   "finish": 18.0,
+   "grid": 22
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "ANT",
+   "team": "Mercedes",
+   "pace_pct": 0.26997563821728765,
+   "finish": 5.0,
+   "grid": 2
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "ALO",
+   "team": "Aston Martin",
+   "pace_pct": 2.0582976777829995,
+   "finish": 12.0,
+   "grid": 8
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "LEC",
+   "team": "Ferrari",
+   "pace_pct": 1.1252823441903637,
+   "finish": 8.0,
+   "grid": 14
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "STR",
+   "team": "Aston Martin",
+   "pace_pct": 15.657222210848849,
+   "finish": NaN,
+   "grid": 16
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "ALB",
+   "team": "Williams",
+   "pace_pct": 2.4841170730375666,
+   "finish": 15.0,
+   "grid": 9
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "HUL",
+   "team": "Audi",
+   "pace_pct": 1.5366006783084702,
+   "finish": 10.0,
+   "grid": 4
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "LAW",
+   "team": "Racing Bulls",
+   "pace_pct": 1.3268470939873538,
+   "finish": 7.0,
+   "grid": 3
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "LIN",
+   "team": "Racing Bulls",
+   "pace_pct": 1.700036167352487,
+   "finish": 11.0,
+   "grid": 18
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "COL",
+   "team": "Alpine",
+   "pace_pct": 2.206037900655796,
+   "finish": 13.0,
+   "grid": 13
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "HAM",
+   "team": "Ferrari",
+   "pace_pct": 0.5877194778253271,
+   "finish": 9.0,
+   "grid": 20
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "CAM",
+   "team": "Haas F1 Team",
+   "pace_pct": 2.6674275458745496,
+   "finish": 20.0,
+   "grid": 11
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "SAI",
+   "team": "Williams",
+   "pace_pct": 3.2781781207989606,
+   "finish": 19.0,
+   "grid": 12
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "RUS",
+   "team": "Mercedes",
+   "pace_pct": 0.5848192655980233,
+   "finish": 4.0,
+   "grid": 7
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "PIA",
+   "team": "McLaren",
+   "pace_pct": 0.16974771565636998,
+   "finish": 6.0,
+   "grid": 10
+  },
+  {
+   "year": 2026,
+   "location": "Interlagos",
+   "code": "BEA",
+   "team": "Haas F1 Team",
+   "pace_pct": 2.409564558724184,
+   "finish": 17.0,
+   "grid": 6
   }
  ]
 }

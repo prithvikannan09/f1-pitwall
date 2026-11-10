@@ -88,6 +88,12 @@ def rivalry_section(focus=None):
         cols[1].markdown(score_card("Qualifying", a, b, q["a"], q["b"], ca, cb), unsafe_allow_html=True)
     if s and s["n"]:
         cols[2].markdown(score_card("Sprints", a, b, s["a"], s["b"], ca, cb), unsafe_allow_html=True)
+    try:
+        telemetry_rivals(a, b, ca, cb)
+    except Exception:
+        import logging
+
+        logging.getLogger("f1analytics").exception("telemetry rivals failed")
     ra, rb = rv.season_record(df, a, years), rv.season_record(df, b, years)
     facts = [f"Both on the podium together **{r['podiums']}** times."]
     if r["avg_gap"] is not None:
@@ -126,6 +132,71 @@ def _pct(v):
 
 def _pos(v):
     return "–" if v is None or pd.isna(v) else f"P{v:.1f}"
+
+
+TEL_METRICS = [
+    ("pace_pct", "Race pace", "% off the fastest car on clean laps", -1, "{:.2f}%"),
+    ("wear_rel", "Tyre wear", "seconds lost per lap on a set, against the field", -1, "{:+.3f}s"),
+    ("top_speed_kmh", "Top speed", "km/h against the field average on the straights", 1, "{:+.1f} km/h"),
+    ("corner_speed_kmh", "Corner speed", "km/h at the slowest point of corners, against the field", 1, "{:+.1f} km/h"),
+    ("brake_later_m", "Braking", "metres later than the field into braking zones", 1, "{:+.1f} m"),
+    ("late_straight_acc", "End of straight", "still pulling at the end of straights (battery deploy), km/h per s vs field", 1, "{:+.2f}"),
+    ("clip_kmh", "Super clipping", "speed lost at the end of straights when the battery runs out, vs field", -1, "{:+.1f} km/h"),
+]
+
+
+def telemetry_rivals(a, b, ca, cb, year=2026):
+    from f1analytics.pitwall import preview as pv
+    from f1analytics.pitwall import racecraft
+
+    rows = pv.season_rows(racecraft.load(year))
+    if rows.empty:
+        return
+    x = rows[rows["code"].isin([a, b])]
+    if x[x["code"] == a].empty or x[x["code"] == b].empty:
+        return
+    st.markdown(f"**{year} telemetry: how their cars and driving compare**")
+    cards = []
+    for key, name, help_, better, fmt in TEL_METRICS:
+        if key not in x:
+            continue
+        va = pd.to_numeric(x[x["code"] == a][key], errors="coerce").median()
+        vb = pd.to_numeric(x[x["code"] == b][key], errors="coerce").median()
+        if pd.isna(va) or pd.isna(vb):
+            continue
+        level = fmt.format(va) == fmt.format(vb)
+        win = "level" if level else (a if (va - vb) * better > 0 else b)
+        cards.append(f"<div class='rv-tel'><div class='rv-tel-k'>{name}</div><div class='rv-tel-v'><b style='color:{ca}'>{a}</b> {fmt.format(va)} · "
+                     f"<b style='color:{cb}'>{b}</b> {fmt.format(vb)}</div><div class='rv-tel-s'>{'Level' if level else f'Better: <b>{win}</b>'} · {help_}</div></div>")
+    st.markdown("<div class='rv-tel-grid'>" + "".join(cards) + "</div>" + TEL_CSS, unsafe_allow_html=True)
+    import plotly.graph_objects as go
+
+    names = {k: n for k, n, *_ in TEL_METRICS if k in x}
+    pick = st.selectbox("Race by race", list(names), format_func=names.get, key="rv_tel_metric")
+    fig = go.Figure()
+    for code, colr in ((a, ca), (b, cb)):
+        y = x[x["code"] == code].sort_values("i")
+        fig.add_trace(go.Scatter(x=y["location"], y=pd.to_numeric(y[pick], errors="coerce"), mode="lines+markers", name=code,
+                                 line=dict(color=colr, width=2), connectgaps=True))
+    fig.add_hline(y=0, line_color="#55556A", line_dash="dot")
+    fig.update_layout(height=320, margin=dict(l=10, r=10, t=30, b=10), font=dict(family="Michroma, sans-serif", color="#F3F3F5", size=10),
+                      paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)", yaxis_title=names[pick],
+                      legend=dict(orientation="h", y=1.08, x=1, xanchor="right"))
+    fig.update_xaxes(gridcolor="#2E2E3A")
+    fig.update_yaxes(gridcolor="#2E2E3A")
+    st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
+    races = x["location"].nunique()
+    st.caption(f"Season figures are the median over {races} races of {year}, each measured against that race's field (0 = field average). "
+               "Telemetry: OpenF1, from each driver's clean laps. Pick a race in Past races → Head to head for lap-by-lap detail.")
+
+
+TEL_CSS = """<style>
+.rv-tel-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:.6rem;margin:.4rem 0 .6rem}
+.rv-tel{background:var(--asphalt);border:1px solid var(--line);border-radius:8px;padding:.6rem .75rem}
+.rv-tel-k{font-size:.62rem;letter-spacing:.06em;text-transform:uppercase;opacity:.7}
+.rv-tel-v{font-size:.85rem;margin:.2rem 0}
+.rv-tel-s{font-size:.66rem;opacity:.7;line-height:1.4}
+</style>"""
 
 
 def compare_all_section(focus=None):

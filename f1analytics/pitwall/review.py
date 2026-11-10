@@ -51,8 +51,42 @@ def _stint_at(stints, num, lap):
     return s.iloc[-1] if len(s) else None
 
 
-def neutral_laps(laps):
+def neutral_from_race_control(rc, last_lap, slow=None):
+    if rc is None or len(rc) == 0 or "message" not in rc:
+        return None
+    msgs = rc.dropna(subset=["message"]).copy()
+    msgs["lap_number"] = pd.to_numeric(msgs.get("lap_number"), errors="coerce")
+    if "date" in msgs:
+        msgs = msgs.sort_values("date")
+    out, start = set(), None
+    for lap, m in zip(msgs["lap_number"], msgs["message"].astype(str).str.upper()):
+        if pd.isna(lap):
+            continue
+        lap = int(lap)
+        if "SAFETY CAR DEPLOYED" in m or "VSC DEPLOYED" in m or m.startswith("RED FLAG"):
+            start = lap if start is None else start
+        elif start is not None and ("IN THIS LAP" in m or "ENDING" in m or "GREEN LIGHT" in m or "RESUME" in m):
+            out.update(range(start, lap + 1))
+            start = None
+    if start is not None:
+        lap = start
+        out.add(lap)
+        while lap + 1 <= int(last_lap) and slow is not None and (lap + 1) in slow:
+            lap += 1
+            out.add(lap)
+    return out
+
+
+def neutral_laps(laps, rc=None):
     x = laps.dropna(subset=["lap_duration"])
+    last = int(x["lap_number"].max()) if len(x) else 0
+    from_rc = neutral_from_race_control(rc, last, _slow_laps(x))
+    if from_rc is not None:
+        return from_rc
+    return _slow_laps(x)
+
+
+def _slow_laps(x):
     if "pit_in" in x:
         x = x[~x["pit_in"] & ~x["pit_out"]]
     g = x.groupby("lap_number")["lap_duration"].median()
@@ -89,7 +123,7 @@ def lap_table(raw):
     laps["pit_in"] = np.array([(n, l) in pit_in for n, l in zip(laps["driver_number"], laps["lap_number"])], dtype=bool)
     out_lap = laps["is_pit_out_lap"].fillna(False).astype(bool) if "is_pit_out_lap" in laps else False
     laps["pit_out"] = out_lap | np.array([(n, l - 1) in pit_in for n, l in zip(laps["driver_number"], laps["lap_number"])], dtype=bool)
-    neutral = neutral_laps(laps)
+    neutral = neutral_laps(laps, _df(raw, "race_control"))
     laps["neutral"] = laps["lap_number"].isin(neutral)
     after_neutral = laps["lap_number"].isin({n + 1 for n in neutral})
     laps["clean"] = (laps["lap_number"] > 1) & ~laps["neutral"] & ~after_neutral & ~laps["pit_in"] & ~laps["pit_out"] & laps["lap_duration"].notna()
