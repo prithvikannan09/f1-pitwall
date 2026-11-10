@@ -254,6 +254,9 @@ def wear_section(raw, laps, a, b, ca, cb, col_a, col_b, la, lb):
         dot = f"<i style='display:inline-block;width:.65rem;height:.65rem;border-radius:50%;background:{duel.COMPOUND_COLOUR.get(w['compound'], '#9A9AA8')};margin-right:.3rem'></i>"
         if w["wear"] is None:
             body = "Stint too short or too disrupted to measure wear."
+        elif w["wear"] < 0:
+            body = (f"Laps got <b>{abs(w['wear']):.3f}s faster</b> each lap.<br>The track was improving (drying or gaining grip) faster than the tyres wore, "
+                    "so wear can't be measured here.")
         else:
             body = f"Wear: <b>{w['wear']:+.3f}s per lap</b><br>Cost on this lap: <b>{w['cost']:+.2f}s</b> vs a new set"
         col.markdown(f"<div class='duel-card' style='border-left-color:{colr}'><div class='duel-k'>{who} · {dot}{w['compound'].title()} · {w['age']} laps old</div>"

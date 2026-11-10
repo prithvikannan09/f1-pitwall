@@ -339,7 +339,7 @@ def wear_on_lap(laps, raw, num, lap, total_laps):
     if w["pace"] is not None:
         pts = pts[((pts["time"] - w["pace"]).abs() < 6) | (pts["lap"] == int(lap))]
     return {"compound": stint["compound"], "age": stint["age0"] + into, "into": into, "start": stint["start"], "end": end,
-            "wear": w["wear"], "cost": None if w["wear"] is None else w["wear"] * into, "points": pts.reset_index(drop=True)}
+            "wear": w["wear"], "cost": None if w["wear"] is None or w["wear"] < 0 else w["wear"] * into, "points": pts.reset_index(drop=True)}
 
 
 def speed_traps(raw_laps, num):
