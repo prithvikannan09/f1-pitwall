@@ -141,7 +141,8 @@ def move_section(raw, laps, sk, code, num, who, colr):
                      format_func=lambda i: f"Lap {choices[i][0]['lap']}: {choices[i][0]['old']['compound'].title()} to {choices[i][0]['new']['compound'].title()}")
     stop, others = choices[i]
     opts = list(others)
-    lap = c2.selectbox("Pit on lap instead", opts, key=f"wi_mv_lap_{sk}_{num}_{stop['lap']}",
+    near = min(range(len(opts)), key=lambda j: (abs(opts[j] - stop["lap"]), opts[j] > stop["lap"]))
+    lap = c2.selectbox("Pit on lap instead", opts, index=near, key=f"wi_mv_lap_{sk}_{num}_{stop['lap']}",
                        format_func=lambda n: f"Lap {n} ({'earlier' if n < stop['lap'] else 'later'}, like {', '.join(code.get(d, str(d)) for d in others[n][:4])}{'…' if len(others[n]) > 4 else ''})")
     r = whatif.move_stop(raw, laps, num, stop, lap)
     if r is None:
