@@ -42,6 +42,7 @@ CSS = """<style>
   [data-testid="stHorizontalBlock"]:has(.pw-nav-mark){gap:.4rem !important}
   .pw-tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;height:64px;z-index:999990;
     background:#14141C;border-top:1px solid #2E2E3A;padding:0 104px env(safe-area-inset-bottom) 4px;box-sizing:border-box}
+  .pw-tabbar.pw-embed{padding-right:4px}
   .pw-tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:.6rem;color:#A3A3B2 !important;text-decoration:none !important;letter-spacing:.04em}
   .pw-tabbar a.on{color:#F3F3F5 !important}
   .pw-tabbar a.on svg{stroke:#E10600}
@@ -73,25 +74,37 @@ CSS = """<style>
 </style>"""
 
 
+def embedded():
+    try:
+        return bool(st.context.is_embedded)
+    except Exception:
+        return False
+
+
+def embed_param():
+    return "&embed=true" if embedded() else ""
+
+
 def styles():
     st.markdown(CSS, unsafe_allow_html=True)
 
 
 def tabbar(view):
     q = st.query_params
-    keep = "".join(f"&{k}={html.escape(str(q.get(k)))}" for k in ("team", "driver") if q.get(k))
+    keep = "".join(f"&{k}={html.escape(str(q.get(k)))}" for k in ("team", "driver") if q.get(k)) + embed_param()
     links = ""
     for label, mode, icon, views in TABS:
         on = " on" if view in views else ""
         links += (f"<a class='pw-tab{on}' href='?mode={mode}{keep}' target='_self' aria-label='{label}'>"
                   f"<svg width='22' height='22' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='1.8' stroke-linecap='round' "
                   f"stroke-linejoin='round' aria-hidden='true'><path d='{icon}'></path></svg>{label}</a>")
-    st.markdown(f"<nav class='pw-tabbar' aria-label='Main'>{links}</nav>", unsafe_allow_html=True)
+    wide = " pw-embed" if embed_param() else ""
+    st.markdown(f"<nav class='pw-tabbar{wide}' aria-label='Main'>{links}</nav>", unsafe_allow_html=True)
 
 
 def more_page():
     q = st.query_params
-    keep = "".join(f"&{k}={html.escape(str(q.get(k)))}" for k in ("team", "driver") if q.get(k))
+    keep = "".join(f"&{k}={html.escape(str(q.get(k)))}" for k in ("team", "driver") if q.get(k)) + embed_param()
     out = ""
     for title, items in MORE:
         rows = "".join(f"<a class='mo-row' href='?mode={m}{keep}' target='_self'><span><b>{html.escape(n)}</b><i>{html.escape(d)}</i></span><em>›</em></a>"

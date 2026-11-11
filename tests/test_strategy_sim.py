@@ -349,3 +349,12 @@ def test_thin_ticks_keeps_last_and_limits_count():
     mobile.thin_ticks(fig, cats, 7)
     vals = list(fig.layout.xaxis.tickvals)
     assert len(vals) <= 7 and vals[-1] == "R19"
+
+
+def test_tabbar_keeps_embed_mode(monkeypatch):
+    from f1analytics.ui import mobile
+
+    monkeypatch.setattr(mobile, "embedded", lambda: True)
+    assert mobile.embed_param() == "&embed=true"
+    monkeypatch.setattr(mobile, "embedded", lambda: False)
+    assert mobile.embed_param() == ""
