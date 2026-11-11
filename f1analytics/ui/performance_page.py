@@ -648,9 +648,13 @@ def trend_chart(data, events, teams, ri):
     low = set() if gap else {i for i, r in enumerate(data["races"]) if r.get("telemetry_quality") == "low"}
     upgrade_line_chart(lines, evs, names, f"{' vs '.join(teams)}: {metric.lower()}", "%" if gap else "km/h", gap, ri, "pf_trend_range",
                        "%" if gap else " km/h", "{:.2f}%" if gap else "{:+.1f} km/h", low)
+    gone = [r["location"] for r in data["races"] if r.get("telemetry_quality") == "unavailable"]
     if low:
-        st.caption("Hollow dot = low-confidence telemetry (Budapest: OpenF1's lap timing for that race is broken, so laps were found from the speed trace "
-                   "and only some cars could be matched). Where a team has no value the line joins across the gap.")
+        st.caption("Hollow dot = low-confidence telemetry. Where a team has no value the line joins across the gap.")
+    if gone and not gap:
+        st.caption(f"No speed data for {', '.join(gone)}: OpenF1's telemetry for that race is broken at the source (top speeds 265 to 334 km/h "
+                   "on the same lap type, laps of the wrong length), so it is left out rather than shown wrong. The line joins across it. "
+                   "Race pace for that race is unaffected.")
     how("Dots under the chart = races where that team declared new parts; bigger dot, more parts. The dotted line is the race you picked. "
         "Higher speed and a smaller gap are better. Speeds are compared with the field median at each braking zone and straight.")
 

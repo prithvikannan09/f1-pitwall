@@ -41,6 +41,94 @@ def fetch_race_full_telemetry(src, session_key):
     return raw
 
 
+def gps_crossings(loc, point, radius=150.0, min_gap_s=40.0):
+    """Times a car passes closest to a fixed track point (OpenF1 x/y units), one per lap."""
+    if loc is None or loc.empty:
+        return []
+    t = _ts(loc["date"])
+    d = np.hypot(_num(loc["x"]).to_numpy(float) - point[0], _num(loc["y"]).to_numpy(float) - point[1])
+    out, i, n = [], 0, len(d)
+    while i < n:
+        if d[i] < radius:
+            j = i
+            while j + 1 < n and d[j + 1] < radius:
+                j += 1
+            k = i + int(np.argmin(d[i:j + 1]))
+            if not out or (t.iloc[k] - out[-1]).total_seconds() >= min_gap_s:
+                out.append(t.iloc[k])
+            i = j + 1
+        else:
+            i += 1
+    return out
+
+
+def gps_lap_windows(locs, best_lap):
+    """Cut each car's fastest lap at the same track point, using GPS. best_lap: {num: official best lap seconds}."""
+    if not locs:
+        return {}, None
+    ref = max(locs, key=lambda n: len(locs[n]))
+    rl = locs[ref]
+    sp = rl.assign(t=_ts(rl["date"]))
+    xs, ys = _num(sp["x"]).to_numpy(float), _num(sp["y"]).to_numpy(float)
+    step = np.r_[np.hypot(np.diff(xs), np.diff(ys)), np.inf]
+    mid = len(xs) // 2
+    cands = [i for i in range(mid, min(mid + 400, len(xs)), 20) if np.isfinite(step[i]) and step[i] > 0]
+    scored = [(len(gps_crossings(rl, (xs[i], ys[i]))), -step[i], i) for i in cands] or [(0, 0, mid)]
+    k = max(scored)[2]
+    point = (float(xs[k]), float(ys[k]))
+    out = {}
+    for n, loc in locs.items():
+        cr = gps_crossings(loc, point)
+        if len(cr) < 3:
+            continue
+        laps = [(a, b, (b - a).total_seconds()) for a, b in zip(cr[:-1], cr[1:])]
+        target = best_lap.get(n)
+        ok = [x for x in laps if 0.985 * target <= x[2] <= 1.04 * target] if target else []
+        if not ok:
+            continue
+        a, b, _ = min(ok, key=lambda x: x[2])
+        out[int(n)] = (a, b)
+    return out, point
+
+
+def jolpica_best_laps(year, circuit_id):
+    from f1analytics.pitwall.season import _get
+
+    races = _get(f"{year}/results")
+    for page in races:
+        for race in page["RaceTable"]["Races"]:
+            if race["Circuit"]["circuitId"] != circuit_id:
+                continue
+            out = {}
+            for r in race["Results"]:
+                t = (r.get("FastestLap") or {}).get("Time", {}).get("time")
+                if t:
+                    m, sec = t.split(":") if ":" in t else ("0", t)
+                    out[int(r["number"])] = int(m) * 60 + float(sec)
+            if out:
+                return out
+    return {}
+
+
+def fetch_race_gps_telemetry(src, session_key, best=None):
+    raw = fetch_race(src, session_key, telemetry=False)
+    best = best or {}
+    nums = sorted(set(int(x) for x in raw["drivers"]["driver_number"])) if not raw["drivers"].empty else []
+    locs = {}
+    for n in nums:
+        loc = src._get("location", session_key=session_key, driver_number=n)
+        if loc is not None and not loc.empty:
+            locs[n] = loc
+    windows, point = gps_lap_windows(locs, best)
+    raw["car_data"], raw["tele_windows"] = {}, {}
+    for n, (a, b) in windows.items():
+        raw["car_data"][n] = src._get("car_data", session_key=session_key, driver_number=n,
+                                      **{"date>": (a - pd.Timedelta(seconds=2)).isoformat(), "date<": (b + pd.Timedelta(seconds=2)).isoformat()})
+        raw["tele_windows"][n] = (a, b)
+    raw["gps_point"] = point
+    return raw
+
+
 def fetch_race(src, session_key, telemetry=True):
     raw = {ep: src._get(ep, session_key=session_key) for ep in
            ("drivers", "laps", "stints", "pit", "race_control", "overtakes", "intervals", "starting_grid", "position", "session_result")}
@@ -349,28 +437,40 @@ def telemetry_metrics(raw, laps):
             for key in ("zones", "straights"):
                 per[n][key] = [dict(x, f=(x["f"] - off) % 1.0) for x in per[n][key]]
     lap_len = float(np.median([p["L"] for p in per.values()]))
-    ref_z = _reference(per, "zones")
-    ref_s = _reference(per, "straights")
+    out = _score(per, lap_len, ZONE_MATCH_FRAC)
+    if sum(1 for v in out.values() if v["top_speed_kmh"] is not None) < len(per) / 2:
+        wide = _score(per, lap_len, 2 * ZONE_MATCH_FRAC)
+        if sum(1 for v in wide.values() if v["top_speed_kmh"] is not None) > sum(1 for v in out.values() if v["top_speed_kmh"] is not None):
+            out = wide
+    return out
+
+
+def _score(per, lap_len, frac):
+    ref_z = _reference(per, "zones", frac)
+    ref_s = _reference(per, "straights", frac)
+    need_z = 2 if len(ref_z) >= 3 else 1
+    need_s = 2 if len(ref_s) >= 3 else 1
     out = {}
     for n, p in per.items():
         late, carry, top, acc, clip = [], [], [], [], []
         for z in p["zones"]:
-            r = _match(ref_z, z["f"])
+            r = _match(ref_z, z["f"], frac)
             if r is None:
                 continue
             late.append((z["f"] - r["f"]) * lap_len)
             carry.append(z["vmin"] - r["vmin"])
         for s in p["straights"]:
-            r = _match(ref_s, s["f"])
+            r = _match(ref_s, s["f"], frac)
             if r is None:
                 continue
             top.append(s["top"] - r["top"])
             acc.append(s["late_acc"] - r["late_acc"])
             clip.append(s["clip"] - r["clip"])
-        def med(x):
-            return float(np.median(x)) if len(x) >= 2 else None
-        out[n] = {"brake_later_m": med(late), "corner_speed_kmh": med(carry), "top_speed_kmh": med(top),
-                  "late_straight_acc": med(acc), "clip_kmh": med(clip), "brake_zones": len(late)}
+
+        def med(x, need):
+            return float(np.median(x)) if len(x) >= need else None
+        out[n] = {"brake_later_m": med(late, need_z), "corner_speed_kmh": med(carry, need_z), "top_speed_kmh": med(top, need_s),
+                  "late_straight_acc": med(acc, need_s), "clip_kmh": med(clip, need_s), "brake_zones": len(late)}
     return out
 
 
@@ -394,11 +494,11 @@ def align_offsets(profiles):
     return out
 
 
-def _reference(per, kind):
+def _reference(per, kind, frac=ZONE_MATCH_FRAC):
     pts = sorted((x for p in per.values() for x in p[kind]), key=lambda x: x["f"])
     groups = []
     for x in pts:
-        if groups and x["f"] - groups[-1][-1]["f"] <= ZONE_MATCH_FRAC:
+        if groups and x["f"] - groups[-1][-1]["f"] <= frac:
             groups[-1].append(x)
         else:
             groups.append([x])
@@ -406,9 +506,9 @@ def _reference(per, kind):
     return [{k: float(np.median([x[k] for x in g])) for k in g[0] if isinstance(g[0][k], (int, float, np.floating))} for g in groups if len(g) >= need]
 
 
-def _match(ref, f):
+def _match(ref, f, frac=ZONE_MATCH_FRAC):
     best = min(ref, key=lambda r: abs(r["f"] - f), default=None)
-    return best if best is not None and abs(best["f"] - f) <= ZONE_MATCH_FRAC else None
+    return best if best is not None and abs(best["f"] - f) <= frac else None
 
 
 def build_season(rows):

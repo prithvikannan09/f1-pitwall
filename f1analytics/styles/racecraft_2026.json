@@ -1,6 +1,6 @@
 {
  "year": 2026,
- "built": "2026-11-11T14:00:55.182942+00:00",
+ "built": "2026-11-11T14:59:13.017283+00:00",
  "races": [
   {
    "session_key": 11234,
@@ -56,7 +56,7 @@
    "session_key": 11342,
    "location": "Budapest",
    "date": "2026-07-26",
-   "telemetry_quality": "low"
+   "telemetry_quality": "unavailable"
   },
   {
    "session_key": 11353,
@@ -9623,12 +9623,12 @@
    "grid": 1,
    "finish": 1.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -27.006552350706492,
-   "corner_speed_kmh": -17.75,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 2
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9646,12 +9646,12 @@
    "grid": 4,
    "finish": 2.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -32.6209440183247,
-   "corner_speed_kmh": -4.0,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 2
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9669,12 +9669,12 @@
    "grid": 14,
    "finish": 11.0,
    "start_tyre": "SOFT",
-   "brake_later_m": 58.099853249896526,
-   "corner_speed_kmh": -6.5,
-   "top_speed_kmh": -2.5,
-   "late_straight_acc": 1.195949336485788,
-   "clip_kmh": 0.0,
-   "brake_zones": 3
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9697,7 +9697,7 @@
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 1
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9715,12 +9715,12 @@
    "grid": 12,
    "finish": 12.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -1.4722032943228343,
-   "corner_speed_kmh": -0.5,
-   "top_speed_kmh": 10.0,
-   "late_straight_acc": -1.0577494163084018,
-   "clip_kmh": 14.5,
-   "brake_zones": 3
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9738,12 +9738,12 @@
    "grid": 22,
    "finish": NaN,
    "start_tyre": "MEDIUM",
-   "brake_later_m": 15.013530962490911,
-   "corner_speed_kmh": -9.0,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 2
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9761,12 +9761,12 @@
    "grid": 7,
    "finish": 3.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -4.17717889840479,
-   "corner_speed_kmh": 9.5,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 3
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9784,12 +9784,12 @@
    "grid": 16,
    "finish": 14.0,
    "start_tyre": "SOFT",
-   "brake_later_m": 9.24373437049007,
-   "corner_speed_kmh": -4.25,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 2
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9835,7 +9835,7 @@
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 1
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9853,12 +9853,12 @@
    "grid": 19,
    "finish": 17.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": 19.931375414501055,
-   "corner_speed_kmh": -5.0,
-   "top_speed_kmh": -6.0,
-   "late_straight_acc": 0.5621267756806049,
-   "clip_kmh": 0.0,
-   "brake_zones": 2
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9876,12 +9876,12 @@
    "grid": 10,
    "finish": 9.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": 5.583360497328883,
-   "corner_speed_kmh": 1.5,
-   "top_speed_kmh": -1.0,
-   "late_straight_acc": -5.919351301092285,
-   "clip_kmh": 39.5,
-   "brake_zones": 3
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9899,12 +9899,12 @@
    "grid": 11,
    "finish": 8.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -32.4663005589028,
-   "corner_speed_kmh": -4.25,
-   "top_speed_kmh": -2.0,
-   "late_straight_acc": 2.2154720026914543,
-   "clip_kmh": 0.0,
-   "brake_zones": 2
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9922,12 +9922,12 @@
    "grid": 15,
    "finish": 16.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -50.50349775199787,
-   "corner_speed_kmh": -5.5,
-   "top_speed_kmh": -1.0,
-   "late_straight_acc": -2.9332621096244633,
-   "clip_kmh": 15.0,
-   "brake_zones": 3
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9945,12 +9945,12 @@
    "grid": 9,
    "finish": 10.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": 39.979633563739945,
-   "corner_speed_kmh": -2.75,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 2
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9968,12 +9968,12 @@
    "grid": 13,
    "finish": 15.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -27.82039492033701,
-   "corner_speed_kmh": 6.0,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 3
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -9991,12 +9991,12 @@
    "grid": 5,
    "finish": 5.0,
    "start_tyre": "SOFT",
-   "brake_later_m": 8.564685296533128,
-   "corner_speed_kmh": 6.0,
-   "top_speed_kmh": 2.0,
-   "late_straight_acc": -0.41338052918364554,
-   "clip_kmh": 0.0,
-   "brake_zones": 3
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -10037,12 +10037,12 @@
    "grid": 6,
    "finish": 7.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -7.250337945492324,
-   "corner_speed_kmh": 3.5,
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 3
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -10065,7 +10065,7 @@
    "top_speed_kmh": null,
    "late_straight_acc": null,
    "clip_kmh": null,
-   "brake_zones": 1
+   "brake_zones": 0
   },
   {
    "session_key": 11342,
@@ -10106,12 +10106,12 @@
    "grid": 17,
    "finish": 19.0,
    "start_tyre": "MEDIUM",
-   "brake_later_m": -1.152359441343135,
-   "corner_speed_kmh": -3.5,
-   "top_speed_kmh": 1.0,
-   "late_straight_acc": 0.9640199496332542,
-   "clip_kmh": 0.0,
-   "brake_zones": 2
+   "brake_later_m": null,
+   "corner_speed_kmh": null,
+   "top_speed_kmh": null,
+   "late_straight_acc": null,
+   "clip_kmh": null,
+   "brake_zones": 0
   }
  ],
  "profiles": {

@@ -316,3 +316,24 @@ def test_best_speed_window_finds_fastest_lap_without_lap_times():
     car = pd.DataFrame({"date": [x.isoformat() for x in t], "speed": v})
     a, b = rc.best_speed_window(car, 80)
     assert abs((a - t[1200].tz_localize(None) if a.tzinfo is None else a - t[1200]).total_seconds()) < 1
+
+
+def test_gps_crossings_cut_laps_at_one_point():
+    import numpy as np
+
+    from f1analytics.pitwall import racecraft as rc
+
+    t0 = pd.Timestamp("2026-07-26T13:00:00Z")
+    rows = []
+    for lap, period in enumerate([80.0, 78.0, 79.0]):
+        start = sum([80.0, 78.0, 79.0][:lap])
+        for k in range(320):
+            a = 2 * np.pi * k / 320
+            rows.append({"date": (t0 + pd.Timedelta(seconds=start + period * k / 320)).isoformat(), "x": 5000 * np.cos(a), "y": 5000 * np.sin(a)})
+    rows.append({"date": (t0 + pd.Timedelta(seconds=237)).isoformat(), "x": 5000.0, "y": 0.0})
+    loc = pd.DataFrame(rows)
+    cr = rc.gps_crossings(loc, (5000.0, 0.0))
+    assert len(cr) == 4
+    w, _ = rc.gps_lap_windows({44: loc}, {44: 78.0})
+    a, b = w[44]
+    assert abs((b - a).total_seconds() - 78.0) < 0.5
