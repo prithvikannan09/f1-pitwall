@@ -27,7 +27,8 @@ CSS = """<style>
 .pw-tabbar{display:none}
 .pw-how summary p{font-size:.72rem !important;opacity:.75}
 @media (max-width:640px){
-  html,body,.stApp{font-size:14px}
+  html,body,.stApp{font-size:14px;overflow-x:hidden;max-width:100vw}
+  .block-container,[data-testid="stMain"]{max-width:100vw !important;overflow-x:hidden}
   .block-container{padding:2.8rem .9rem 6.2rem !important}
   .stApp h1{font-size:1.05rem !important;letter-spacing:.12em;line-height:1.3 !important}
   [data-testid="stColumn"]:has(.pw-signin-mark){display:none !important}
