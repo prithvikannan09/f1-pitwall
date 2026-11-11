@@ -91,7 +91,39 @@ def upgrades_section(race, raw, model, focus=()):
         if none:
             st.caption(f"No new parts declared at {r['label']}: {', '.join(none)}.")
     latest_section(d, grid, r)
+    all_section(d, grid, r)
     pace_section(raw, model, r, grid, focus)
+
+
+def history(d, team, upto=None):
+    rounds = d["upgrades"]["rounds"]
+    if upto is not None:
+        rounds = rounds[:rounds.index(upto) + 1]
+    out = []
+    for rr in rounds[::-1]:
+        parts = (rr.get("items") or {}).get(team) or []
+        n = int(rr["counts"].get(team, 0))
+        if parts or n:
+            out.append({"round": rr["label"], "count": n, "parts": parts, "src": rr["src"]})
+    return out
+
+
+def all_section(d, grid, r):
+    tot = extras_pages.upgrade_totals(d)
+    with st.expander("All upgrades by every team this season", expanded=True):
+        pick = st.multiselect("Teams", list(tot.index), default=list(tot.index), key="pf_up_teams")
+        blocks = ""
+        for t in [x for x in tot.index if x in pick]:
+            rows = history(d, t, r)
+            body = ""
+            for h in rows:
+                lis = "".join(f"<li>{html.escape(p)}</li>" for p in h["parts"]) or f"<li class='hc-dim'>{h['count']} parts (no list published)</li>"
+                body += f"<div class='hc-dim' style='font-size:.68rem;margin-top:.35rem'>{html.escape(h['round'])} · {h['count']}</div><ul>{lis}</ul>"
+            blocks += (f"<div class='upc' style='border-left-color:{extras_pages._team_colour(t, grid)}'><div class='upc-t'>{html.escape(t)} "
+                       f"<span class='hc-dim'>{sum(h['count'] for h in rows)} new parts</span></div>{body or '<ul><li class=hc-dim>None declared.</li></ul>'}</div>")
+        st.markdown(f"<div class='upc-grid'>{blocks}</div>", unsafe_allow_html=True)
+        st.caption("Newest first, up to the race picked above. Part-by-part lists start at Monza; Australia to the Dutch GP shows totals only. "
+                   "Source: FIA car presentation submissions as reported by RACER and others (see Tech upgrades for links).")
 
 
 def latest_upgrades(d, upto=None):

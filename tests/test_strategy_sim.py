@@ -143,3 +143,13 @@ def test_latest_upgrades_lists_every_team():
     assert mcl["round"] == "São Paulo" and len(mcl["parts"]) == 4
     fer = next(r for r in rows if r["team"] == "Ferrari")
     assert fer["round"] != "São Paulo" and fer["total"] == 52
+
+
+def test_history_has_every_round_for_a_team():
+    from f1analytics.ui import extras_pages
+    from f1analytics.ui.performance_page import history
+
+    d = extras_pages.load()
+    h = history(d, "Ferrari")
+    assert sum(x["count"] for x in h) == 52
+    assert h[0]["round"] == "Mexico City" and h[-1]["round"] == "Australia to Dutch GP"
