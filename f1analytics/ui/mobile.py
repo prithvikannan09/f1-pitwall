@@ -29,7 +29,7 @@ CSS = """<style>
 @media (max-width:640px){
   html,body,.stApp{font-size:14px;overflow-x:hidden;max-width:100vw}
   .block-container,[data-testid="stMain"]{max-width:100vw !important;overflow-x:hidden}
-  .block-container{padding:2.8rem .9rem 6.2rem !important}
+  .block-container{padding:4.1rem .9rem 2.2rem !important}
   .stApp h1{font-size:1.05rem !important;letter-spacing:.12em;line-height:1.3 !important}
   [data-testid="stColumn"]:has(.pw-signin-mark){display:none !important}
   .stApp h2{font-size:1rem !important}
@@ -40,12 +40,14 @@ CSS = """<style>
   [data-testid="stCaptionContainer"],[data-testid="stCaptionContainer"] p{font-size:.68rem !important;line-height:1.6 !important}
   [data-testid="stColumn"]:has(.pw-nav-mark){display:none !important}
   [data-testid="stHorizontalBlock"]:has(.pw-nav-mark){gap:.4rem !important}
-  .pw-tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;height:64px;z-index:999990;
-    background:#14141C;border-top:1px solid #2E2E3A;padding:0 104px env(safe-area-inset-bottom) 4px;box-sizing:border-box}
-  .pw-tabbar.pw-embed{padding-right:4px}
+  .pw-tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:52px;right:0;top:0;height:58px;z-index:999990;
+    background:#14141C;border-bottom:1px solid #2E2E3A;padding:env(safe-area-inset-top) 4px 0 0;box-sizing:content-box}
+  .pw-tabbar.pw-embed{left:0}
   .pw-tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:.6rem;color:#A3A3B2 !important;text-decoration:none !important;letter-spacing:.04em}
   .pw-tabbar a.on{color:#F3F3F5 !important}
   .pw-tabbar a.on svg{stroke:#E10600}
+  .pw-tabbar a.on{box-shadow:inset 0 -2px 0 #E10600}
+  header[data-testid="stHeader"]{background:#14141C !important;height:58px}
   [data-testid="stTabs"] [role="tablist"]{gap:1.1rem;overflow-x:auto;flex-wrap:nowrap;scrollbar-width:none}
   [data-testid="stTabs"] [role="tab"]{padding:.55rem 0 !important;min-height:40px;white-space:nowrap}
   [data-testid="stTabs"] [role="tab"] p{font-size:.66rem !important;letter-spacing:.04em}
@@ -69,7 +71,7 @@ CSS = """<style>
   .upc-grid{grid-template-columns:1fr !important}
   .upc ul{font-size:.68rem !important}
   [data-testid="stPlotlyChart"]{margin:0 -.3rem}
-  [data-testid="stSidebarCollapsedControl"]{top:.55rem}
+  [data-testid="stSidebarCollapsedControl"],[data-testid="stExpandSidebarButton"]{top:.45rem;z-index:999991}
 }
 </style>"""
 
