@@ -156,4 +156,4 @@ def test_review_section_renders_in_past_races():
     text = " ".join(m.value for m in at.markdown)
     assert "Laps " in text
     names = [t.label for t in at.tabs]
-    assert names[:7] == ["Head to head", "What if", "Pace & tyres", "Pit strategy", "Track sectors", "Positions", "Tyre sets"]
+    assert names[:6] == ["Head to head", "Pace & tyres", "Pit strategy", "Track sectors", "Positions", "Tyre sets"]

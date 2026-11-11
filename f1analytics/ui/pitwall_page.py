@@ -409,11 +409,11 @@ def ensure_recorder():
 
 
 MENU = [("Home", "🏠"), ("Live", "🔴"), ("Schedule", "📅"), ("Results", "🏁"), ("Standings", "🏆"),
-        ("Past races", "⏪"), ("Rivals & tracks", "⚔️"), ("Tech upgrades", "🔧"), ("Destructors", "💥")]
+        ("Past races", "⏪"), ("Performance", "📈"), ("Rivals & tracks", "⚔️"), ("Tech upgrades", "🔧"), ("Destructors", "💥")]
 MENU_NAMES = [m for m, _ in MENU]
 MENU_ICON = dict(MENU)
 MODE_PARAM = {"home": "Home", "live": "Live", "schedule": "Schedule", "results": "Results", "standings": "Standings",
-              "replay": "Past races", "past": "Past races", "rivals": "Rivals & tracks", "upgrades": "Tech upgrades",
+              "replay": "Past races", "past": "Past races", "rivals": "Rivals & tracks", "upgrades": "Tech upgrades", "performance": "Performance", "whatif": "Performance",
               "destructors": "Destructors"}
 
 
@@ -1556,6 +1556,13 @@ def main(autorecord=False):
         {"Home": season_pages.home, "Schedule": season_pages.schedule_page, "Results": season_pages.results_page,
          "Standings": season_pages.standings_page, "Tech upgrades": extras_pages.upgrades_page,
          "Destructors": extras_pages.destructors_page}[view]()
+        return
+    if view == "Performance":
+        from f1analytics.ui.performance_page import page as performance_page
+
+        paint_scene()
+        performance_page()
+        own_copy_guide()
         return
     if view == "Rivals & tracks":
         from f1analytics.ui.rivals_page import page as rivals_page
