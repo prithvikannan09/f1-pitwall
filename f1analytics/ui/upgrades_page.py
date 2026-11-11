@@ -10,6 +10,7 @@ from f1analytics.ui import extras_pages
 from f1analytics.ui.duel_panel import CSS as DUEL_CSS
 from f1analytics.ui.duel_panel import _chart
 from f1analytics.ui.season_pages import CSS, focus_code
+from f1analytics.ui.mobile import how
 
 PU_RULES = """
 **How engine parts work (2026 rules)**
@@ -126,7 +127,7 @@ def engine_tab():
     driver_chart(data, df)
     with st.expander("How engine parts and penalties work"):
         st.markdown(PU_RULES)
-    st.caption(f"Source: [FIA Technical Delegate's Report, {ev['label']}]({ev['url']}). Limits and penalty rules: "
+    how(f"Source: [FIA Technical Delegate's Report, {ev['label']}]({ev['url']}). Limits and penalty rules: "
                "[Formula1.com guide to power unit penalties](https://www.formula1.com/en/latest/article/the-beginners-guide-to-formula-1-engine-and-gearbox-penalties.2TSy7BFgEvdNLojGLWS3F1). "
                "The Bahrain GP at Sepang count isn't in the FIA archive under the usual name, so that race is skipped.")
 
@@ -140,7 +141,7 @@ def team_totals(df, cols):
     fig.add_vline(x=base, line_color="#E10600", line_dash="dot", annotation_text="season allowance for 2 cars", annotation_font_size=9)
     fig.update_layout(title="Engine parts used per team (both cars, excluding ancillaries)", xaxis_title="Parts", showlegend=False)
     st.plotly_chart(_chart(fig, 60 + 30 * len(t)), use_container_width=True, config={"displayModeBar": False})
-    st.caption("A rough reliability guide: more parts usually means more failures or more strategic penalties. Note teams supplied by the same engine maker share the same design.")
+    how("A rough reliability guide: more parts usually means more failures or more strategic penalties. Note teams supplied by the same engine maker share the same design.")
 
 
 def driver_chart(data, df):
@@ -155,10 +156,12 @@ def driver_chart(data, df):
     for d in who:
         h = pu.history(data, d)
         if len(h):
-            fig.add_trace(go.Scatter(x=h["event"], y=h[el], mode="lines+markers", name=d, line_shape="hv",
+            from f1analytics.ui.mobile import code as rcode
+
+            fig.add_trace(go.Scatter(x=[rcode(x) for x in h["event"]], y=h[el], mode="lines+markers", name=d, line_shape="hv",
                                      hovertemplate=f"{d} · %{{x}}: %{{y}} used<extra></extra>"))
     fig.add_hline(y=pu.LIMITS[el], line_color="#E10600", line_dash="dot", annotation_text="season limit", annotation_font_size=9)
-    fig.update_layout(title=f"{pu.NAMES[el]}: used through the season", yaxis_title="Used so far", xaxis_tickangle=-45)
+    fig.update_layout(title=f"{pu.NAMES[el]}: used through the season", yaxis_title="Used so far", xaxis_tickangle=0, xaxis_tickfont=dict(size=9))
     st.plotly_chart(_chart(fig, 340), use_container_width=True, config={"displayModeBar": False})
 
 
@@ -253,7 +256,7 @@ def aduo_section(focus_teams=(), compact=False):
     st.markdown(f"<div style='overflow-x:auto'><table class='duel-t'><tr><th>Engine (teams using it)</th>{head}<th>Our telemetry: straight-line trend</th></tr>{rows}</table></div>",
                 unsafe_allow_html=True)
     notes = " ".join(f"{p['name']}: {p['note']}" for p in periods if p.get("note"))
-    st.caption(f"{a['what']} {notes} {a['next']}")
+    how(f"{a['what']} {notes} {a['next']}")
     if compact or not len(per):
         if compact:
             st.caption("Full engine benchmark chart and engine part counts: 🔧 Upgrades → Engine components.")
@@ -271,7 +274,7 @@ def aduo_section(focus_teams=(), compact=False):
     if col == "gap_clip":
         fig.update_yaxes(autorange="reversed")
     st.plotly_chart(_chart(fig, 340), use_container_width=True, config={"displayModeBar": False})
-    st.caption("Our own estimate, not the FIA's: average of every car using that engine, from OpenF1 telemetry on each straight compared with the field median. "
+    how("Our own estimate, not the FIA's: average of every car using that engine, from OpenF1 telemetry on each straight compared with the field median. "
                "Top speed also depends on how much wing a team runs and on the battery, so treat it as a clue, not an engine measurement. "
                "Speed lost before braking shows cars running out of electric energy at the end of straights; less is better (chart flipped so up is better). "
                "Sources: " + " · ".join(f"[{t}]({u})" for t, u in a["sources"]))

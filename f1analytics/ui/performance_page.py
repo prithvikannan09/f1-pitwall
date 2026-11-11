@@ -14,6 +14,7 @@ from f1analytics.ui import extras_pages
 from f1analytics.ui.duel_panel import CSS as DUEL_CSS
 from f1analytics.ui.duel_panel import _chart
 from f1analytics.ui.season_pages import CSS, focus_code
+from f1analytics.ui.mobile import how
 
 YEAR = 2026
 COND_COLOUR = {"dry": "rgba(160,160,175,.10)", "inter": "rgba(67,176,42,.22)", "wet": "rgba(0,103,173,.28)"}
@@ -183,7 +184,7 @@ def pace_section(raw, model, rnd, grid, focus=()):
                            hovertext=[f"{n}: top speed {s:.0f} km/h" if pd.notna(s) else n for n, s in zip(t.index[::-1], t["trap"][::-1])], hoverinfo="text"))
     fig.update_layout(xaxis_title="Seconds a lap slower than the fastest car", xaxis_range=[0, max(t["gap"].max() * 1.6, 0.5)], showlegend=False)
     st.plotly_chart(_chart(fig, 40 + 34 * len(t)), use_container_width=True, config={"displayModeBar": False})
-    st.caption("Race pace = each driver's typical gap on clean laps once tyre type, tyre age, fuel and the weather on that lap are taken out; "
+    how("Race pace = each driver's typical gap on clean laps once tyre type, tyre age, fuel and the weather on that lap are taken out; "
                "a team is the average of its two drivers; the teams of the two drivers you picked are outlined. Hover for each team's top speed at the speed trap. Estimates from OpenF1 lap times.")
 
 
@@ -245,7 +246,7 @@ def strategy_section(race, raw, laps, sk, code, colour, present, num, rival=None
     st.markdown("#### Weather and track")
     st.plotly_chart(weather_chart(m["state"], rain), use_container_width=True, config={"displayModeBar": False})
     n_cond = m["state"]["cond"].value_counts()
-    st.caption("Shading: grey = dry, green = damp (most cars on inters), blue = wet (most cars on full wets). The track condition each lap comes from what tyres the field ran; "
+    how("Shading: grey = dry, green = damp (most cars on inters), blue = wet (most cars on full wets). The track condition each lap comes from what tyres the field ran; "
                "rain and track temperature from OpenF1's weather station. "
                + ", ".join(f"{sim.COND_NAME[k]}: {int(n_cond.get(k, 0))} laps" for k in sim.CONDS if n_cond.get(k)))
     who = code.get(num, str(num))
@@ -462,15 +463,8 @@ def season_upgrades_tab(team_colours, focus_teams=()):
     e = events[(events["team"] == team) & events["race"].notna()]
     names = [r["location"] for r in races]
     col = team_colours.get(team, "#E10600")
-    fig = make_subplots(specs=[[{"secondary_y": True}]])
-    fig.add_trace(go.Bar(x=[names[int(i)] for i in e["race"]], y=e["parts"], name="New parts declared", marker_color="rgba(255,255,255,.18)",
-                         hovertemplate="%{x}: %{y} new parts<extra></extra>"), secondary_y=True)
-    fig.add_trace(go.Scatter(x=[names[i] for i in g["race"]], y=g["gap"], name=f"{team}: gap to fastest car", mode="lines+markers",
-                             line=dict(color=col, width=2.6), hovertemplate="%{x}: %{y:.2f}% off the fastest<extra></extra>"))
-    fig.update_yaxes(title_text="% slower than the fastest car (lower is better)", autorange="reversed", secondary_y=False)
-    fig.update_yaxes(title_text="New parts", secondary_y=True, showgrid=False, range=[0, max(int(e["parts"].max()) * 3, 6) if len(e) else 6])
-    fig.update_xaxes(categoryorder="array", categoryarray=names, tickangle=-45)
-    st.plotly_chart(_chart(fig, 380), use_container_width=True, config={"displayModeBar": False})
+    upgrade_line_chart([(team, list(g["race"]), list(g["gap"]), col)], {team: e}, names, f"{team}: gap to the fastest car",
+                       "% off fastest", True, None, "pf_season_range", "%", "{:.2f}%")
     pre = events[(events["team"] == team) & events["race"].isna()]["parts"].sum()
     if pre:
         st.caption(f"{team} also declared {int(pre)} new parts between Australia and the Dutch GP, but only a season total was published for those races, so they can't be placed on the chart.")
@@ -487,7 +481,7 @@ def season_upgrades_tab(team_colours, focus_teams=()):
                          f"<b>{abs(x['change']):.2f}% {word}</b> relative to the field. <span class='duel-dim'>{parts}</span></li>")
         st.markdown("##### Each upgrade, before and after")
         st.markdown("<ul class='duel-list'>" + "".join(lines) + "</ul>", unsafe_allow_html=True)
-    st.caption("Pace = the faster of the team's two drivers on clean race laps, as a % gap to the fastest car that race. Before = up to 3 races before the upgrade, "
+    how("Pace = the faster of the team's two drivers on clean race laps, as a % gap to the fastest car that race. Before = up to 3 races before the upgrade, "
                "after = that race and the next 2. It's relative: if everyone else upgrades more, a team can fall back even after bringing parts. "
                "Track type changes the order too (a car good at Monaco may struggle at Monza), so read a single race with care. Estimates from OpenF1 lap times; "
                "upgrade lists from the FIA submissions as reported.")
@@ -557,7 +551,7 @@ def driver_form_tab(focus=None):
     heat.update_yaxes(autorange="reversed")
     heat.update_layout(title="Every finish this season (green = podium, grey = back of the field or DNF)")
     st.plotly_chart(_chart(heat, 40 + 22 * len(order)), use_container_width=True, config={"displayModeBar": False})
-    st.caption("Points and finishes: Jolpica (Ergast). DNF counts as P22 in the average finish. Race pace vs fastest: middle value of each driver's clean-lap pace "
+    how("Points and finishes: Jolpica (Ergast). DNF counts as P22 in the average finish. Race pace vs fastest: middle value of each driver's clean-lap pace "
                "as a % gap to the fastest driver that race (OpenF1), so it shows speed separately from luck and reliability. "
                "Form: 'faded' or 'finishing strong' means at least 3 points a race up or down between the two halves, or 1.5 points plus two places on average.")
 
@@ -613,7 +607,7 @@ def upgrade_impact_section(race, raw, d, rnd, grid, num, rival, code, colour):
         st.markdown(f"<div class='upc-grid'>{cards}</div>{extras_pages.UP_CSS}", unsafe_allow_html=True)
     if none:
         st.caption(f"No new parts at {rnd['label']}: {', '.join(none)}.")
-    st.caption("Before = the 3 races before this one; after = this race and the next 2. Gap to fastest is race pace on clean laps; corner and top speed are "
+    how("Before = the 3 races before this one; after = this race and the next 2. Gap to fastest is race pace on clean laps; corner and top speed are "
                "telemetry (OpenF1, about 4 samples a second) compared with the field median at each braking zone and straight, so different tracks can be compared. "
                "Estimates; a single race can be skewed by weather or track type.")
     if mine and ri is not None:
@@ -640,7 +634,7 @@ def trend_chart(data, events, teams, ri):
     except Exception:
         pass
     metric = st.radio("Show", ["Gap to fastest car", "Corner speed vs field", "Top speed vs field"], horizontal=True, key="pf_trend_metric")
-    fig = go.Figure()
+    lines, evs = [], {}
     for t in teams:
         if metric == "Gap to fastest car":
             g = pace[pace["team"] == t].sort_values("race")
@@ -648,19 +642,44 @@ def trend_chart(data, events, teams, ri):
         else:
             g = tel[tel["team"] == t].sort_values("race")
             y = g["corner_speed_kmh" if metric.startswith("Corner") else "top_speed_kmh"]
-        colr = cols.get(t, "#9A9AA8")
-        fig.add_trace(go.Scatter(x=[names[i] for i in g["race"]], y=y, name=t, mode="lines+markers", line=dict(color=colr, width=2.4)))
-        ev = events[(events["team"] == t) & events["race"].notna()]
-        for _, e in ev.iterrows():
-            fig.add_annotation(x=names[int(e["race"])], y=1.02, yref="paper", text=f"▼{int(e['parts'])}", showarrow=False, font=dict(size=9, color=colr))
-    fig.add_vline(x=ri, line_color="#F3F3F5", line_dash="dot")
-    unit = "%" if metric == "Gap to fastest car" else "km/h"
-    fig.update_layout(title=f"{' vs '.join(teams)}: {metric.lower()} through the season", yaxis_title=unit, xaxis_tickangle=-45)
-    if metric == "Gap to fastest car":
-        fig.update_yaxes(autorange="reversed")
-    fig.update_xaxes(categoryorder="array", categoryarray=names)
-    st.plotly_chart(_chart(fig, 340), use_container_width=True, config={"displayModeBar": False})
-    st.caption("▼n marks a race where the team declared n new parts; the dotted line is the race you picked. Higher speed and a smaller gap are better.")
+        lines.append((t, list(g["race"]), list(y), cols.get(t, "#9A9AA8")))
+        evs[t] = events[(events["team"] == t) & events["race"].notna()]
+    gap = metric == "Gap to fastest car"
+    upgrade_line_chart(lines, evs, names, f"{' vs '.join(teams)}: {metric.lower()}", "%" if gap else "km/h", gap, ri, "pf_trend_range",
+                       "%" if gap else " km/h", "{:.2f}%" if gap else "{:+.1f} km/h")
+    how("Dots under the chart = races where that team declared new parts; bigger dot, more parts. The dotted line is the race you picked. "
+        "Higher speed and a smaller gap are better. Speeds are compared with the field median at each braking zone and straight.")
+
+
+def upgrade_line_chart(lines, events, names, title, ytitle, reverse, mark, key, unit, fmt):
+    from f1analytics.ui.mobile import code as rcode
+
+    span = st.radio("Races", ["Last 10", "Whole season"], horizontal=True, key=key, label_visibility="collapsed")
+    lo = max(0, len(names) - 10) if span == "Last 10" else 0
+    codes = [rcode(n) for n in names]
+    shown = codes[lo:]
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.8, 0.2], vertical_spacing=0.05)
+    for name, xs, ys, colr in lines:
+        pts = [(codes[int(x)], y, names[int(x)]) for x, y in zip(xs, ys) if int(x) >= lo]
+        fig.add_trace(go.Scatter(x=[p[0] for p in pts], y=[p[1] for p in pts], name=name, mode="lines+markers", line=dict(color=colr, width=2.4),
+                                 marker=dict(size=6), customdata=[p[2] for p in pts],
+                                 hovertemplate="%{customdata}: %{y:.2f}" + unit + "<extra>" + name + "</extra>"), row=1, col=1)
+    for k, (name, _, _, colr) in enumerate(lines):
+        e = events.get(name)
+        if e is None or not len(e):
+            continue
+        e = e[e["race"].astype(int) >= lo]
+        fig.add_trace(go.Scatter(x=[codes[int(r)] for r in e["race"]], y=[k] * len(e), mode="markers", showlegend=False,
+                                 marker=dict(size=[6 + min(int(p), 6) * 2 for p in e["parts"]], color=colr, line=dict(color="#101016", width=1)),
+                                 customdata=e["parts"], hovertemplate="%{x}: %{customdata} new parts<extra>" + name + "</extra>"), row=2, col=1)
+    if mark is not None and int(mark) >= lo:
+        for r in (1, 2):
+            fig.add_vline(x=codes[int(mark)], line_color="#F3F3F5", line_dash="dot", line_width=1, row=r, col=1)
+    fig.update_xaxes(categoryorder="array", categoryarray=shown, tickangle=0, tickfont=dict(size=9))
+    fig.update_yaxes(title_text=ytitle, row=1, col=1, autorange="reversed" if reverse else True)
+    fig.update_yaxes(row=2, col=1, showticklabels=False, showgrid=False, range=[-0.7, max(len(lines) - 0.3, 0.7)], title_text="parts", title_font=dict(size=9))
+    fig.update_layout(title=title)
+    st.plotly_chart(_chart(fig, 330), use_container_width=True, config={"displayModeBar": False})
 
 
 def telemetry_compare(race, raw, laps, num, rival, code, colour, rnd):

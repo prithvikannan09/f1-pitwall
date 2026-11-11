@@ -7,6 +7,7 @@ import streamlit as st
 from plotly.subplots import make_subplots
 
 from f1analytics.pitwall import duel
+from f1analytics.ui.mobile import how
 
 FONT = dict(family="Michroma, sans-serif", color="#F3F3F5", size=11)
 KIND_HELP = {
@@ -135,7 +136,7 @@ def tyre_section(raw, laps, a, b, ca, cb, col_a, col_b):
     st.markdown(f"<table class='duel-t'><tr><th>Driver</th><th>Stint</th><th>Tyre</th><th>Laps</th><th>Typical lap</th><th>Wear per lap</th><th></th></tr>{rows}</table>",
                 unsafe_allow_html=True)
     fpl = duel.fuel_per_lap(total)
-    st.caption(f"Wear per lap = how much slower each lap got on that set, after removing the fuel effect (cars get about {fpl:.3f}s a lap faster as fuel burns; "
+    how(f"Wear per lap = how much slower each lap got on that set, after removing the fuel effect (cars get about {fpl:.3f}s a lap faster as fuel burns; "
                "assumption from the app's fuel model). Minus means the laps got quicker, usually because the track was drying or rubbering in. "
                "Typical lap = median of that stint's laps, leaving out pit laps and Safety Car laps.")
     fig = go.Figure()
@@ -149,7 +150,7 @@ def tyre_section(raw, laps, a, b, ca, cb, col_a, col_b):
                                  hovertemplate=f"{code} lap %{{x}}: %{{y:.3f}}s<extra></extra>"))
     fig.update_layout(xaxis_title="Lap", yaxis_title="Lap time (s)")
     st.plotly_chart(_chart(fig, 300), use_container_width=True, config={"displayModeBar": False})
-    st.caption("Dot colour = tyre: red soft, yellow medium, white hard, green intermediate, blue wet. Pit laps and very slow laps are left out.")
+    how("Dot colour = tyre: red soft, yellow medium, white hard, green intermediate, blue wet. Pit laps and very slow laps are left out.")
     traps_a, traps_b = duel.speed_traps(raw.get("laps"), a), duel.speed_traps(raw.get("laps"), b)
     if len(traps_a) and len(traps_b) and "st_speed" in traps_a:
         st.markdown("#### Speeds through the race")
@@ -167,7 +168,7 @@ def tyre_section(raw, laps, a, b, ca, cb, col_a, col_b):
                                      hovertemplate=f"{code} lap %{{x}}: %{{y:.0f}} km/h<extra></extra>"))
         fig.update_layout(xaxis_title="Lap", yaxis_title="Speed trap (km/h)")
         st.plotly_chart(_chart(fig, 260), use_container_width=True, config={"displayModeBar": False})
-        st.caption("Speeds are measured at fixed points on track every lap (OpenF1). Dips usually mean a tow lost, traffic, lifting to save energy, or wet running.")
+        how("Speeds are measured at fixed points on track every lap (OpenF1). Dips usually mean a tow lost, traffic, lifting to save energy, or wet running.")
 
 
 def track_map(cmp, seg, ca, cb, col_a, col_b, corners):
@@ -270,7 +271,7 @@ def wear_section(raw, laps, a, b, ca, cb, col_a, col_b, la, lb):
                          f"<div class='duel-v'>{txt}</div><div class='duel-dim' style='font-size:.68rem'>How much of the gap is down to tyre wear, not driving. Estimate.</div></div>",
                          unsafe_allow_html=True)
     st.plotly_chart(wear_chart(wa, wb, ca, cb, col_a, col_b, la, lb), use_container_width=True, config={"displayModeBar": False})
-    st.caption("Each dot is one lap of the stint, coloured by tyre; the star is the lap compared above. The dashed line is the wear trend: "
+    how("Each dot is one lap of the stint, coloured by tyre; the star is the lap compared above. The dashed line is the wear trend: "
                "the steeper it climbs, the faster the tyres are going off. Cars get lighter as fuel burns, which hides wear, so that effect is taken out first. "
                "Cost on this lap = wear per lap × laps into the stint. Safety Car and pit laps are left out. Estimates from lap times (OpenF1).")
 
@@ -347,7 +348,7 @@ def telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b):
     st.plotly_chart(traces_chart(cmp, ca, cb, col_a, col_b, seg), use_container_width=True, config={"displayModeBar": False})
     wear_section(raw, laps, a, b, ca, cb, col_a, col_b, la, lb)
     gaps = [c for c, k in ((ca, "gap_a"), (cb, "gap_b")) if seg[k].any()]
-    st.caption("How it's worked out: both laps are placed on the track using the cars' GPS positions, then lined up so they start together. "
+    how("both laps are placed on the track using the cars' GPS positions, then lined up so they start together. "
                "The time gap is tracked metre by metre and pinned to the official sector times, so the corners add up exactly to the real lap difference. "
                "Each corner section runs from halfway after the previous corner to halfway before the next. Telemetry: OpenF1, about 4 samples a second."
                + (f" {' and '.join(gaps)}'s data has short gaps on this lap; those corners are marked." if gaps else ""))

@@ -261,3 +261,30 @@ def test_aduo_bands_and_maker_speed():
     per = aduo_tables(load(), a)
     assert set(per["maker"]) == set(a["makers"]) and per["period"].max() == 3
     assert (per.loc[per["maker"] == "Red Bull Ford", "gap_top"].abs() < 1e-9).all()
+
+
+def test_mobile_helpers():
+    import plotly.graph_objects as go
+
+    from f1analytics.ui import mobile
+
+    assert mobile.code("São Paulo") == "SAO" and mobile.code("Austria") == "AUT" and mobile.code("Kuala Lumpur") == "SEP"
+    fig = go.Figure(go.Scatter(x=[1, 2], y=[1, 2], name="Ferrari"))
+    fig.update_layout(title="Ferrari vs Red Bull: gap to fastest car through the whole season so far", margin=dict(l=10, r=10, t=30, b=10))
+    mobile.tidy(fig)
+    assert "<br>" in fig.layout.title.text and fig.layout.margin.t >= 60 and fig.layout.legend.x == 0
+    assert set(sum((list(v) for _, _, _, v in mobile.TABS), [])) >= {"Home", "Live", "Past races", "Performance", "Upgrades", "More"}
+
+
+def test_more_page_and_tabbar_render():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_string("""
+from f1analytics.ui import mobile
+mobile.styles()
+mobile.tabbar("Performance")
+mobile.more_page()
+""").run(timeout=30)
+    assert not at.exception
+    text = " ".join(m.value for m in at.markdown)
+    assert "pw-tabbar" in text and "pw-tab on' href='?mode=performance" in text and "?mode=destructors" in text

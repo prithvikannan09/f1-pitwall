@@ -417,8 +417,16 @@ MODE_PARAM = {"home": "Home", "live": "Live", "schedule": "Schedule", "results":
               "destructors": "Destructors"}
 
 
+MENU_PARAM = {"Home": "home", "Live": "live", "Schedule": "schedule", "Results": "results", "Standings": "standings", "Past races": "replay",
+              "Performance": "performance", "Rivals & tracks": "rivals", "Upgrades": "upgrades", "Destructors": "destructors"}
+
+
 def _sync_menu(src, dst):
     st.session_state[dst] = st.session_state[src]
+    try:
+        st.query_params["mode"] = MENU_PARAM.get(st.session_state[src], "home")
+    except Exception:
+        pass
 
 
 def nav():
@@ -1532,6 +1540,10 @@ def f1tv_badge(snap):
 def main(autorecord=False):
     st.set_page_config(page_title="F1 Pit Wall", page_icon="🏁", layout="wide", initial_sidebar_state="auto")
     st.markdown(CSS, unsafe_allow_html=True)
+    from f1analytics.ui import mobile
+
+    mobile.styles()
+    mobile.install_chart_tidy()
     from f1analytics.live.auth import load_streamlit_secrets
 
     load_streamlit_secrets()
@@ -1547,8 +1559,17 @@ def main(autorecord=False):
         st.markdown("<span class='pw-nav-mark'></span>", unsafe_allow_html=True)
         st.selectbox("Menu", MENU_NAMES, key="pw_mode_m", format_func=lambda m: f"{MENU_ICON[m]}  {m}", label_visibility="collapsed",
                      on_change=_sync_menu, args=("pw_mode_m", "pw_mode"))
+    if str(st.query_params.get("mode", "")).lower() == "more":
+        view = "More"
     with head_r:
-        owner_signin()
+        st.markdown("<span class='pw-signin-mark'></span>", unsafe_allow_html=True)
+        if view != "More":
+            owner_signin()
+    mobile.tabbar(view)
+    if view == "More":
+        paint_scene()
+        mobile.more_page()
+        return
     if view in ("Home", "Schedule", "Results", "Standings", "Upgrades", "Destructors"):
         from f1analytics.ui import extras_pages, season_pages, upgrades_page
 

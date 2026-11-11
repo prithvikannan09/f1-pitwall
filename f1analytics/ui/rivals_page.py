@@ -6,6 +6,7 @@ import streamlit as st
 
 from f1analytics.pitwall import rivalry as rv
 from f1analytics.ui import glossary as gl
+from f1analytics.ui.mobile import how
 
 TEAM_COLOURS = {"ferrari": "#E80020", "red bull": "#3671C6", "mercedes": "#27F4D2", "mclaren": "#FF8000", "aston": "#229971", "alpine": "#0093CC",
                 "williams": "#64C4FF", "haas": "#B6BABD", "sauber": "#52E252", "kick": "#52E252", "audi": "#F50537", "racing bulls": "#6692FF",
@@ -186,7 +187,7 @@ def telemetry_rivals(a, b, ca, cb, year=2026):
     fig.update_yaxes(gridcolor="#2E2E3A")
     st.plotly_chart(fig, use_container_width=True, config={"displayModeBar": False})
     races = x["location"].nunique()
-    st.caption(f"Season figures are the median over {races} races of {year}, each measured against that race's field (0 = field average). "
+    how(f"Season figures are the median over {races} races of {year}, each measured against that race's field (0 = field average). "
                "Telemetry: OpenF1, from each driver's clean laps. Pick a race in Past races → Head to head for lap-by-lap detail.")
 
 
@@ -216,7 +217,7 @@ def compare_all_section(focus=None):
                            "Beat teammate (quali)": _pct(r["beat_mate_quali"]), "Beat teammate (race)": _pct(r["beat_mate_race"]),
                            "Teammate": r["mate"] or "–", "DNFs": r["dnfs"], "Races": r["races"]} for i, r in enumerate(rows)])
     st.dataframe(table, hide_index=True, use_container_width=True, height=min(36 * (len(table) + 1), 760))
-    st.caption("Ranked by average qualifying position: the purest one-lap speed number we have. Avg finish only counts races the driver finished. "
+    how("Ranked by average qualifying position: the purest one-lap speed number we have. Avg finish only counts races the driver finished. "
                "Beat teammate is the share of sessions he finished ahead of the driver in the other car.")
     codes = [r["code"] for r in rows]
     everyone = sorted(set(rv.drivers(df)))

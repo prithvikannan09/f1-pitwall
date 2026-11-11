@@ -5,6 +5,7 @@ import streamlit as st
 
 from f1analytics.pitwall import duel, whatif
 from f1analytics.ui.duel_panel import CSS, _chart
+from f1analytics.ui.mobile import how
 
 
 def _pos(raw, num):
@@ -114,7 +115,7 @@ def whatif_tab(raw, laps, sk, code, colour, present, focus):
     lines.append(f"<li><b>Would the tyres last?</b> The {tyre.lower()}s would have needed to do {r['age_needed']} laps. The longest anyone ran that tyre in this race was "
                  f"{r['longest_seen']} laps, so {'it was done' if ok else 'nobody proved it possible, and this is a real risk'}.</li>")
     st.markdown("<ul class='duel-list'>" + "".join(lines) + "</ul>", unsafe_allow_html=True)
-    st.caption("A simulation, not a fact. It assumes clear track: no time lost in traffic or behind slower cars, no one else changing their plan in response, "
+    how("A simulation, not a fact. It assumes clear track: no time lost in traffic or behind slower cars, no one else changing their plan in response, "
                "and no tyre falling off a cliff. Being on older tyres also makes a car easier to overtake. Positions compare race time after "
                f"lap {cls['base']['lap']}; penalties added after the race are not included. Lap times: OpenF1.")
     move_section(raw, laps, sk, code, num, who, colr)

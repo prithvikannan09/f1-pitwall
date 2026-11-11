@@ -6,6 +6,7 @@ import pandas as pd
 import streamlit as st
 
 from f1analytics.pitwall import season as ss
+from f1analytics.ui.mobile import how
 
 YEAR = 2026
 IST = pd.Timedelta(hours=5, minutes=30)
@@ -204,7 +205,7 @@ def home():
     with c3:
         st.markdown(f"<div class='hc-h' style='margin:0 0 .3rem'>{YEAR} stats and records</div>", unsafe_allow_html=True)
         records_card(ss.records(res, ds))
-    st.caption(f"Standings and results: Jolpica (Ergast), after round {data['round']}. Evo = places gained or lost since the previous round. "
+    how(f"Standings and results: Jolpica (Ergast), after round {data['round']}. Evo = places gained or lost since the previous round. "
                "Team colours: OpenF1.")
 
 
