@@ -162,6 +162,9 @@ def driver_chart(data, df):
                                      hovertemplate=f"{d} · %{{x}}: %{{y}} used<extra></extra>"))
     fig.add_hline(y=pu.LIMITS[el], line_color="#E10600", line_dash="dot", annotation_text="season limit", annotation_font_size=9)
     fig.update_layout(title=f"{pu.NAMES[el]}: used through the season", yaxis_title="Used so far", xaxis_tickangle=0, xaxis_tickfont=dict(size=9))
+    from f1analytics.ui.mobile import code as rcode, thin_ticks
+
+    thin_ticks(fig, [rcode(e["label"]) for e in data["events"]], 7)
     st.plotly_chart(_chart(fig, 340), use_container_width=True, config={"displayModeBar": False})
 
 

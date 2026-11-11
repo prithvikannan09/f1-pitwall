@@ -337,3 +337,15 @@ def test_gps_crossings_cut_laps_at_one_point():
     w, _ = rc.gps_lap_windows({44: loc}, {44: 78.0})
     a, b = w[44]
     assert abs((b - a).total_seconds() - 78.0) < 0.5
+
+
+def test_thin_ticks_keeps_last_and_limits_count():
+    import plotly.graph_objects as go
+
+    from f1analytics.ui import mobile
+
+    cats = [f"R{i:02d}" for i in range(20)]
+    fig = go.Figure(go.Scatter(x=cats, y=list(range(20))))
+    mobile.thin_ticks(fig, cats, 7)
+    vals = list(fig.layout.xaxis.tickvals)
+    assert len(vals) <= 7 and vals[-1] == "R19"

@@ -689,6 +689,10 @@ def upgrade_line_chart(lines, events, names, title, ytitle, reverse, mark, key, 
         for r in (1, 2):
             fig.add_vline(x=codes[int(mark)], line_color="#F3F3F5", line_dash="dot", line_width=1, row=r, col=1)
     fig.update_xaxes(categoryorder="array", categoryarray=shown, tickangle=0, tickfont=dict(size=9))
+    from f1analytics.ui.mobile import thin_ticks
+
+    thin_ticks(fig, shown, 7 if len(shown) > 10 else 10, row=2, col=1)
+    fig.update_xaxes(showticklabels=False, row=1, col=1)
     fig.update_yaxes(title_text=ytitle, row=1, col=1, autorange="reversed" if reverse else True)
     fig.update_yaxes(row=2, col=1, showticklabels=False, showgrid=False, range=[-0.7, max(len(lines) - 0.3, 0.7)], title_text="parts", title_font=dict(size=9))
     fig.update_layout(title=title)

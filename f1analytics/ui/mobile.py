@@ -41,7 +41,7 @@ CSS = """<style>
   [data-testid="stColumn"]:has(.pw-nav-mark){display:none !important}
   [data-testid="stHorizontalBlock"]:has(.pw-nav-mark){gap:.4rem !important}
   .pw-tabbar{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));position:fixed;left:0;right:0;bottom:0;height:64px;z-index:999990;
-    background:#14141C;border-top:1px solid #2E2E3A;padding-bottom:env(safe-area-inset-bottom)}
+    background:#14141C;border-top:1px solid #2E2E3A;padding:0 104px env(safe-area-inset-bottom) 4px;box-sizing:border-box}
   .pw-tabbar a{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;font-size:.6rem;color:#A3A3B2 !important;text-decoration:none !important;letter-spacing:.04em}
   .pw-tabbar a.on{color:#F3F3F5 !important}
   .pw-tabbar a.on svg{stroke:#E10600}
@@ -162,3 +162,15 @@ def install_chart_tidy():
 
     plotly_chart._pw_tidy = True
     st.plotly_chart = plotly_chart
+
+
+def thin_ticks(fig, categories, max_labels=8, **axis):
+    """Show at most max_labels category labels (every k-th, always the last) so race codes never overlap on a phone."""
+    cats = list(categories)
+    if len(cats) <= max_labels:
+        fig.update_xaxes(tickvals=cats, ticktext=cats, **axis)
+        return fig
+    k = -(-len(cats) // max_labels)
+    keep = cats[::-1][::k][::-1]
+    fig.update_xaxes(tickmode="array", tickvals=keep, ticktext=keep, **axis)
+    return fig
