@@ -130,3 +130,16 @@ pp.page()
     assert not [w.value for w in at.warning]
     assert [b.label for b in at.selectbox][:3] == ["Race", "Driver", "Compare with"]
     assert "Time lost vs best plan" in text
+
+
+def test_latest_upgrades_lists_every_team():
+    from f1analytics.ui import extras_pages
+    from f1analytics.ui.performance_page import latest_upgrades
+
+    d = extras_pages.load()
+    rows = latest_upgrades(d)
+    assert len(rows) == len(d["upgrades"]["teams"])
+    mcl = next(r for r in rows if r["team"] == "McLaren")
+    assert mcl["round"] == "São Paulo" and len(mcl["parts"]) == 4
+    fer = next(r for r in rows if r["team"] == "Ferrari")
+    assert fer["round"] != "São Paulo" and fer["total"] == 52

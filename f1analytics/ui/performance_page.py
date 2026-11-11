@@ -87,7 +87,39 @@ def upgrades_section(race, raw, model, focus=()):
             blocks += (f"<div class='upc' style='border-left-color:{extras_pages._team_colour(t, grid)}'><div class='upc-t'>{html.escape(t)} "
                        f"<span class='hc-dim'>{int(counts[t])} declared</span></div><ul>{lis}</ul></div>")
         st.markdown(f"<div class='upc-grid'>{blocks}</div>{extras_pages.UP_CSS}", unsafe_allow_html=True)
+        none = [t for t in d["upgrades"]["teams"] if not r["counts"].get(t)]
+        if none:
+            st.caption(f"No new parts declared at {r['label']}: {', '.join(none)}.")
+    latest_section(d, grid, r)
     pace_section(raw, model, r, grid, focus)
+
+
+def latest_upgrades(d, upto=None):
+    rounds = d["upgrades"]["rounds"]
+    if upto is not None:
+        rounds = rounds[:rounds.index(upto) + 1]
+    tot = extras_pages.upgrade_totals({"upgrades": {"teams": d["upgrades"]["teams"], "rounds": rounds}})
+    out = []
+    for t in tot.index:
+        last = next((r for r in rounds[::-1] if r.get("items") and (r["items"].get(t) or [])), None)
+        out.append({"team": t, "total": int(tot[t]), "round": last["label"] if last else None, "parts": (last["items"][t] if last else [])})
+    return out
+
+
+def latest_section(d, grid, r):
+    rows = latest_upgrades(d, r)
+    st.markdown("#### Every team's latest upgrades")
+    blocks = ""
+    for x in rows:
+        if x["parts"]:
+            lis = "".join(f"<li>{html.escape(p)}</li>" for p in x["parts"])
+            head = f"{html.escape(x['round'])} · {len(x['parts'])} parts"
+        else:
+            lis, head = "<li class='hc-dim'>No part-by-part list since Monza.</li>", "—"
+        blocks += (f"<div class='upc' style='border-left-color:{extras_pages._team_colour(x['team'], grid)}'><div class='upc-t'>{html.escape(x['team'])} "
+                   f"<span class='hc-dim'>{head}</span></div><ul>{lis}</ul><div class='hc-dim' style='font-size:.66rem'>{x['total']} new parts this season so far</div></div>")
+    st.markdown(f"<div class='upc-grid'>{blocks}</div>", unsafe_allow_html=True)
+    st.caption("The most recent race where each team declared new parts to the FIA, up to the race picked above. Season totals count every round from Australia.")
 
 
 def pace_section(raw, model, rnd, grid, focus=()):
