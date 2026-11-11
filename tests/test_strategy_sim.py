@@ -125,11 +125,12 @@ pp.page()
 """).run(timeout=90)
     assert not at.exception
     tabs = [t.label for t in at.tabs]
-    assert tabs[:4] == ["Race pace", "Tyre strategy & weather", "What if", "Season: driver form"]
+    assert tabs[:4] == ["Upgrades & pace", "Tyre strategy & weather", "What if", "Season: driver form"]
     text = " ".join(m.value for m in at.markdown)
     assert "Race pace by team" in text and "Best tyre strategy" in text
     assert "What if they had skipped a pit stop?" in text
-    assert not [w.value for w in at.warning]
+    assert not [w.value for w in at.warning if "telemetry" not in w.value]
+    assert "Upgrades at this race and did they work?" in text and "Telemetry at São Paulo: HAM vs LEC" in text
     assert [b.label for b in at.selectbox][:3] == ["Race", "Driver", "Compare with"]
     assert "Time lost vs best plan" in text
     assert "Who started strong and who faded" in text
@@ -228,3 +229,19 @@ upgrades_page.page()
     assert [t.label for t in at.tabs][:3] == ["Car parts", "Engine components", "Did the upgrades work?"]
     text = " ".join(m.value for m in at.markdown)
     assert "476 new parts" in text and "Engine parts used this season" in text and "Over the limit" in text and "Did the upgrades work?" in text
+
+
+def test_upgrade_impact_at_a_race():
+    from f1analytics.pitwall import season_form as sf
+    from f1analytics.pitwall.racecraft import load
+    from f1analytics.ui import extras_pages
+
+    data = load()
+    ev = sf.upgrade_events(extras_pages.load(), data["races"])
+    austin = next(i for i, r in enumerate(data["races"]) if r["location"] == "Austin")
+    rows = {x["team"]: x for x in sf.impact_at(data, ev, austin)}
+    assert "Ferrari" in rows and rows["Ferrari"]["parts"] == 4
+    f = rows["Ferrari"]
+    assert f["pace_before"] is not None and f["pace_after"] is not None and f["races_after"] >= 2
+    assert "top_speed_kmh_before" in f
+    assert sf.race_index(data, data["races"][3]["session_key"]) == 3

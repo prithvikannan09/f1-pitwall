@@ -378,7 +378,7 @@ def page():
         m, _, _ = model_for(race["key"])
     except Exception:
         m = None
-    t1, t2, t3, t5 = st.tabs(["Race pace", "Tyre strategy & weather", "What if", "Season: driver form"])
+    t1, t2, t3, t5 = st.tabs(["Upgrades & pace", "Tyre strategy & weather", "What if", "Season: driver form"])
     with t5:
         try:
             driver_form_tab(code.get(num))
@@ -390,8 +390,18 @@ def page():
     with t1:
         if m is not None:
             d = extras_pages.load()
-            pace_section(raw, m, round_for(race, d["upgrades"]["rounds"]), extras_pages._grid(), [n for n in (num, rival) if n is not None])
-            st.caption("Every team's car parts and engine components, and whether the upgrades worked, are on the 🔧 Upgrades page.")
+            rnd = round_for(race, d["upgrades"]["rounds"])
+            grid = extras_pages._grid()
+            try:
+                upgrade_impact_section(race, raw, d, rnd, grid, num, rival, code, colour)
+            except Exception:
+                import logging
+
+                logging.getLogger("f1analytics").exception("upgrade impact failed")
+            pace_section(raw, m, rnd, grid, [n for n in (num, rival) if n is not None])
+            if rival is not None:
+                telemetry_compare(race, raw, laps, num, rival, code, colour, rnd)
+            st.caption("Season totals, every team's full upgrade list and engine components are on the 🔧 Upgrades page.")
     with t2:
         try:
             strategy_section(race, raw, laps, race["key"], code, colour, present, num, rival)
@@ -550,3 +560,119 @@ def driver_form_tab(focus=None):
     st.caption("Points and finishes: Jolpica (Ergast). DNF counts as P22 in the average finish. Race pace vs fastest: middle value of each driver's clean-lap pace "
                "as a % gap to the fastest driver that race (OpenF1), so it shows speed separately from luck and reliability. "
                "Form: 'faded' or 'finishing strong' means at least 3 points a race up or down between the two halves, or 1.5 points plus two places on average.")
+
+
+
+def _fmt(v, unit, digits=2, sign=True):
+    if v is None or pd.isna(v):
+        return "—"
+    return (f"{v:+.{digits}f}" if sign else f"{v:.{digits}f}") + unit
+
+
+def upgrade_impact_section(race, raw, d, rnd, grid, num, rival, code, colour):
+    from f1analytics.pitwall import season_form as sf
+
+    st.markdown("#### Upgrades at this race and did they work?")
+    if not rnd:
+        st.caption("Part-by-part upgrade lists start at Monza, so there's no per-race breakdown for this track. Pick Monza or later.")
+        return
+    data = _season_data() or {}
+    ri = sf.race_index(data, race["key"])
+    events = sf.upgrade_events(d, data.get("races") or [])
+    team = rv.teams(raw)
+    mine = {sf.team_name(team.get(n)) for n in (num, rival) if n is not None and team.get(n)}
+    counts = pd.Series(rnd["counts"]).sort_values(ascending=False)
+    counts = counts[counts > 0]
+    none = [t for t in d["upgrades"]["teams"] if t not in counts.index]
+    if counts.empty:
+        st.caption(f"No team declared new parts at {rnd['label']}.")
+    impact = {x["team"]: x for x in sf.impact_at(data, events, ri)} if ri is not None else {}
+    cards = ""
+    for t in counts.index:
+        x = impact.get(t, {})
+        parts = (rnd.get("items") or {}).get(t) or []
+        lis = "".join(f"<li>{html.escape(p)}</li>" for p in parts) or f"<li class='hc-dim'>{int(counts[t])} parts (no list)</li>"
+        pb, ph, pa = x.get("pace_before"), x.get("pace_here"), x.get("pace_after")
+        verdict = ""
+        if pb is not None and pa is not None:
+            ch = pa - pb
+            verdict = ("<b style='color:#43B02A'>Faster after</b>" if ch <= -0.15 else "<b style='color:#E10600'>Slower after</b>" if ch >= 0.15
+                       else "<b>No clear change</b>") + f" · gap to fastest {pb:.2f}% → {pa:.2f}%"
+            if x.get("races_after", 0) < 2:
+                verdict += " <span class='hc-dim'>(only this race so far)</span>"
+        tel = []
+        for c, name in (("corner_speed_kmh", "corner speed"), ("top_speed_kmh", "top speed")):
+            b0, a0 = x.get(f"{c}_before"), x.get(f"{c}_after")
+            if b0 is not None and a0 is not None:
+                tel.append(f"{name} vs field {b0:+.1f} → {a0:+.1f} km/h")
+        ring = "outline:1px solid #F3F3F5;" if t in mine else ""
+        cards += (f"<div class='upc' style='{ring}border-left-color:{extras_pages._team_colour(t, grid)}'><div class='upc-t'>{html.escape(t)} "
+                  f"<span class='hc-dim'>{int(counts[t])} new parts</span></div><ul>{lis}</ul>"
+                  f"<div style='font-size:.7rem;margin-top:.3rem'>{verdict}</div><div class='hc-dim' style='font-size:.66rem'>{' · '.join(tel)}</div></div>")
+    if cards:
+        st.markdown(f"<div class='upc-grid'>{cards}</div>{extras_pages.UP_CSS}", unsafe_allow_html=True)
+    if none:
+        st.caption(f"No new parts at {rnd['label']}: {', '.join(none)}.")
+    st.caption("Before = the 3 races before this one; after = this race and the next 2. Gap to fastest is race pace on clean laps; corner and top speed are "
+               "telemetry (OpenF1, about 4 samples a second) compared with the field median at each braking zone and straight, so different tracks can be compared. "
+               "Estimates; a single race can be skewed by weather or track type.")
+    if mine and ri is not None:
+        trend_chart(data, events, sorted(mine), ri)
+
+
+def trend_chart(data, events, teams, ri):
+    from f1analytics.pitwall import season_form as sf
+
+    tel = sf.team_metrics(data)
+    pace = sf.team_pace(data)
+    names = [r["location"] for r in data["races"]]
+    cols = {}
+    try:
+        from f1analytics.ui.upgrades_page import team_colours
+
+        cols = team_colours()
+    except Exception:
+        pass
+    metric = st.radio("Show", ["Gap to fastest car", "Corner speed vs field", "Top speed vs field"], horizontal=True, key="pf_trend_metric")
+    fig = go.Figure()
+    for t in teams:
+        if metric == "Gap to fastest car":
+            g = pace[pace["team"] == t].sort_values("race")
+            y = g["gap"]
+        else:
+            g = tel[tel["team"] == t].sort_values("race")
+            y = g["corner_speed_kmh" if metric.startswith("Corner") else "top_speed_kmh"]
+        colr = cols.get(t, "#9A9AA8")
+        fig.add_trace(go.Scatter(x=[names[i] for i in g["race"]], y=y, name=t, mode="lines+markers", line=dict(color=colr, width=2.4)))
+        ev = events[(events["team"] == t) & events["race"].notna()]
+        for _, e in ev.iterrows():
+            fig.add_annotation(x=names[int(e["race"])], y=1.02, yref="paper", text=f"▼{int(e['parts'])}", showarrow=False, font=dict(size=9, color=colr))
+    fig.add_vline(x=ri, line_color="#F3F3F5", line_dash="dot")
+    unit = "%" if metric == "Gap to fastest car" else "km/h"
+    fig.update_layout(title=f"{' vs '.join(teams)}: {metric.lower()} through the season", yaxis_title=unit, xaxis_tickangle=-45)
+    if metric == "Gap to fastest car":
+        fig.update_yaxes(autorange="reversed")
+    fig.update_xaxes(categoryorder="array", categoryarray=names)
+    st.plotly_chart(_chart(fig, 340), use_container_width=True, config={"displayModeBar": False})
+    st.caption("▼n marks a race where the team declared n new parts; the dotted line is the race you picked. Higher speed and a smaller gap are better.")
+
+
+def telemetry_compare(race, raw, laps, num, rival, code, colour, rnd):
+    from f1analytics.pitwall.season_form import team_name
+    from f1analytics.ui.duel_panel import telemetry_section
+
+    team = rv.teams(raw)
+    ca, cb = code.get(num, str(num)), code.get(rival, str(rival))
+    col_a, col_b = colour.get(num, "#E10600"), colour.get(rival, "#3671C6")
+    if col_a.lower() == col_b.lower():
+        col_b = "#9A9AA8"
+    st.markdown(f"#### Telemetry at {html.escape(race['location'])}: {html.escape(ca)} vs {html.escape(cb)}")
+    notes = []
+    for n, c in ((num, ca), (rival, cb)):
+        t = team_name(team.get(n, ""))
+        key = next((k for k in ((rnd or {}).get("counts") or {}) if team_name(k) == t or k == t), None)
+        parts = ((rnd or {}).get("items") or {}).get(key) or [] if key else []
+        cnt = ((rnd or {}).get("counts") or {}).get(key, 0) if key else 0
+        notes.append(f"{c} ({t}): " + (f"{cnt} new parts here ({', '.join(parts[:4])}{'…' if len(parts) > 4 else ''})" if cnt else "no new parts here"))
+    st.caption(" · ".join(notes))
+    telemetry_section(raw, laps, race["key"], num, rival, ca, cb, col_a, col_b)

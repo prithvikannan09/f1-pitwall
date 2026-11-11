@@ -130,3 +130,51 @@ def pace_halves(data):
 def cumulative_points(results):
     r = results.pivot_table(index="round", columns="code", values="points", aggfunc="sum").fillna(0).sort_index()
     return r.cumsum()
+
+
+TEL = {"corner_speed_kmh": "Corner speed", "top_speed_kmh": "Top speed", "brake_later_m": "Braking point"}
+
+
+def team_metrics(data):
+    races = data.get("races") or []
+    order = {r["session_key"]: i for i, r in enumerate(races)}
+    df = pd.DataFrame(data.get("rows") or [])
+    if df.empty:
+        return pd.DataFrame()
+    df = df[df["session_key"].isin(order)].copy()
+    df["race"] = df["session_key"].map(order)
+    df["team"] = df["team"].map(team_name)
+    cols = [c for c in TEL if c in df]
+    return df.groupby(["race", "team"])[cols].mean().reset_index()
+
+
+def race_index(data, session_key):
+    for i, r in enumerate(data.get("races") or []):
+        if int(r["session_key"]) == int(session_key):
+            return i
+    return None
+
+
+def impact_at(data, events, race, before=3, after=2):
+    pace = team_pace(data)
+    tel = team_metrics(data)
+    here = events[events["race"] == race] if len(events) else events
+    out = []
+    for _, e in here.iterrows():
+        t = e["team"]
+        p = pace[pace["team"] == t].set_index("race")["gap"]
+        m = tel[tel["team"] == t].set_index("race") if len(tel) else pd.DataFrame()
+        b = list(range(race - before, race))
+        a = list(range(race, race + after + 1))
+
+        def avg(s, idx):
+            v = s.reindex(idx).dropna()
+            return float(v.mean()) if len(v) else None
+
+        row = {"team": t, "parts": int(e["parts"]), "items": e["items"], "pace_before": avg(p, b), "pace_here": avg(p, [race]),
+               "pace_after": avg(p, a), "races_after": int(p.reindex(a).notna().sum())}
+        for c in TEL:
+            if len(m) and c in m:
+                row[f"{c}_before"], row[f"{c}_after"] = avg(m[c], b), avg(m[c], a)
+        out.append(row)
+    return out
