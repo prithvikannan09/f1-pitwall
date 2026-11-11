@@ -69,6 +69,13 @@ def engine_tab():
     if not data or not data.get("events"):
         st.caption("Engine component data isn't available.")
         return
+    try:
+        aduo_section()
+    except Exception:
+        import logging
+
+        logging.getLogger("f1analytics").exception("aduo failed")
+    st.markdown("#### Engine parts used by every driver")
     labels = [e["label"] for e in data["events"]]
     i = st.selectbox("As of", list(range(len(labels)))[::-1], format_func=lambda k: labels[k], key="up_pu_event")
     ev, df = pu.table(data, i)
@@ -186,3 +193,85 @@ def page():
 
             logging.getLogger("f1analytics").exception("season upgrades failed")
             st.warning("The season view hit a snag.")
+
+
+MAKER_COLOUR = {"Red Bull Ford": "#3671C6", "Mercedes": "#27F4D2", "Ferrari": "#E80020", "Honda": "#229971", "Audi": "#BB0A30"}
+BAND_TONE = {"Benchmark": "#43B02A", "2-4% behind": "#FFD12E", "More than 4% behind": "#E10600"}
+
+
+def aduo_tables(data, a):
+    from f1analytics.pitwall import season_form as sf
+
+    sp = sf.maker_speed(data, a)
+    per = sp.groupby(["period", "maker"])[["top_speed_kmh", "clip_kmh"]].mean().reset_index() if len(sp) else pd.DataFrame()
+    bench = "Red Bull Ford"
+    if len(per):
+        b = per[per["maker"] == bench].set_index("period")
+        per["gap_top"] = per["top_speed_kmh"] - per["period"].map(b["top_speed_kmh"])
+        per["gap_clip"] = per["clip_kmh"] - per["period"].map(b["clip_kmh"])
+    return per
+
+
+def aduo_section(focus_teams=(), compact=False):
+    from f1analytics.pitwall import season_form as sf
+    from f1analytics.pitwall.racecraft import load as rc_load
+
+    a = sf.aduo()
+    if not a:
+        return
+    data = rc_load() or {}
+    per = aduo_tables(data, a)
+    st.markdown("#### Engine benchmark (FIA ICE ranking) for the whole grid")
+    periods = a["periods"]
+    head = "".join(f"<th>{html.escape(p['name'])}<br><span class='duel-dim'>{html.escape(p['races'])}</span></th>" for p in periods)
+    rows = ""
+    for maker, teams in a["makers"].items():
+        cells = ""
+        for p in periods:
+            band = p["bands"].get(maker)
+            g = p["granted"].get(maker)
+            if band:
+                cells += f"<td style='color:{BAND_TONE.get(band, '#F3F3F5')}'>{html.escape(band)}<div class='duel-dim' style='font-size:.62rem'>upgrades granted: {html.escape(str(g))}</div></td>"
+            else:
+                cells += f"<td class='duel-dim'>not published<div style='font-size:.62rem'>upgrades granted: {html.escape(str(g))}</div></td>"
+        trend = ""
+        if len(per):
+            x = per[per["maker"] == maker].sort_values("period")
+            if maker == "Red Bull Ford":
+                trend = "benchmark"
+            elif len(x) >= 2:
+                first, last = x["gap_top"].iloc[0], x["gap_top"].iloc[-1]
+                ch = last - first
+                word = "catching up" if ch >= 1 else ("falling back" if ch <= -1 else "holding")
+                tone = "#43B02A" if word == "catching up" else ("#E10600" if word == "falling back" else "#9A9AA8")
+                trend = (f"<span style='color:{tone}'><b>{word}</b></span><div class='duel-dim' style='font-size:.62rem'>top speed vs Red Bull Ford: "
+                         + " → ".join(f"{v:+.1f}" for v in x["gap_top"]) + " km/h</div>")
+        mine = any(t in focus_teams for t in teams)
+        ring = " style='outline:1px solid #F3F3F5'" if mine else ""
+        rows += (f"<tr{ring}><td><i class='ty-dot' style='background:{MAKER_COLOUR.get(maker, '#9A9AA8')}'></i><b>{html.escape(maker)}</b>"
+                 f"<div class='duel-dim' style='font-size:.62rem'>{html.escape(', '.join(teams))}</div></td>{cells}<td>{trend}</td></tr>")
+    st.markdown(f"<div style='overflow-x:auto'><table class='duel-t'><tr><th>Engine (teams using it)</th>{head}<th>Our telemetry: straight-line trend</th></tr>{rows}</table></div>",
+                unsafe_allow_html=True)
+    notes = " ".join(f"{p['name']}: {p['note']}" for p in periods if p.get("note"))
+    st.caption(f"{a['what']} {notes} {a['next']}")
+    if compact or not len(per):
+        if compact:
+            st.caption("Full engine benchmark chart and engine part counts: 🔧 Upgrades → Engine components.")
+        return
+    metric = st.radio("Telemetry", ["Top speed vs Red Bull Ford", "Speed lost before braking (energy running out)"], horizontal=True, key="up_aduo_metric")
+    col = "gap_top" if metric.startswith("Top") else "gap_clip"
+    fig = go.Figure()
+    names = [f"{p['name']}\n{p['races']}" for p in periods] + ["Since Austin"]
+    for maker in a["makers"]:
+        x = per[per["maker"] == maker].sort_values("period")
+        fig.add_trace(go.Scatter(x=[names[int(k)] for k in x["period"]], y=x[col], name=maker, mode="lines+markers",
+                                 line=dict(color=MAKER_COLOUR.get(maker), width=2.6), hovertemplate=f"{maker} · %{{x}}: %{{y:+.1f}} km/h<extra></extra>"))
+    fig.add_hline(y=0, line_color="#55556A", line_dash="dot")
+    fig.update_layout(title="Straight-line telemetry by engine maker, compared with the benchmark (Red Bull Ford)", yaxis_title="km/h")
+    if col == "gap_clip":
+        fig.update_yaxes(autorange="reversed")
+    st.plotly_chart(_chart(fig, 340), use_container_width=True, config={"displayModeBar": False})
+    st.caption("Our own estimate, not the FIA's: average of every car using that engine, from OpenF1 telemetry on each straight compared with the field median. "
+               "Top speed also depends on how much wing a team runs and on the battery, so treat it as a clue, not an engine measurement. "
+               "Speed lost before braking shows cars running out of electric energy at the end of straights; less is better (chart flipped so up is better). "
+               "Sources: " + " · ".join(f"[{t}]({u})" for t, u in a["sources"]))

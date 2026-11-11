@@ -1,0 +1,30 @@
+{
+ "season": 2026,
+ "what": "ADUO (Additional Development and Upgrade Opportunities): the FIA measures each manufacturer's internal combustion engine (ICE) output over set periods. The best one is the benchmark; 2-4% behind earns 1 extra engine upgrade (homologation) in 2026 and 1 in 2027, more than 4% behind earns 2 and 2. Exact figures are confidential, only bands are published. It measures the ICE only, not the battery or energy deployment.",
+ "makers": {
+  "Red Bull Ford": ["Red Bull", "Racing Bulls"],
+  "Mercedes": ["Mercedes", "McLaren", "Williams", "Alpine"],
+  "Ferrari": ["Ferrari", "Haas", "Cadillac"],
+  "Honda": ["Aston Martin"],
+  "Audi": ["Audi"]
+ },
+ "periods": [
+  {"name": "Review 1", "races": "Australia to Canada", "end_location": "Montréal", "announced": "Monaco weekend (June)",
+   "bands": {"Red Bull Ford": "Benchmark", "Mercedes": "2-4% behind", "Ferrari": "More than 4% behind", "Honda": "More than 4% behind", "Audi": "More than 4% behind"},
+   "granted": {"Red Bull Ford": "0", "Mercedes": "1 + 1", "Ferrari": "2 + 2", "Honda": "2 + 2", "Audi": "2 + 2"}},
+  {"name": "Review 2", "races": "Monaco to Hungary", "end_location": "Budapest", "announced": "27 Aug",
+   "bands": {"Red Bull Ford": "Benchmark", "Mercedes": "2-4% behind", "Ferrari": "More than 4% behind", "Honda": "More than 4% behind", "Audi": "More than 4% behind"},
+   "granted": {"Red Bull Ford": "0", "Mercedes": "0", "Ferrari": "0", "Honda": "0", "Audi": "0"},
+   "note": "No manufacturer moved between bands."},
+  {"name": "Review 3", "races": "Races 12 to 18 (Netherlands to Austin)", "end_location": "Austin", "announced": "10 Nov",
+   "bands": {}, "granted": {"Red Bull Ford": "0", "Mercedes": "0", "Ferrari": "0", "Honda": "0", "Audi": "0"},
+   "note": "The FIA said the gaps changed but not enough to grant new upgrades. Bands were not published."}
+ ],
+ "next": "Next review: first six races of 2027 (Bahrain to Miami).",
+ "sources": [
+  ["FIA: ADUO results following the third review period of 2026", "https://www.fia.com/news/fia-announces-aduo-results-following-third-review-periods-2026"],
+  ["autoX: latest ADUO assessment, Red Bull remains the benchmark", "https://www.autox.com/formula-one-sports/f1-fia-reveals-results-latest-engine-aduo-assessment-red-bull-remains-the-benchmark-124450/"],
+  ["Crash.net: results of final 2026 ADUO review", "https://www.crash.net/f1/news/1110058/1/fia-announces-results-final-2026-f1-aduo-engine-review"],
+  ["Yahoo Sports (MotorBiscuit): 2026 ADUO results ranked", "https://sports.yahoo.com/articles/2026-f1-aduo-results-every-113451564.html"]
+ ]
+}

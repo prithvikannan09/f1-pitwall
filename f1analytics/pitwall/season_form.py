@@ -1,3 +1,4 @@
+from pathlib import Path
 import unicodedata
 
 import numpy as np
@@ -178,3 +179,46 @@ def impact_at(data, events, race, before=3, after=2):
                 row[f"{c}_before"], row[f"{c}_after"] = avg(m[c], b), avg(m[c], a)
         out.append(row)
     return out
+
+
+ADUO = Path(__file__).resolve().parent.parent / "styles" / "aduo_2026.json"
+
+
+def aduo():
+    import json
+
+    try:
+        return json.loads(ADUO.read_text())
+    except Exception:
+        return None
+
+
+def maker_of(team, a):
+    t = team_name(team)
+    for m, teams in (a or {}).get("makers", {}).items():
+        if t in teams:
+            return m
+    return None
+
+
+def maker_speed(data, a):
+    races = data.get("races") or []
+    locs = [r["location"] for r in races]
+    df = pd.DataFrame(data.get("rows") or [])
+    if df.empty:
+        return pd.DataFrame()
+    order = {r["session_key"]: i for i, r in enumerate(races)}
+    df = df[df["session_key"].isin(order)].copy()
+    df["race"] = df["session_key"].map(order)
+    df["maker"] = df["team"].map(lambda t: maker_of(t, a))
+    ends = [locs.index(p["end_location"]) for p in a["periods"] if p["end_location"] in locs]
+    def period(i):
+        for k, e in enumerate(ends):
+            if i <= e:
+                return k
+        return len(ends)
+    df["period"] = df["race"].map(period)
+    cols = [c for c in ("top_speed_kmh", "late_straight_acc", "clip_kmh") if c in df]
+    per_race = df.dropna(subset=["maker"]).groupby(["race", "maker"])[cols].mean().reset_index()
+    per_race["period"] = per_race["race"].map(period)
+    return per_race

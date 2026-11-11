@@ -228,6 +228,7 @@ upgrades_page.page()
     assert not at.exception
     assert [t.label for t in at.tabs][:3] == ["Car parts", "Engine components", "Did the upgrades work?"]
     text = " ".join(m.value for m in at.markdown)
+    assert "Engine benchmark (FIA ICE ranking) for the whole grid" in text
     assert "476 new parts" in text and "Engine parts used this season" in text and "Over the limit" in text and "Did the upgrades work?" in text
 
 
@@ -245,3 +246,18 @@ def test_upgrade_impact_at_a_race():
     assert f["pace_before"] is not None and f["pace_after"] is not None and f["races_after"] >= 2
     assert "top_speed_kmh_before" in f
     assert sf.race_index(data, data["races"][3]["session_key"]) == 3
+
+
+def test_aduo_bands_and_maker_speed():
+    from f1analytics.pitwall import season_form as sf
+    from f1analytics.pitwall.racecraft import load
+    from f1analytics.ui.upgrades_page import aduo_tables
+
+    a = sf.aduo()
+    assert a["periods"][0]["bands"]["Red Bull Ford"] == "Benchmark" and a["periods"][0]["bands"]["Ferrari"] == "More than 4% behind"
+    assert sf.maker_of("Haas F1 Team", a) == "Ferrari" and sf.maker_of("McLaren", a) == "Mercedes" and sf.maker_of("Racing Bulls", a) == "Red Bull Ford"
+    teams = sum(a["makers"].values(), [])
+    assert len(teams) == 11
+    per = aduo_tables(load(), a)
+    assert set(per["maker"]) == set(a["makers"]) and per["period"].max() == 3
+    assert (per.loc[per["maker"] == "Red Bull Ford", "gap_top"].abs() < 1e-9).all()

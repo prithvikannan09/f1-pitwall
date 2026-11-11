@@ -618,6 +618,12 @@ def upgrade_impact_section(race, raw, d, rnd, grid, num, rival, code, colour):
                "Estimates; a single race can be skewed by weather or track type.")
     if mine and ri is not None:
         trend_chart(data, events, sorted(mine), ri)
+    try:
+        from f1analytics.ui.upgrades_page import aduo_section
+
+        aduo_section(mine, compact=True)
+    except Exception:
+        pass
 
 
 def trend_chart(data, events, teams, ri):
