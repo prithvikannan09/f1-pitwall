@@ -288,3 +288,31 @@ mobile.more_page()
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
     assert "pw-tabbar" in text and "pw-tab on' href='?mode=performance" in text and "?mode=destructors" in text
+
+
+def test_align_offsets_rotates_laps_that_start_mid_track():
+    import numpy as np
+
+    from f1analytics.pitwall import racecraft as rc
+
+    x = np.linspace(0, 1, rc.ALIGN_N, endpoint=False)
+    base = 200 + 80 * np.sin(2 * np.pi * x) + 40 * np.sin(6 * np.pi * x + 1)
+    profs = {1: base, 2: np.roll(base, -100), 3: np.roll(base, -37)}
+    off = rc.align_offsets(profs)
+    # a zone at fraction f of car 2's lap sits at (f - off) % 1 of the reference lap
+    assert abs(((off[1] - off[2]) % 1.0) - 100 / rc.ALIGN_N) < 0.01
+    assert abs(((off[1] - off[3]) % 1.0) - 37 / rc.ALIGN_N) < 0.01
+
+
+def test_best_speed_window_finds_fastest_lap_without_lap_times():
+    import numpy as np
+
+    from f1analytics.pitwall import racecraft as rc
+
+    t0 = pd.Timestamp("2026-07-26T13:00:00Z")
+    t = [t0 + pd.Timedelta(seconds=0.25 * i) for i in range(2400)]
+    v = np.full(2400, 150.0)
+    v[1200:1520] = 210.0
+    car = pd.DataFrame({"date": [x.isoformat() for x in t], "speed": v})
+    a, b = rc.best_speed_window(car, 80)
+    assert abs((a - t[1200].tz_localize(None) if a.tzinfo is None else a - t[1200]).total_seconds()) < 1

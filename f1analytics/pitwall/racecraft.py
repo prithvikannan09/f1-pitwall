@@ -26,6 +26,21 @@ def _num(s):
     return pd.to_numeric(s, errors="coerce")
 
 
+def fetch_race_full_telemetry(src, session_key):
+    raw = fetch_race(src, session_key, telemetry=False)
+    laps = _laps(raw)
+    best = laps[laps["clean"]].groupby("driver_number")["dur"].min() if not laps.empty else pd.Series(dtype=float)
+    raw["car_data"], raw["tele_windows"] = {}, {}
+    for n, dur in best.items():
+        car = src._get("car_data", session_key=session_key, driver_number=int(n))
+        w = best_speed_window(car, dur)
+        if w is None:
+            continue
+        raw["car_data"][int(n)] = car
+        raw["tele_windows"][int(n)] = (w[0] - pd.Timedelta(seconds=1), w[1] + pd.Timedelta(seconds=1))
+    return raw
+
+
 def fetch_race(src, session_key, telemetry=True):
     raw = {ep: src._get(ep, session_key=session_key) for ep in
            ("drivers", "laps", "stints", "pit", "race_control", "overtakes", "intervals", "starting_grid", "position", "session_result")}
@@ -292,8 +307,30 @@ def _straights(tr):
     return out
 
 
+def best_speed_window(car, seconds):
+    """Fastest one-lap stretch in a car's trace: the window of one best-lap length with the highest average speed.
+    Used when lap start times are unreliable, so the lap is found from the telemetry itself."""
+    if car is None or car.empty or not seconds:
+        return None
+    t = _ts(car["date"])
+    v = _num(car["speed"])
+    s = pd.Series(v.to_numpy(), index=pd.DatetimeIndex(t)).dropna().sort_index()
+    s = s[~s.index.duplicated()]
+    if len(s) < 50:
+        return None
+    grid = s.resample("250ms").mean().interpolate(limit=8)
+    k = int(round(float(seconds) / 0.25))
+    if len(grid) <= k:
+        return None
+    roll = grid.rolling(k, min_periods=int(k * 0.9)).mean()
+    end = roll.idxmax()
+    if pd.isna(roll.max()):
+        return None
+    return end - pd.Timedelta(seconds=float(seconds)), end
+
+
 def telemetry_metrics(raw, laps):
-    windows = telemetry_windows(raw)
+    windows = raw.get("tele_windows") or telemetry_windows(raw)
     per = {}
     for n, car in (raw.get("car_data") or {}).items():
         if car is None or car.empty or int(n) not in windows:
@@ -302,10 +339,15 @@ def telemetry_metrics(raw, laps):
         if tr is None:
             continue
         L = tr["d"].iat[-1]
-        per[int(n)] = {"L": L, "zones": [dict(z, f=z["start"] / L) for z in _brake_zones(tr)],
+        prof = np.interp(np.linspace(0, L, ALIGN_N, endpoint=False), tr["d"].to_numpy(dtype=float), tr["v"].to_numpy(dtype=float))
+        per[int(n)] = {"L": L, "prof": prof, "zones": [dict(z, f=z["start"] / L) for z in _brake_zones(tr)],
                        "straights": [dict(s, f=s["start"] / L) for s in _straights(tr)]}
     if len(per) < 6:
         return {}
+    for n, off in align_offsets({k: p["prof"] for k, p in per.items()}).items():
+        if off:
+            for key in ("zones", "straights"):
+                per[n][key] = [dict(x, f=(x["f"] - off) % 1.0) for x in per[n][key]]
     lap_len = float(np.median([p["L"] for p in per.values()]))
     ref_z = _reference(per, "zones")
     ref_s = _reference(per, "straights")
@@ -329,6 +371,26 @@ def telemetry_metrics(raw, laps):
             return float(np.median(x)) if len(x) >= 2 else None
         out[n] = {"brake_later_m": med(late), "corner_speed_kmh": med(carry), "top_speed_kmh": med(top),
                   "late_straight_acc": med(acc), "clip_kmh": med(clip), "brake_zones": len(late)}
+    return out
+
+
+ALIGN_N = 400
+
+
+def align_offsets(profiles):
+    """Lap traces can start at different points on track when lap start times are off. A lap is a loop, so find, for each car,
+    the circular shift of its speed-by-distance profile that best matches a reference car, and return it as a fraction of the lap."""
+    if len(profiles) < 2:
+        return {k: 0.0 for k in profiles}
+    z = {k: (v - v.mean()) / (v.std() or 1.0) for k, v in profiles.items()}
+    keys = list(z)
+    ref_key = max(keys, key=lambda k: sum(float(np.max(np.real(np.fft.ifft(np.fft.fft(z[k]) * np.conj(np.fft.fft(z[j])))))) for j in keys))
+    R = np.fft.fft(z[ref_key])
+    out = {}
+    for k in keys:
+        cc = np.real(np.fft.ifft(np.fft.fft(z[k]) * np.conj(R)))
+        shift = int(np.argmax(cc))
+        out[k] = shift / len(z[k])
     return out
 
 

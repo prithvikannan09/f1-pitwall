@@ -645,13 +645,17 @@ def trend_chart(data, events, teams, ri):
         lines.append((t, list(g["race"]), list(y), cols.get(t, "#9A9AA8")))
         evs[t] = events[(events["team"] == t) & events["race"].notna()]
     gap = metric == "Gap to fastest car"
+    low = set() if gap else {i for i, r in enumerate(data["races"]) if r.get("telemetry_quality") == "low"}
     upgrade_line_chart(lines, evs, names, f"{' vs '.join(teams)}: {metric.lower()}", "%" if gap else "km/h", gap, ri, "pf_trend_range",
-                       "%" if gap else " km/h", "{:.2f}%" if gap else "{:+.1f} km/h")
+                       "%" if gap else " km/h", "{:.2f}%" if gap else "{:+.1f} km/h", low)
+    if low:
+        st.caption("Hollow dot = low-confidence telemetry (Budapest: OpenF1's lap timing for that race is broken, so laps were found from the speed trace "
+                   "and only some cars could be matched). Where a team has no value the line joins across the gap.")
     how("Dots under the chart = races where that team declared new parts; bigger dot, more parts. The dotted line is the race you picked. "
         "Higher speed and a smaller gap are better. Speeds are compared with the field median at each braking zone and straight.")
 
 
-def upgrade_line_chart(lines, events, names, title, ytitle, reverse, mark, key, unit, fmt):
+def upgrade_line_chart(lines, events, names, title, ytitle, reverse, mark, key, unit, fmt, low=()):
     from f1analytics.ui.mobile import code as rcode
 
     span = st.radio("Races", ["Last 10", "Whole season"], horizontal=True, key=key, label_visibility="collapsed")
@@ -660,9 +664,14 @@ def upgrade_line_chart(lines, events, names, title, ytitle, reverse, mark, key, 
     shown = codes[lo:]
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, row_heights=[0.8, 0.2], vertical_spacing=0.05)
     for name, xs, ys, colr in lines:
-        pts = [(codes[int(x)], y, names[int(x)]) for x, y in zip(xs, ys) if int(x) >= lo]
-        fig.add_trace(go.Scatter(x=[p[0] for p in pts], y=[p[1] for p in pts], name=name, mode="lines+markers", line=dict(color=colr, width=2.4),
-                                 marker=dict(size=6), customdata=[p[2] for p in pts],
+        have = {int(x): y for x, y in zip(xs, ys) if y is not None and y == y}
+        pts = [(codes[i], have.get(i), names[i] + (" · low-confidence telemetry" if i in low else "") + ("" if i in have else " · no data"))
+               for i in range(lo, len(names))]
+        fig.add_trace(go.Scatter(x=[p[0] for p in pts], y=[p[1] for p in pts], name=name, mode="lines+markers", connectgaps=True,
+                                 line=dict(color=colr, width=2.4),
+                                 marker=dict(size=[9 if i in low else 6 for i in range(lo, len(names))],
+                                             symbol=["circle-open" if i in low else "circle" for i in range(lo, len(names))]),
+                                 customdata=[p[2] for p in pts],
                                  hovertemplate="%{customdata}: %{y:.2f}" + unit + "<extra>" + name + "</extra>"), row=1, col=1)
     for k, (name, _, _, colr) in enumerate(lines):
         e = events.get(name)
