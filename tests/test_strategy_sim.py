@@ -119,17 +119,20 @@ raw["position"] = pd.DataFrame()
 pp.races = lambda year=2026: [{"key": 99, "name": "São Paulo (Brazil)", "location": "São Paulo", "circuit": "Interlagos", "round": 21}]
 review_panel.fetch = lambda sk: raw
 pp.weather = lambda sk: pd.DataFrame(columns=["date", "rainfall", "track_temperature", "air_temperature"])
+pp.season_results = lambda year=2026: pd.DataFrame([{"round": r, "code": c, "driver": c, "team": "T", "position": p, "text": str(p), "points": 26 - p}
+                                                    for r in range(1, 9) for p, c in enumerate(["NOR", "HAM", "LEC", "VER"], 1)])
 pp.page()
 """).run(timeout=90)
     assert not at.exception
     tabs = [t.label for t in at.tabs]
-    assert tabs[:3] == ["Upgrades & pace", "Tyre strategy & weather", "What if"]
+    assert tabs[:4] == ["Race pace", "Tyre strategy & weather", "What if", "Season: driver form"]
     text = " ".join(m.value for m in at.markdown)
-    assert "Upgrades brought to this race" in text and "Best tyre strategy" in text
+    assert "Race pace by team" in text and "Best tyre strategy" in text
     assert "What if they had skipped a pit stop?" in text
     assert not [w.value for w in at.warning]
     assert [b.label for b in at.selectbox][:3] == ["Race", "Driver", "Compare with"]
     assert "Time lost vs best plan" in text
+    assert "Who started strong and who faded" in text
 
 
 def test_latest_upgrades_lists_every_team():
@@ -153,3 +156,75 @@ def test_history_has_every_round_for_a_team():
     h = history(d, "Ferrari")
     assert sum(x["count"] for x in h) == 52
     assert h[0]["round"] == "Mexico City" and h[-1]["round"] == "Australia to Dutch GP"
+
+
+def test_season_upgrades_vs_pace():
+    from f1analytics.pitwall import season_form as sf
+    from f1analytics.pitwall.racecraft import load
+    from f1analytics.ui import extras_pages
+
+    data = load()
+    pace = sf.team_pace(data)
+    assert set(pace.groupby("race")["gap"].min().round(6)) == {0.0}
+    assert "Red Bull" in set(pace["team"]) and "Haas" in set(pace["team"])
+    ev = sf.upgrade_events(extras_pages.load(), data["races"])
+    monza = next(i for i, r in enumerate(data["races"]) if r["location"] == "Monza")
+    assert set(ev.loc[ev["label"] == "Italy (Monza)", "race"]) == {monza}
+    assert ev.loc[ev["label"] == "Australia to Dutch GP", "race"].isna().all()
+    v = sf.verdicts(pace, ev)
+    assert int(v.loc[v["team"] == "Ferrari", "parts"].iloc[0]) == 52
+    fx = sf.event_effect(pace, ev, "McLaren")
+    assert fx[-1]["label"] == "São Paulo"
+
+
+def test_driver_form_spots_fade_and_rise():
+    from f1analytics.pitwall import season_form as sf
+
+    rows = []
+    for rnd in range(1, 11):
+        rows.append({"round": rnd, "code": "AAA", "driver": "A", "team": "T1", "position": 1 if rnd <= 5 else 12, "text": "1" if rnd <= 5 else "12",
+                     "points": 25 if rnd <= 5 else 0})
+        rows.append({"round": rnd, "code": "BBB", "driver": "B", "team": "T2", "position": 12 if rnd <= 5 else 1, "text": "12" if rnd <= 5 else "1",
+                     "points": 0 if rnd <= 5 else 25})
+        rows.append({"round": rnd, "code": "CCC", "driver": "C", "team": "T3", "position": 5, "text": "5" if rnd != 3 else "R", "points": 10})
+    f = sf.driver_form(pd.DataFrame(rows)).set_index("code")
+    assert f.loc["AAA", "form"] == "Started strong, faded" and f.loc["BBB", "form"] == "Finishing strong" and f.loc["CCC", "form"] == "Steady"
+    assert f.loc["CCC", "dnf_first"] == 1 and f.attrs["half"] == 5
+    cum = sf.cumulative_points(pd.DataFrame(rows))
+    assert cum.loc[10, "AAA"] == 125
+
+
+def test_pu_parser_and_tables():
+    from f1analytics.pitwall import pu_elements as pu
+
+    text = """                    2026 SÃO PAULO GRAND PRIX
+To         The Stewards                                     Date       06 November 2026
+                                                            Time       08:34
+81     McLaren Mercedes               Oscar Piastri         4    3     3      2   3     3     5
+i      Aston Martin Aramco Honda      Lance Stroll          6    7     3      5   8     7     9
+"""
+    p = pu.parse_text(text)
+    assert p["date"] == "06 November 2026" and p["time"] == "08:34" and len(p["rows"]) == 2
+    assert p["rows"][1]["number"] is None and p["rows"][1]["ES"] == 8
+    data = pu.load()
+    assert data["events"][-1]["label"] == "São Paulo" and all(len(e["rows"]) == 22 for e in data["events"])
+    ev, df = pu.table(data)
+    ham = df[df["driver"] == "Lewis Hamilton"].iloc[0]
+    assert ham["ICE"] == 4 and ham["TC"] == 4
+    over = pu.over_limit(df)
+    assert over["Isack Hadjar"]["ICE"] == 4 and "Lewis Hamilton" not in over
+    h = pu.history(data, "Lewis Hamilton")
+    assert h["ICE"].is_monotonic_increasing and h["event"].iloc[0] == "China"
+
+
+def test_upgrades_page_renders():
+    from streamlit.testing.v1 import AppTest
+
+    at = AppTest.from_string("""
+from f1analytics.ui import upgrades_page
+upgrades_page.page()
+""").run(timeout=90)
+    assert not at.exception
+    assert [t.label for t in at.tabs][:3] == ["Car parts", "Engine components", "Did the upgrades work?"]
+    text = " ".join(m.value for m in at.markdown)
+    assert "476 new parts" in text and "Engine parts used this season" in text and "Over the limit" in text and "Did the upgrades work?" in text

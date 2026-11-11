@@ -73,7 +73,7 @@ def upgrades_section(race, raw, model, focus=()):
     r = round_for(race, d["upgrades"]["rounds"])
     st.markdown("#### Upgrades brought to this race")
     if not r:
-        st.caption("Part-by-part lists start at Monza. For Australia to the Dutch GP only season totals were published; see Tech upgrades for those.")
+        st.caption("Part-by-part lists start at Monza. For Australia to the Dutch GP only season totals were published; see the season table above for those.")
     else:
         counts = pd.Series(r["counts"]).sort_values(ascending=False)
         flag = " (approximate)" if "approx" in r["src"] else (" (reported, not checked against the FIA list)" if "reported" in r["src"] else "")
@@ -123,7 +123,7 @@ def all_section(d, grid, r):
                        f"<span class='hc-dim'>{sum(h['count'] for h in rows)} new parts</span></div>{body or '<ul><li class=hc-dim>None declared.</li></ul>'}</div>")
         st.markdown(f"<div class='upc-grid'>{blocks}</div>", unsafe_allow_html=True)
         st.caption("Newest first, up to the race picked above. Part-by-part lists start at Monza; Australia to the Dutch GP shows totals only. "
-                   "Source: FIA car presentation submissions as reported by RACER and others (see Tech upgrades for links).")
+                   "Source: FIA car presentation submissions as reported by RACER and others (links at the bottom of this tab).")
 
 
 def latest_upgrades(d, upto=None):
@@ -378,10 +378,20 @@ def page():
         m, _, _ = model_for(race["key"])
     except Exception:
         m = None
-    t1, t2, t3 = st.tabs(["Upgrades & pace", "Tyre strategy & weather", "What if"])
+    t1, t2, t3, t5 = st.tabs(["Race pace", "Tyre strategy & weather", "What if", "Season: driver form"])
+    with t5:
+        try:
+            driver_form_tab(code.get(num))
+        except Exception:
+            import logging
+
+            logging.getLogger("f1analytics").exception("driver form failed")
+            st.warning("The driver form view hit a snag.")
     with t1:
         if m is not None:
-            upgrades_section(race, raw, m, [n for n in (num, rival) if n is not None])
+            d = extras_pages.load()
+            pace_section(raw, m, round_for(race, d["upgrades"]["rounds"]), extras_pages._grid(), [n for n in (num, rival) if n is not None])
+            st.caption("Every team's car parts and engine components, and whether the upgrades worked, are on the 🔧 Upgrades page.")
     with t2:
         try:
             strategy_section(race, raw, laps, race["key"], code, colour, present, num, rival)
@@ -400,3 +410,143 @@ def page():
 
             logging.getLogger("f1analytics").exception("what if failed")
             st.warning("The what-if view hit a snag for this race.")
+
+
+def _season_data():
+    from f1analytics.pitwall.racecraft import load
+
+    return load()
+
+
+@st.cache_data(ttl=3 * 3600, show_spinner="Loading the season results…")
+def season_results(year=YEAR):
+    from f1analytics.pitwall import season as ss
+
+    return ss.results(year)
+
+
+def season_upgrades_tab(team_colours, focus_teams=()):
+    from f1analytics.pitwall import season_form as sf
+
+    data = _season_data()
+    if not data:
+        st.caption("Season pace data isn't available.")
+        return
+    races = data["races"]
+    pace = sf.team_pace(data)
+    events = sf.upgrade_events(extras_pages.load(), races)
+    v = sf.verdicts(pace, events)
+    st.markdown("#### Did the upgrades work?")
+    rows = ""
+    for _, r in v.iterrows():
+        col = team_colours.get(r["team"], "#9A9AA8")
+        tone = "#43B02A" if r["verdict"] == "Closed the gap" else ("#E10600" if r["verdict"] == "Fell back" else "#9A9AA8")
+        rows += (f"<tr><td><i class='ty-dot' style='background:{col}'></i>{html.escape(r['team'])}</td><td>{r['parts']}</td>"
+                 f"<td>{r['early']:.2f}%</td><td>{r['recent']:.2f}%</td><td style='color:{tone}'>{r['change']:+.2f}% · {r['verdict']}</td></tr>")
+    st.markdown(f"<table class='duel-t'><tr><th>Team</th><th>New parts</th><th>Gap to fastest, first 5 races</th><th>Last 5 races</th><th>Change</th></tr>{rows}</table>",
+                unsafe_allow_html=True)
+    teams = list(v["team"])
+    default = next((t for t in teams if t in focus_teams), teams[0])
+    team = st.selectbox("Team", teams, index=teams.index(default), key="pf_season_team")
+    g = pace[pace["team"] == team].sort_values("race")
+    e = events[(events["team"] == team) & events["race"].notna()]
+    names = [r["location"] for r in races]
+    col = team_colours.get(team, "#E10600")
+    fig = make_subplots(specs=[[{"secondary_y": True}]])
+    fig.add_trace(go.Bar(x=[names[int(i)] for i in e["race"]], y=e["parts"], name="New parts declared", marker_color="rgba(255,255,255,.18)",
+                         hovertemplate="%{x}: %{y} new parts<extra></extra>"), secondary_y=True)
+    fig.add_trace(go.Scatter(x=[names[i] for i in g["race"]], y=g["gap"], name=f"{team}: gap to fastest car", mode="lines+markers",
+                             line=dict(color=col, width=2.6), hovertemplate="%{x}: %{y:.2f}% off the fastest<extra></extra>"))
+    fig.update_yaxes(title_text="% slower than the fastest car (lower is better)", autorange="reversed", secondary_y=False)
+    fig.update_yaxes(title_text="New parts", secondary_y=True, showgrid=False, range=[0, max(int(e["parts"].max()) * 3, 6) if len(e) else 6])
+    fig.update_xaxes(categoryorder="array", categoryarray=names, tickangle=-45)
+    st.plotly_chart(_chart(fig, 380), use_container_width=True, config={"displayModeBar": False})
+    pre = events[(events["team"] == team) & events["race"].isna()]["parts"].sum()
+    if pre:
+        st.caption(f"{team} also declared {int(pre)} new parts between Australia and the Dutch GP, but only a season total was published for those races, so they can't be placed on the chart.")
+    effects = sf.event_effect(pace, events, team)
+    if effects:
+        lines = []
+        for x in effects:
+            if x["change"] is None:
+                lines.append(f"<li><b>{html.escape(x['label'])}</b> · {x['parts']} parts · not enough races yet to judge.</li>")
+                continue
+            word = "faster" if x["change"] < 0 else "slower"
+            parts = html.escape(", ".join(x["items"][:4]) + ("…" if len(x["items"]) > 4 else ""))
+            lines.append(f"<li><b>{html.escape(x['label'])}</b> · {x['parts']} parts · {x['before']:.2f}% → {x['after']:.2f}%: "
+                         f"<b>{abs(x['change']):.2f}% {word}</b> relative to the field. <span class='duel-dim'>{parts}</span></li>")
+        st.markdown("##### Each upgrade, before and after")
+        st.markdown("<ul class='duel-list'>" + "".join(lines) + "</ul>", unsafe_allow_html=True)
+    st.caption("Pace = the faster of the team's two drivers on clean race laps, as a % gap to the fastest car that race. Before = up to 3 races before the upgrade, "
+               "after = that race and the next 2. It's relative: if everyone else upgrades more, a team can fall back even after bringing parts. "
+               "Track type changes the order too (a car good at Monaco may struggle at Monza), so read a single race with care. Estimates from OpenF1 lap times; "
+               "upgrade lists from the FIA submissions as reported.")
+
+
+def driver_form_tab(focus=None):
+    from f1analytics.pitwall import season_form as sf
+
+    try:
+        res = season_results()
+    except Exception:
+        res = None
+    if res is None or res.empty:
+        st.warning("Couldn't load the season results just now.")
+        return
+    data = _season_data() or {}
+    form = sf.driver_form(res, sf.pace_halves(data))
+    half = form.attrs.get("half")
+    rounds = form.attrs.get("rounds", [])
+    st.markdown("#### Who started strong and who faded")
+    st.caption(f"First half = rounds 1 to {half}; second half = rounds {half + 1} to {rounds[-1] if rounds else ''}.")
+    for label, tone in (("Finishing strong", "#43B02A"), ("Started strong, faded", "#E10600")):
+        x = form[form["form"] == label].sort_values("ppr_change", ascending=label != "Finishing strong")
+        if len(x):
+            names = ", ".join(f"{r['code']} ({r['ppr_first']:.1f} → {r['ppr_second']:.1f} pts a race)" for _, r in x.iterrows())
+            st.markdown(f"<div class='duel-card' style='border-left-color:{tone}'><div class='duel-k'>{label}</div><div style='font-size:.82rem'>{html.escape(names)}</div></div>",
+                        unsafe_allow_html=True)
+    rows = ""
+    for _, r in form.iterrows():
+        tone = "#43B02A" if r["form"] == "Finishing strong" else ("#E10600" if r["form"] != "Steady" else "#9A9AA8")
+        pf = "" if pd.isna(r["pace_first"]) or pd.isna(r["pace_second"]) else f"{r['pace_first']:.2f}% → {r['pace_second']:.2f}%"
+        me = " style='background:rgba(225,6,0,.12)'" if r["code"] == focus else ""
+        rows += (f"<tr{me}><td><b>{html.escape(r['code'])}</b> <span class='duel-dim'>{html.escape(str(r['team']))}</span></td><td>{r['points']:.0f}</td>"
+                 f"<td>{r['ppr_first']:.1f} → {r['ppr_second']:.1f}</td><td>P{r['fin_first']:.1f} → P{r['fin_second']:.1f}</td>"
+                 f"<td>{r['dnf_first']} → {r['dnf_second']}</td><td>{pf}</td><td style='color:{tone}'>{r['form']}</td></tr>")
+    st.markdown(f"<div style='overflow-x:auto'><table class='duel-t'><tr><th>Driver</th><th>Points</th><th>Points a race</th><th>Average finish</th>"
+                f"<th>DNFs</th><th>Race pace vs fastest</th><th>Form</th></tr>{rows}</table></div>", unsafe_allow_html=True)
+    cum = sf.cumulative_points(res)
+    top = list(form["code"].head(6))
+    if focus and focus in cum.columns and focus not in top:
+        top.append(focus)
+    pick = st.multiselect("Drivers on the chart", list(form["code"]), default=top, key="pf_form_drivers")
+    colours = {}
+    try:
+        from f1analytics.ui.season_pages import colours as season_colours
+
+        colours = season_colours()
+    except Exception:
+        pass
+    fig = go.Figure()
+    for c in pick:
+        if c in cum.columns:
+            fig.add_trace(go.Scatter(x=cum.index, y=cum[c], name=c, mode="lines", line=dict(color=colours.get(c), width=3 if c == focus else 1.8),
+                                     hovertemplate=f"{c} after round %{{x}}: %{{y:.0f}} pts<extra></extra>"))
+    if half:
+        fig.add_vline(x=half + 0.5, line_color="#55556A", line_dash="dot", annotation_text="half way", annotation_font_size=9)
+    fig.update_layout(title="Points through the season", xaxis_title="Round", yaxis_title="Points")
+    st.plotly_chart(_chart(fig, 380), use_container_width=True, config={"displayModeBar": False})
+    order = list(form["code"])
+    pos = res.assign(fin=[int(x["position"]) if str(x["text"]).isdigit() else None for _, x in res.iterrows()])
+    grid = pos.pivot_table(index="code", columns="round", values="fin", aggfunc="first").reindex(order)
+    txt = res.assign(t=[str(x["position"]) if str(x["text"]).isdigit() else "DNF" for _, x in res.iterrows()]).pivot_table(
+        index="code", columns="round", values="t", aggfunc="first").reindex(order)
+    heat = go.Figure(go.Heatmap(z=grid.values, x=[f"R{c}" for c in grid.columns], y=grid.index, text=txt.values, texttemplate="%{text}",
+                                colorscale=[[0, "#43B02A"], [0.25, "#FFD12E"], [0.5, "#E87722"], [1, "#2E2E3A"]], zmin=1, zmax=22, showscale=False,
+                                hovertemplate="%{y} round %{x}: %{text}<extra></extra>"))
+    heat.update_yaxes(autorange="reversed")
+    heat.update_layout(title="Every finish this season (green = podium, grey = back of the field or DNF)")
+    st.plotly_chart(_chart(heat, 40 + 22 * len(order)), use_container_width=True, config={"displayModeBar": False})
+    st.caption("Points and finishes: Jolpica (Ergast). DNF counts as P22 in the average finish. Race pace vs fastest: middle value of each driver's clean-lap pace "
+               "as a % gap to the fastest driver that race (OpenF1), so it shows speed separately from luck and reliability. "
+               "Form: 'faded' or 'finishing strong' means at least 3 points a race up or down between the two halves, or 1.5 points plus two places on average.")

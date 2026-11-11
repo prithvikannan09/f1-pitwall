@@ -409,11 +409,11 @@ def ensure_recorder():
 
 
 MENU = [("Home", "🏠"), ("Live", "🔴"), ("Schedule", "📅"), ("Results", "🏁"), ("Standings", "🏆"),
-        ("Past races", "⏪"), ("Performance", "📈"), ("Rivals & tracks", "⚔️"), ("Tech upgrades", "🔧"), ("Destructors", "💥")]
+        ("Past races", "⏪"), ("Performance", "📈"), ("Rivals & tracks", "⚔️"), ("Upgrades", "🔧"), ("Destructors", "💥")]
 MENU_NAMES = [m for m, _ in MENU]
 MENU_ICON = dict(MENU)
 MODE_PARAM = {"home": "Home", "live": "Live", "schedule": "Schedule", "results": "Results", "standings": "Standings",
-              "replay": "Past races", "past": "Past races", "rivals": "Rivals & tracks", "upgrades": "Tech upgrades", "performance": "Performance", "whatif": "Performance",
+              "replay": "Past races", "past": "Past races", "rivals": "Rivals & tracks", "upgrades": "Upgrades", "engines": "Upgrades", "performance": "Performance", "whatif": "Performance",
               "destructors": "Destructors"}
 
 
@@ -1549,12 +1549,12 @@ def main(autorecord=False):
                      on_change=_sync_menu, args=("pw_mode_m", "pw_mode"))
     with head_r:
         owner_signin()
-    if view in ("Home", "Schedule", "Results", "Standings", "Tech upgrades", "Destructors"):
-        from f1analytics.ui import extras_pages, season_pages
+    if view in ("Home", "Schedule", "Results", "Standings", "Upgrades", "Destructors"):
+        from f1analytics.ui import extras_pages, season_pages, upgrades_page
 
         paint_scene()
         {"Home": season_pages.home, "Schedule": season_pages.schedule_page, "Results": season_pages.results_page,
-         "Standings": season_pages.standings_page, "Tech upgrades": extras_pages.upgrades_page,
+         "Standings": season_pages.standings_page, "Upgrades": upgrades_page.page,
          "Destructors": extras_pages.destructors_page}[view]()
         return
     if view == "Performance":
