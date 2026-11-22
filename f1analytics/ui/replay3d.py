@@ -52,8 +52,11 @@ const lons = D.track.map(p=>p[0]), lats = D.track.map(p=>p[1]);
 const map = new maplibregl.Map({container:'map', style:'__STYLE__', center:[(Math.min(...lons)+Math.max(...lons))/2,(Math.min(...lats)+Math.max(...lats))/2],
   zoom: 13, pitch: 55, bearing: -15, attributionControl: {compact: true}});
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-right');
-let styled = false; map.on('load', () => { styled = true; });
-setTimeout(() => { if (!styled) map.setStyle({version: 8, sources: {}, layers: [{id: 'bg', type: 'background', paint: {'background-color': '#101016'}}]}); }, 7000);
+const BLANK = {version: 8, sources: {}, layers: [{id: 'bg', type: 'background', paint: {'background-color': '#101016'}}]};
+let styled = false, fellBack = false;
+map.on('styledata', () => { styled = true; });
+map.on('error', e => { if (!styled && !fellBack) { fellBack = true; map.setStyle(BLANK); } });
+setTimeout(() => { if (!styled && !fellBack) { fellBack = true; map.setStyle(BLANK); } }, 25000);
 map.on('load', () => map.fitBounds([[Math.min(...lons),Math.min(...lats)],[Math.max(...lons),Math.max(...lats)]], {padding:40, pitch:55, bearing:-15, duration:0}));
 const overlay = new deck.MapboxOverlay({interleaved:false, layers:[]}); map.addControl(overlay);
 const track = [{path: D.track.concat([D.track[0]])}];
@@ -93,7 +96,9 @@ document.getElementById('play').onclick = () => { playing = !playing; document.g
 function draw(force){ overlay.setProps({layers: layers()}); const now = performance.now(); if (force || now - lastHud > 250) { hud(); lastHud = now; } }
 function loop(ts){ if (playing) { if (last != null) t = Math.min(T, t + (ts - last) / 1000 * +document.getElementById('speed').value); last = ts;
   if (t >= T) { playing = false; document.getElementById('play').textContent = '▶ Play'; } } draw(false); requestAnimationFrame(loop); }
-map.on('load', () => { draw(true); requestAnimationFrame(loop); });
+let started = false;
+function start(){ if (started) return; started = true; draw(true); requestAnimationFrame(loop); }
+map.on('load', start); map.on('styledata', () => setTimeout(start, 300));
 </script></body></html>"""
 
 
