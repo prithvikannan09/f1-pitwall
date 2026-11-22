@@ -125,7 +125,7 @@ pp.page()
 """).run(timeout=90)
     assert not at.exception
     tabs = [t.label for t in at.tabs]
-    assert tabs[:4] == ["Upgrades & pace", "Tyre strategy & weather", "What if", "Season: driver form"]
+    assert tabs[:5] == ["3D race replay", "Upgrades & pace", "Tyre strategy & weather", "What if", "Season: driver form"]
     text = " ".join(m.value for m in at.markdown)
     assert "Race pace by team" in text and "Best tyre strategy" in text
     assert "What if they had skipped a pit stop?" in text
@@ -377,3 +377,22 @@ def test_lap_3d_animates_both_cars():
     fig = track3d.lap_3d(cmp, "HAM", "LEC", "#E80020", "#FFD12E")
     assert len(fig.frames) == len(times) and "HAM ahead" in fig.frames[-3].layout.title.text
     assert fig.data[0].type == "scatter3d"
+
+
+def test_georef_recovers_a_rotated_scaled_track():
+    import numpy as np
+
+    from f1analytics.pitwall import georef
+
+    geo = georef.outline("Las Vegas")
+    assert geo is not None and georef.outline("Marina Bay") is not None and georef.outline("São Paulo") is not None
+    origin = (geo[:, 0].mean(), geo[:, 1].mean())
+    local = georef.to_local(geo, origin)
+    th = np.radians(37)
+    R = np.array([[np.cos(th), -np.sin(th)], [np.sin(th), np.cos(th)]])
+    fake = (local @ R.T) * 10.0 + np.array([5000.0, -3000.0])
+    fake = np.roll(fake, 50, axis=0)
+    tf = georef.fit(fake, "Las Vegas")
+    assert tf["rms_m"] < 15
+    back = georef.apply(tf, fake[:5])
+    assert np.abs(back - np.roll(geo, 50, axis=0)[:5]).max() < 2e-4

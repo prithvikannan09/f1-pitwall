@@ -379,7 +379,17 @@ def page():
         m, _, _ = model_for(race["key"])
     except Exception:
         m = None
-    t1, t2, t3, t5 = st.tabs(["Upgrades & pace", "Tyre strategy & weather", "What if", "Season: driver form"])
+    t0, t1, t2, t3, t5 = st.tabs(["3D race replay", "Upgrades & pace", "Tyre strategy & weather", "What if", "Season: driver form"])
+    with t0:
+        from f1analytics.ui import replay3d
+
+        try:
+            replay3d.render(race["key"], [code.get(n) for n in (num, rival) if n is not None])
+        except Exception:
+            import logging
+
+            logging.getLogger("f1analytics").exception("3d replay failed")
+            st.warning("The 3D replay hit a snag for this race.")
     with t5:
         try:
             driver_form_tab(code.get(num))
