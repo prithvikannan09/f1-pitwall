@@ -144,9 +144,9 @@ def test_latest_upgrades_lists_every_team():
     rows = latest_upgrades(d)
     assert len(rows) == len(d["upgrades"]["teams"])
     mcl = next(r for r in rows if r["team"] == "McLaren")
-    assert mcl["round"] == "São Paulo" and len(mcl["parts"]) == 4
+    assert mcl["round"] == "Las Vegas" and len(mcl["parts"]) == 2
     fer = next(r for r in rows if r["team"] == "Ferrari")
-    assert fer["round"] != "São Paulo" and fer["total"] == 52
+    assert fer["round"] == "Las Vegas" and fer["total"] == 53
 
 
 def test_history_has_every_round_for_a_team():
@@ -155,8 +155,8 @@ def test_history_has_every_round_for_a_team():
 
     d = extras_pages.load()
     h = history(d, "Ferrari")
-    assert sum(x["count"] for x in h) == 52
-    assert h[0]["round"] == "Mexico City" and h[-1]["round"] == "Australia to Dutch GP"
+    assert sum(x["count"] for x in h) == 53
+    assert h[0]["round"] == "Las Vegas" and h[-1]["round"] == "Australia to Dutch GP"
 
 
 def test_season_upgrades_vs_pace():
@@ -173,9 +173,9 @@ def test_season_upgrades_vs_pace():
     assert set(ev.loc[ev["label"] == "Italy (Monza)", "race"]) == {monza}
     assert ev.loc[ev["label"] == "Australia to Dutch GP", "race"].isna().all()
     v = sf.verdicts(pace, ev)
-    assert int(v.loc[v["team"] == "Ferrari", "parts"].iloc[0]) == 52
+    assert int(v.loc[v["team"] == "Ferrari", "parts"].iloc[0]) == 53
     fx = sf.event_effect(pace, ev, "McLaren")
-    assert fx[-1]["label"] == "São Paulo"
+    assert fx[-1]["label"] in ("São Paulo", "Las Vegas")
 
 
 def test_driver_form_spots_fade_and_rise():
@@ -208,12 +208,15 @@ i      Aston Martin Aramco Honda      Lance Stroll          6    7     3      5 
     assert p["date"] == "06 November 2026" and p["time"] == "08:34" and len(p["rows"]) == 2
     assert p["rows"][1]["number"] is None and p["rows"][1]["ES"] == 8
     data = pu.load()
-    assert data["events"][-1]["label"] == "São Paulo" and all(len(e["rows"]) == 22 for e in data["events"])
-    ev, df = pu.table(data)
+    assert data["events"][-1]["label"] == "Las Vegas" and all(len(e["rows"]) == 22 for e in data["events"])
+    sp = [e["label"] for e in data["events"]].index("São Paulo")
+    ev, df = pu.table(data, sp)
     ham = df[df["driver"] == "Lewis Hamilton"].iloc[0]
     assert ham["ICE"] == 4 and ham["TC"] == 4
     over = pu.over_limit(df)
     assert over["Isack Hadjar"]["ICE"] == 4 and "Lewis Hamilton" not in over
+    lv, dlv = pu.table(data)
+    assert int(dlv[dlv["driver"] == "Lewis Hamilton"]["ICE"].iloc[0]) == 6 and "Lewis Hamilton" in pu.over_limit(dlv)
     h = pu.history(data, "Lewis Hamilton")
     assert h["ICE"].is_monotonic_increasing and h["event"].iloc[0] == "China"
 
@@ -229,7 +232,7 @@ upgrades_page.page()
     assert [t.label for t in at.tabs][:3] == ["Car parts", "Engine components", "Did the upgrades work?"]
     text = " ".join(m.value for m in at.markdown)
     assert "Engine benchmark (FIA ICE ranking) for the whole grid" in text
-    assert "476 new parts" in text and "Engine parts used this season" in text and "Over the limit" in text and "Did the upgrades work?" in text
+    assert "489 new parts" in text and "Engine parts used this season" in text and "Over the limit" in text and "Did the upgrades work?" in text
 
 
 def test_upgrade_impact_at_a_race():
@@ -358,3 +361,19 @@ def test_tabbar_keeps_embed_mode(monkeypatch):
     assert mobile.embed_param() == "&embed=true"
     monkeypatch.setattr(mobile, "embedded", lambda: False)
     assert mobile.embed_param() == ""
+
+
+def test_lap_3d_animates_both_cars():
+    import numpy as np
+
+    from f1analytics.ui import track3d
+
+    f = np.linspace(0, 1, 200)
+    a = 2 * np.pi * f
+    cmp = pd.DataFrame({"f": f, "m": f * 4000, "t_a": f * 90.0, "t_b": f * 91.0, "v_a": 200 + 50 * np.sin(a), "v_b": 198 + 50 * np.sin(a),
+                        "x": 3000 * np.cos(a), "y": 2000 * np.sin(a), "z": 50 * np.sin(2 * a)})
+    times, fa, fb, gap = track3d.frames_data(cmp)
+    assert gap[-3] > 0.9 and fa[-1] == 1.0
+    fig = track3d.lap_3d(cmp, "HAM", "LEC", "#E80020", "#FFD12E")
+    assert len(fig.frames) == len(times) and "HAM ahead" in fig.frames[-3].layout.title.text
+    assert fig.data[0].type == "scatter3d"

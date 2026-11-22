@@ -1,5 +1,5 @@
 {
- "as_of": "9 Nov 2026 (after the São Paulo GP)",
+ "as_of": "22 Nov 2026 (after the Las Vegas GP)",
  "upgrades": {
   "teams": [
    "McLaren",
@@ -348,6 +348,52 @@
       "Floor furniture: changed (all performance)"
      ]
     }
+   },
+   {
+    "label": "Las Vegas",
+    "src": "fia",
+    "counts": {
+     "McLaren": 2,
+     "Red Bull": 1,
+     "Ferrari": 1,
+     "Cadillac": 0,
+     "Racing Bulls": 3,
+     "Audi": 1,
+     "Mercedes": 4,
+     "Haas": 1,
+     "Aston Martin": 0,
+     "Alpine": 0,
+     "Williams": 0
+    },
+    "items": {
+     "McLaren": [
+      "Floor board and floor edge: new (flow conditioning)",
+      "Rear floor furniture: modified (efficiency)"
+     ],
+     "Mercedes": [
+      "Rear wing: winglets removed (low drag for Vegas)",
+      "Front bodywork: mirror rear stay trimmed (low drag)",
+      "Rear corner: winglet position and span changed",
+      "Engine cover: narrower rear exit (less cooling needed)"
+     ],
+     "Red Bull": [
+      "Front wing endplate: dive-plane lowered and shortened"
+     ],
+     "Ferrari": [
+      "Floor board: single vertical element (low drag for Vegas)"
+     ],
+     "Racing Bulls": [
+      "Floor board: shorter elements (low drag)",
+      "Rear corner: brake drum winglets changed (low drag)",
+      "Front wing: low-balance flap with reduced chord and incidence"
+     ],
+     "Haas": [
+      "Rear wing: revised Straight Mode arrangement (drag reduction)"
+     ],
+     "Audi": [
+      "Rear corner: rear brake duct deflector updated (low drag)"
+     ]
+    }
    }
   ]
  },
@@ -371,6 +417,10 @@
   "coffeecorner": [
    "Coffee Corner Motorsport: race-by-race FIA upgrade lists",
    "https://coffeecornermotorsport.com/f1-sao-paulo-grand-prix-2026-upgrades/"
+  ],
+  "lasvegas": [
+   "FIA: Las Vegas GP car presentation submissions",
+   "https://www.fia.com/system/files/decision-document/2026_las_vegas_grand_prix_-_car_presentation_submissions.pdf"
   ]
  },
  "destructors": {

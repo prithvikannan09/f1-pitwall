@@ -59,6 +59,8 @@ def trace(car, loc, t0, t1, lap_time=None, sectors=None):
             ps = (p["t"] - pd.Timestamp(t0)).dt.total_seconds().to_numpy(dtype=float)
             out["x"] = np.interp(sec, ps, _num(p["x"]).to_numpy(dtype=float))
             out["y"] = np.interp(sec, ps, _num(p["y"]).to_numpy(dtype=float))
+            if "z" in p:
+                out["z"] = np.interp(sec, ps, _num(p["z"]).fillna(0).to_numpy(dtype=float))
     out["f"] = out["d"] / out["d"].iloc[-1]
     return out
 
@@ -108,6 +110,8 @@ def compare(a, b, n=GRID_N):
     if src is not None:
         res["x"] = np.interp(f, src["f"], src["x"])
         res["y"] = np.interp(f, src["f"], src["y"])
+        if "z" in src:
+            res["z"] = np.interp(f, src["f"], src["z"])
     return res
 
 

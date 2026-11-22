@@ -346,6 +346,15 @@ def telemetry_section(raw, laps, sk, a, b, ca, cb, col_a, col_b):
     if "x" in cmp:
         st.plotly_chart(track_map(cmp, seg, ca, cb, col_a, col_b, corners), use_container_width=True, config={"displayModeBar": False})
     st.plotly_chart(traces_chart(cmp, ca, cb, col_a, col_b, seg), use_container_width=True, config={"displayModeBar": False})
+    if "x" in cmp and st.toggle("3D lap replay", key=f"duel_3d_{sk}_{la}_{lb}"):
+        from f1analytics.ui.track3d import lap_3d
+
+        fig3 = lap_3d(cmp, ca, cb, col_a, col_b)
+        if fig3 is not None:
+            st.plotly_chart(fig3, use_container_width=True, config={"displayModeBar": False})
+            st.caption(f"Press Play or drag the slider; drag the track to turn it, pinch to zoom. Track colour shows who is quicker there: "
+                       f"{ca}'s colour = {ca} faster, {cb}'s colour = {cb} faster, grey = level. Height is exaggerated {int(4)}× so the slopes show. "
+                       "Positions from OpenF1 GPS, about 4 a second, smoothed onto one racing line.")
     wear_section(raw, laps, a, b, ca, cb, col_a, col_b, la, lb)
     gaps = [c for c, k in ((ca, "gap_a"), (cb, "gap_b")) if seg[k].any()]
     how("both laps are placed on the track using the cars' GPS positions, then lined up so they start together. "

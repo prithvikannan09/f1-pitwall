@@ -144,6 +144,8 @@ def wrap_title(text, width=40):
 
 
 def tidy(fig):
+    if getattr(fig, "_pw_no_tidy", False) or fig.frames:
+        return fig
     t = fig.layout.title.text if fig.layout.title and fig.layout.title.text else None
     shown = any(getattr(tr, "showlegend", None) is not False and getattr(tr, "name", None) for tr in fig.data) and fig.layout.showlegend is not False
     top = 16

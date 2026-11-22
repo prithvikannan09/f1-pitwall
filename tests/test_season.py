@@ -51,7 +51,7 @@ def test_extras_totals_and_destructors():
     from f1analytics.ui import extras_pages as ep
     d = ep.load()
     tot = ep.upgrade_totals(d)
-    assert tot.sum() == 476 and tot.index[0] == "McLaren" and tot["Ferrari"] == 52
+    assert tot.sum() == 489 and tot.index[0] == "McLaren" and tot["Ferrari"] == 53
     teams, drivers = ep.destructors_teams(d)
     assert teams.sum() == 27_468_000 and teams.index[0] == "Haas"
     assert list(teams.index).index("Ferrari") == 4 and drivers.iloc[0]["driver"] == "Bearman"
@@ -66,7 +66,7 @@ ep.destructors_page()
 """).run(timeout=60)
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
-    assert "476 new parts" in text and "Destructors" in text and "Ferrari are P5" in text
+    assert "489 new parts" in text and "Destructors" in text and "Ferrari are P5" in text
 
 
 def test_upgrade_parts_listed_from_monza():
@@ -74,7 +74,7 @@ def test_upgrade_parts_listed_from_monza():
     from f1analytics.ui import extras_pages as ep
     d = ep.load()
     labelled = [r["label"] for r in d["upgrades"]["rounds"] if r.get("items")]
-    assert labelled[0] == "Italy (Monza)" and labelled[-1] == "São Paulo"
+    assert labelled[0] == "Italy (Monza)" and labelled[-1] == "Las Vegas"
     at = AppTest.from_string("from f1analytics.ui import extras_pages as ep\nep.upgrades_page()").run(timeout=60)
     assert not at.exception
     text = " ".join(m.value for m in at.markdown)
