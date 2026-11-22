@@ -7,11 +7,7 @@ from f1analytics.pitwall import replay
 
 MAPLIBRE = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl"
 DECK = "https://unpkg.com/deck.gl@9.0.38/dist.min.js"
-STYLE = {"version": 8, "sources": {"carto": {"type": "raster", "tileSize": 256, "maxzoom": 19,
-          "tiles": [f"https://{c}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}@2x.png" for c in "abcd"],
-          "attribution": "© OpenStreetMap contributors © CARTO"}},
-         "layers": [{"id": "bg", "type": "background", "paint": {"background-color": "#101016"}},
-                    {"id": "carto", "type": "raster", "source": "carto", "paint": {"raster-opacity": 0.95}}]}
+STYLE = "https://tiles.openfreemap.org/styles/dark"
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
 <link href="__MAPLIBRE__.css" rel="stylesheet">
@@ -121,5 +117,5 @@ def render(session_key, focus=(), height=460):
     components.html(html, height=height + 70, scrolling=False)
     st.caption(f"Every car's real position from OpenF1 GPS, every {data['dt']:.0f} seconds, smoothed between points, placed on a real street map "
                f"(track lined up with its real outline to about {data['fit_rms_m']:.0f} m). Drag to pan, right-drag or two-finger drag to tilt and turn, pinch to zoom. "
-               "Map © OpenStreetMap contributors, © CARTO. Circuit outlines: bacinger/f1-circuits (MIT).")
+               "Map: OpenFreeMap, © OpenMapTiles, data © OpenStreetMap contributors (free, no key needed). Circuit outlines: bacinger/f1-circuits (MIT).")
     return True
