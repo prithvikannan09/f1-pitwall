@@ -7,7 +7,11 @@ from f1analytics.pitwall import replay
 
 MAPLIBRE = "https://unpkg.com/maplibre-gl@4.7.1/dist/maplibre-gl"
 DECK = "https://unpkg.com/deck.gl@9.0.38/dist.min.js"
-STYLE = "https://basemaps.cartocdn.com/gl/dark-matter-gl-style/style.json"
+STYLE = {"version": 8, "sources": {"carto": {"type": "raster", "tileSize": 256, "maxzoom": 19,
+          "tiles": [f"https://{c}.basemaps.cartocdn.com/dark_all/{{z}}/{{x}}/{{y}}@2x.png" for c in "abcd"],
+          "attribution": "© OpenStreetMap contributors © CARTO"}},
+         "layers": [{"id": "bg", "type": "background", "paint": {"background-color": "#101016"}},
+                    {"id": "carto", "type": "raster", "source": "carto", "paint": {"raster-opacity": 0.95}}]}
 
 HTML = """<!doctype html><html><head><meta charset="utf-8">
 <link href="__MAPLIBRE__.css" rel="stylesheet">
@@ -49,7 +53,7 @@ function at(c, t){ const i = t / dt, a = Math.floor(i), f = i - a; if (a < 0 || 
   const x0 = c.lon[a], y0 = c.lat[a], x1 = c.lon[a+1], y1 = c.lat[a+1];
   if (x0 == null || x1 == null) return x0 == null ? null : [x0, y0]; return [x0 + (x1-x0)*f, y0 + (y1-y0)*f]; }
 const lons = D.track.map(p=>p[0]), lats = D.track.map(p=>p[1]);
-const map = new maplibregl.Map({container:'map', style:'__STYLE__', center:[(Math.min(...lons)+Math.max(...lons))/2,(Math.min(...lats)+Math.max(...lats))/2],
+const map = new maplibregl.Map({container:'map', style:__STYLE__, center:[(Math.min(...lons)+Math.max(...lons))/2,(Math.min(...lats)+Math.max(...lats))/2],
   zoom: 13, pitch: 55, bearing: -15, attributionControl: {compact: true}});
 map.addControl(new maplibregl.NavigationControl({visualizePitch:true}), 'top-right');
 const BLANK = {version: 8, sources: {}, layers: [{id: 'bg', type: 'background', paint: {'background-color': '#101016'}}]};
@@ -112,7 +116,7 @@ def render(session_key, focus=(), height=460):
         st.info("The 3D replay for this race hasn't been built yet. It's made on the Mac with `python scripts/build_replay.py "
                 f"{int(session_key)}` and then pushed.")
         return False
-    html = (HTML.replace("__MAPLIBRE__", MAPLIBRE).replace("__DECK__", DECK).replace("__STYLE__", STYLE).replace("__H__", str(height))
+    html = (HTML.replace("__MAPLIBRE__", MAPLIBRE).replace("__DECK__", DECK).replace("__STYLE__", json.dumps(STYLE)).replace("__H__", str(height))
             .replace("__FOCUS__", json.dumps([str(f) for f in focus])).replace("__DATA__", json.dumps(data, separators=(",", ":"))))
     components.html(html, height=height + 70, scrolling=False)
     st.caption(f"Every car's real position from OpenF1 GPS, every {data['dt']:.0f} seconds, smoothed between points, placed on a real street map "
