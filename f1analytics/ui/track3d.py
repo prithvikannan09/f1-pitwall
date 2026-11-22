@@ -60,13 +60,15 @@ def lap_3d(cmp, ca, cb, col_a, col_b, height=460):
         paper_bgcolor="rgba(0,0,0,0)", font=dict(family="Michroma, sans-serif", color="#F3F3F5", size=10), margin=dict(l=0, r=0, t=40, b=0),
         scene=dict(xaxis=dict(visible=False), yaxis=dict(visible=False), zaxis=dict(visible=False),
                    aspectmode="manual", aspectratio=dict(x=(cmp["x"].max() - cmp["x"].min()) / span, y=(cmp["y"].max() - cmp["y"].min()) / span, z=0.25),
-                   camera=dict(eye=dict(x=0.9, y=-1.25, z=0.85)), bgcolor="rgba(0,0,0,0)"),
+                   camera=dict(eye=dict(x=0.55, y=-0.8, z=0.55)), bgcolor="rgba(0,0,0,0)"),
         updatemenus=[dict(type="buttons", direction="left", x=0, y=0, xanchor="left", yanchor="top", pad=dict(t=6),
+                          bgcolor="#232330", bordercolor="#2E2E3A", font=dict(color="#F3F3F5", size=11),
                           buttons=[dict(label="▶ Play", method="animate",
                                         args=[None, dict(frame=dict(duration=int(STEP_S * 1000 / 2), redraw=True), fromcurrent=True, transition=dict(duration=0))]),
                                    dict(label="❚❚ Pause", method="animate", args=[[None], dict(mode="immediate", frame=dict(duration=0, redraw=False))])])],
-        sliders=[dict(x=0.25, y=0, len=0.75, pad=dict(t=6), currentvalue=dict(visible=False),
-                      steps=[dict(method="animate", label=f"{times[i]:.0f}", args=[[str(i)], dict(mode="immediate", frame=dict(duration=0, redraw=True))])
+        sliders=[dict(x=0.3, y=0, len=0.7, pad=dict(t=6), currentvalue=dict(visible=False), bgcolor="#2E2E3A", bordercolor="#2E2E3A",
+                      activebgcolor="#E10600", font=dict(color="#A3A3B2", size=9), ticklen=0, minorticklen=0,
+                      steps=[dict(method="animate", label=(f"{times[i]:.0f}s" if i % 40 == 0 else ""), args=[[str(i)], dict(mode="immediate", frame=dict(duration=0, redraw=True))])
                              for i in range(0, len(times), 1)])])
     fig._pw_no_tidy = True
     return fig
